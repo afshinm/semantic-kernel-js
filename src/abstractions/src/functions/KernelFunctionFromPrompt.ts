@@ -73,7 +73,7 @@ export class KernelFunctionFromPrompt extends KernelFunction<
     });
   }
 
-  override invokeCore = async (kernel: Kernel, args: KernelArguments<PromptType>) => {
+  override invokeCore = async (kernel: Kernel, args: KernelArguments<PromptType, Record<string, unknown>>) => {
     const { renderedPrompt, AIService, executionSettings } = await this.renderPrompt(kernel, args);
 
     if (AIService.serviceType === 'ChatCompletion') {
@@ -106,7 +106,7 @@ export class KernelFunctionFromPrompt extends KernelFunction<
     throw new Error(`Unsupported AI service type: ${AIService.serviceType}`);
   };
 
-  override async *invokeStreamingCore<T>(kernel: Kernel, args: KernelArguments<PromptType>): AsyncGenerator<T> {
+  override async *invokeStreamingCore<T>(kernel: Kernel, args: KernelArguments<PromptType, Record<string, unknown>>): AsyncGenerator<T> {
     const { renderedPrompt, AIService, executionSettings } = await this.renderPrompt(kernel, args);
 
     if (AIService.serviceType === 'ChatCompletion') {
@@ -126,7 +126,7 @@ export class KernelFunctionFromPrompt extends KernelFunction<
     throw new Error(`Unsupported AI service type: ${AIService.serviceType}`);
   }
 
-  private getPromptTemplate = (args: object): PromptTemplate => {
+  private getPromptTemplate = (args: KernelArguments<PromptType, Record<string, unknown>>): PromptTemplate => {
     switch (this.promptTemplateConfig.templateFormat) {
       case 'passthrough':
         // return new PassThroughPromptTemplate(this.promptTemplateConfig.template);
@@ -136,7 +136,7 @@ export class KernelFunctionFromPrompt extends KernelFunction<
     }
   };
 
-  private async renderPrompt(kernel: Kernel, args: KernelArguments<PromptType>): Promise<PromptRenderingResult> {
+  private async renderPrompt(kernel: Kernel, args: KernelArguments<PromptType, Record<string, unknown>>): Promise<PromptRenderingResult> {
     const promptTemplate = this.getPromptTemplate(args);
 
     const { service, executionSettings } =

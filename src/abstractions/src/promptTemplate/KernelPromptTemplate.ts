@@ -1,10 +1,11 @@
+import { KernelArguments } from '../functions';
 import { PromptTemplate } from './PromptTemplate';
 import { handlebarsPromptTemplate } from './handlebarsPromptTemplate';
 
 export class KernelPromptTemplate implements PromptTemplate {
   constructor(
     private readonly template: string,
-    private readonly args: object
+    private readonly args: KernelArguments
   ) {}
 
   render() {
