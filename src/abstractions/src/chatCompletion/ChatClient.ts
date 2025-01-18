@@ -1,12 +1,9 @@
-import { ChatMessage } from "./ChatMessage";
+import { ChatMessage } from './ChatMessage';
 
 export interface ChatClient {
-    complete(
-        chatMessages: ChatMessage[],
-        options?: ChatOptions,
-    ): Promise<ChatCompletion>;
+  complete(chatMessages: ChatMessage[], options?: ChatOptions): Promise<ChatCompletion>;
 
-    /** 
+  /** 
      * TODO
     completeStreaming(
         chatMessages: ChatMessage[],
