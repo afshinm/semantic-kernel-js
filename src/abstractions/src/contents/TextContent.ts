@@ -1,35 +1,22 @@
-import { Encoding } from './Encoding';
-import { InnerContent } from './InnerContent';
-import { KernelContent } from './KernelContent';
-import { ModelId } from './ModelId';
+import { AIContent } from './AIContent';
 
-/**
- * Represents text content return from a text completion service.
- */
-export class TextContent extends KernelContent {
-  /**
-   * Encoding of the text content.
-   */
-  encoding: Encoding;
+export class TextContent extends AIContent {
+  private _text?: string;
 
-  /**
-   * The text content.
-   */
-  text?: string;
+  constructor(text?: string) {
+    super();
+    this._text = text;
+  }
 
-  constructor(props: {
-    text?: string;
-    modelId?: ModelId;
-    innerContent?: InnerContent;
-    encoding?: Encoding;
-    metadata?: { [key: string]: string | number | object | undefined | null };
-  }) {
-    super(props);
-    this.text = props.text;
-    this.encoding = props.encoding ?? 'utf-8';
+  get text(): string {
+    return this._text ?? '';
+  }
+
+  set text(value: string) {
+    this._text = value;
   }
 
   override toString(): string {
-    return this.text ?? '';
+    return this.text;
   }
 }
