@@ -1,4 +1,5 @@
 import { ChatMessage } from './ChatMessage';
+import { ChatOptions } from './ChatOptions';
 
 export interface ChatClient {
   complete(chatMessages: ChatMessage[], options?: ChatOptions): Promise<ChatCompletion>;

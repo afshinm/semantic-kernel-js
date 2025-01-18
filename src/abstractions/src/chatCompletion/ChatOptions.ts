@@ -1,3 +1,4 @@
+import { AITool } from '../AITool';
 import { AdditionalProperties } from '../AdditionalProperties';
 import { ChatResponseFormat } from './ChatResponseFormat';
 import { ChatToolMode } from './ChatToolMode';
