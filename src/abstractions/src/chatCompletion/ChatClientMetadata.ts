@@ -1,5 +1,3 @@
-import { ModelId } from '../contents/ModelId';
-
 /**
  * Provides metadata about an ChatClient
  */
@@ -20,7 +18,7 @@ export class ChatClientMetadata {
   }: {
     providerName?: string;
     providerUri?: string;
-    modelId?: ModelId;
+    modelId?: string;
   }) {
     this.modelId = modelId;
     this.providerName = providerName;
@@ -44,5 +42,5 @@ export class ChatClientMetadata {
    * This value can be null if either the name is unknown or there are multiple possible models associated with this instance.
    * An individual request may override this value via ChatOptions.ModelId
    */
-  readonly modelId?: ModelId;
+  readonly modelId?: string;
 }

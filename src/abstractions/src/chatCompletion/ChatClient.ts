@@ -1,8 +1,8 @@
 import { AIServiceType } from '../services';
+import { ChatClientMetadata } from './ChatClientMetadata';
 import { ChatCompletion } from './ChatCompletion';
 import { ChatMessage } from './ChatMessage';
 import { ChatOptions } from './ChatOptions';
-import { ChatClientMetadata } from './ClientChatMetadata';
 
 export interface ChatClient {
   complete(chatMessages: ChatMessage[], options?: ChatOptions): Promise<ChatCompletion>;

@@ -33,26 +33,26 @@ export class ChatMessageContent<Role = 'system' | 'author' | 'user' | 'assistant
   /**
    * The encoding of the chat message content.
    */
-  private _encoding?: Encoding;
+  // private _encoding?: Encoding;
 
-  get encoding(): Encoding | undefined {
-    const textContents = this.items.filter((item) => item instanceof TextContent) as TextContent[];
-    if (textContents.length > 0) {
-      return textContents[0].encoding;
-    }
+  // get encoding(): Encoding | undefined {
+  //   const textContents = this.items.filter((item) => item instanceof TextContent) as TextContent[];
+  //   if (textContents.length > 0) {
+  //     return textContents[0].encoding;
+  //   }
 
-    return this._encoding;
-  }
+  //   return this._encoding;
+  // }
 
-  set encoding(value: Encoding) {
-    this._encoding = value;
+  // set encoding(value: Encoding) {
+  //   this._encoding = value;
 
-    const textContents = this.items.filter((item) => item instanceof TextContent) as TextContent[];
+  //   const textContents = this.items.filter((item) => item instanceof TextContent) as TextContent[];
 
-    if (textContents.length > 0) {
-      textContents[0].encoding = value;
-    }
-  }
+  //   if (textContents.length > 0) {
+  //     textContents[0].encoding = value;
+  //   }
+  // }
 
   /**
    * A convenience property to get he text of the first item in the items.
@@ -73,7 +73,7 @@ export class ChatMessageContent<Role = 'system' | 'author' | 'user' | 'assistant
     role,
     items,
     authorName,
-    encoding,
+    // encoding,
     source,
     ...props
   }: {
@@ -87,7 +87,7 @@ export class ChatMessageContent<Role = 'system' | 'author' | 'user' | 'assistant
     this.role = role;
     this.items = items;
     this.authorName = authorName;
-    this._encoding = encoding;
+    // this._encoding = encoding;
     this.source = source;
   }
 
