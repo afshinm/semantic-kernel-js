@@ -1,4 +1,11 @@
-import { ChatClient, ChatClientMetadata } from '@semantic-kernel/abstractions';
+import { toOpenAIChatMessages, toOpenAIChatOptions } from './mapper/chatCompletionMapper';
+import {
+  ChatClient,
+  ChatClientMetadata,
+  ChatCompletion,
+  ChatMessage,
+  ChatOptions,
+} from '@semantic-kernel/abstractions';
 import OpenAI from 'openai';
 
 export class OpenAIChatClient implements ChatClient {
@@ -22,9 +29,21 @@ export class OpenAIChatClient implements ChatClient {
   }
 
   complete(chatMessages: ChatMessage[], options?: ChatOptions): Promise<ChatCompletion> {
-    return this._openAIClient.chat.completions.create({
-      messages: [{ role: 'user', content: 'How can I list all files in a directory using Python?' }],
-      model: 'gpt-4o',
-    });
+    const modelId = this.metadata.modelId ?? options?.modelId;
+
+    if (!modelId) {
+      throw new Error('Model ID is required');
+    }
+
+    const messages = toOpenAIChatMessages(chatMessages);
+    const chatCompletionCreateParams = toOpenAIChatOptions(options);
+
+    const params: OpenAI.Chat.ChatCompletionCreateParams = {
+      messages,
+      model: modelId,
+      ...chatCompletionCreateParams
+    };
+
+    return this._openAIClient.chat.completions.create(params);
   }
 }

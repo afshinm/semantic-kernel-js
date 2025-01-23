@@ -1,4 +1,10 @@
-import { ChatOptions } from '@semantic-kernel/abstractions';
+import {
+  AIFunction,
+  AutoChatToolMode,
+  ChatMessage,
+  ChatOptions,
+  RequiredChatToolMode,
+} from '@semantic-kernel/abstractions';
 import OpenAI from 'openai';
 
 export const toOpenAIChatOptions = (
@@ -31,11 +37,16 @@ export const toOpenAIChatOptions = (
     }
 
     if (chatOptions.additionalProperties.has('logit_bias')) {
-      chatCompletionCreateParams.logit_bias = chatOptions.additionalProperties.get('logit_bias') as Record<number, number>;
+      chatCompletionCreateParams.logit_bias = chatOptions.additionalProperties.get('logit_bias') as Record<
+        number,
+        number
+      >;
     }
 
     if (chatOptions.additionalProperties.has('parallel_tool_calls')) {
-      chatCompletionCreateParams.parallel_tool_calls = chatOptions.additionalProperties.get('parallel_tool_calls') as boolean;
+      chatCompletionCreateParams.parallel_tool_calls = chatOptions.additionalProperties.get(
+        'parallel_tool_calls'
+      ) as boolean;
     }
 
     if (chatOptions.additionalProperties.has('top_logprobs')) {
@@ -43,5 +54,50 @@ export const toOpenAIChatOptions = (
     }
   }
 
+  if (chatOptions.tools?.length) {
+    for (const tool of chatOptions.tools) {
+      if (tool instanceof AIFunction) {
+        if (!chatCompletionCreateParams.tools) {
+          chatCompletionCreateParams.tools = [];
+        }
+
+        chatCompletionCreateParams.tools.push(toOpenAIChatTool(tool));
+      }
+    }
+
+    if (chatOptions.toolMode instanceof AutoChatToolMode) {
+      chatCompletionCreateParams.tool_choice = 'auto';
+    } else if (chatOptions.toolMode instanceof RequiredChatToolMode) {
+      chatCompletionCreateParams.tool_choice = chatOptions.toolMode.requiredFunctionName
+        ? {
+            function: {
+              name: chatOptions.toolMode.requiredFunctionName,
+            },
+            type: 'function',
+          }
+        : 'required';
+    }
+  }
+
   return chatCompletionCreateParams;
+};
+
+const toOpenAIChatTool = (aiFunction: AIFunction): OpenAI.Chat.Completions.ChatCompletionTool => {
+  const strict = aiFunction.metadata.additionalProperties?.get('strict') === true;
+
+  const functionDefinition = {
+    name: aiFunction.metadata.name,
+    description: aiFunction.metadata.description,
+    parameters: aiFunction.metadata.parameters,
+    strict,
+  };
+
+  return {
+    type: 'function',
+    function: functionDefinition,
+  };
+};
+
+export const toOpenAIChatMessages = (inputs: ChatMessage[]): OpenAI.Chat.ChatCompletionMessage[] => {
+  return [];
 };
