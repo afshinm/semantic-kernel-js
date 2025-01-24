@@ -1,4 +1,3 @@
-import { AIServiceType } from '../services';
 import { ChatClientMetadata } from './ChatClientMetadata';
 import { ChatCompletion } from './ChatCompletion';
 import { ChatMessage } from './ChatMessage';
@@ -16,5 +15,5 @@ export interface ChatClient {
     */
 
   get metadata(): ChatClientMetadata;
-  getService<T extends AIServiceType>(serviceType: T, serviceKey?: string): T | undefined;
+  getService<T>(serviceType: T, serviceKey?: string): object | undefined;
 }

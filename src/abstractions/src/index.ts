@@ -7,3 +7,4 @@ export * from './promptTemplate';
 export * from './jsonSchema';
 export * from './internalUtilities';
 export * from './chatCompletion';
+export * from "./UsageDetails";

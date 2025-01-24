@@ -1,15 +1,6 @@
-import {
-  AIContent,
-  AIFunction,
-  AutoChatToolMode,
-  ChatMessage,
-  ChatOptions,
-  FunctionCallContent,
-  FunctionResultContent,
-  RequiredChatToolMode,
-  TextContent,
-} from '@semantic-kernel/abstractions';
+import { AIContent, AIFunction, AutoChatToolMode, ChatCompletion, ChatFinishReason, ChatMessage, ChatOptions, FunctionCallContent, FunctionResultContent, RequiredChatToolMode, TextContent, UsageDetails } from '@semantic-kernel/abstractions';
 import OpenAI from 'openai';
+
 
 export const toOpenAIChatOptions = (
   chatOptions?: ChatOptions
@@ -192,6 +183,96 @@ export const toOpenAIChatMessages = (inputs: ChatMessage[]): OpenAI.Chat.ChatCom
       messages.push(message);
     }
   }
-  
+
   return messages;
-}
+};
+
+/**
+ * Converts an OpenAI finish reason to an Extensions finish reason.
+ */
+const fromOpenAIFinishReason = (
+  finishReason: OpenAI.ChatCompletion.Choice['finish_reason']
+): ChatFinishReason | undefined => {
+  if (!finishReason) {
+    return undefined;
+  }
+
+  switch (finishReason) {
+    case 'stop':
+      return 'stop';
+    case 'length':
+      return 'length';
+    case 'content_filter':
+      return 'content_filter';
+    case 'tool_calls':
+    case 'function_call':
+      return 'tool_calls';
+  }
+};
+
+const fromOpenAIUsage = (tokenUsage: OpenAI.Completions.CompletionUsage): UsageDetails => {
+  const usageDetails = new UsageDetails();
+  usageDetails.inputTokenCount = tokenUsage.prompt_tokens;
+  usageDetails.outputTokenCount = tokenUsage.completion_tokens;
+  usageDetails.totalTokenCount = tokenUsage.total_tokens;
+
+  return usageDetails;
+};
+
+export const fromOpenAIChatCompletion = ({
+  openAICompletion,
+  options,
+}: {
+  openAICompletion: OpenAI.Chat.Completions.ChatCompletion;
+  options?: ChatOptions;
+}): ChatCompletion => {
+  const choice = openAICompletion.choices[0];
+  const content = choice.message.content;
+  const role = choice.message.role;
+
+  const returnMessage = new ChatMessage({
+    content,
+    role,
+  });
+  returnMessage.rawRepresentation = openAICompletion;
+
+  if (choice.message.refusal) {
+    (returnMessage.additionalProperties ??= new Map()).set('refusal', choice.message.refusal);
+  }
+
+  if (options?.tools?.length) {
+    for (const toolCall of choice.message.tool_calls ?? []) {
+      const callContent = new FunctionCallContent({
+        name: toolCall.function.name,
+        callId: toolCall.id,
+        arguments: JSON.parse(toolCall.function.arguments),
+      });
+      callContent.rawRepresentation = toolCall;
+
+      returnMessage.contents.push(callContent);
+    }
+  }
+
+  const completion = new ChatCompletion({
+    message: returnMessage,
+  });
+  completion.rawRepresentation = openAICompletion;
+  completion.completionId = openAICompletion.id;
+  completion.createdAt = openAICompletion.created;
+  completion.modelId = openAICompletion.model;
+  completion.finishReason = fromOpenAIFinishReason(choice.finish_reason);
+
+  if (openAICompletion.usage) {
+    completion.usage = fromOpenAIUsage(openAICompletion.usage);
+  }
+
+  if (choice.message.refusal) {
+    (completion.additionalProperties ??= new Map()).set('refusal', choice.message.refusal);
+  }
+
+  if (openAICompletion.system_fingerprint) {
+    (completion.additionalProperties ??= new Map()).set('system_fingerprint', openAICompletion.system_fingerprint);
+  }
+
+  return completion;
+};
