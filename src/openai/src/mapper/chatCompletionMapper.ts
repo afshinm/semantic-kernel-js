@@ -1,9 +1,13 @@
 import {
+  AIContent,
   AIFunction,
   AutoChatToolMode,
   ChatMessage,
   ChatOptions,
+  FunctionCallContent,
+  FunctionResultContent,
   RequiredChatToolMode,
+  TextContent,
 } from '@semantic-kernel/abstractions';
 import OpenAI from 'openai';
 
@@ -98,6 +102,96 @@ const toOpenAIChatTool = (aiFunction: AIFunction): OpenAI.Chat.Completions.ChatC
   };
 };
 
-export const toOpenAIChatMessages = (inputs: ChatMessage[]): OpenAI.Chat.ChatCompletionMessage[] => {
-  return [];
+/**
+ * Converts a list of AIContent to a list of ChatCompletionContentPart"
+ */
+const toOpenAIChatContent = (contents: AIContent[]): OpenAI.Chat.ChatCompletionContentPart[] => {
+  const parts: OpenAI.Chat.ChatCompletionContentPart[] = [];
+
+  for (const content of contents) {
+    if (content instanceof TextContent) {
+      parts.push({ type: 'text', text: content.text });
+    }
+    // TODO: cover other content types e.g. ImageContent
+  }
+
+  if (parts.length === 0) {
+    parts.push({
+      type: 'text',
+      text: '',
+    });
+  }
+
+  return parts;
 };
+
+export const toOpenAIChatMessages = (inputs: ChatMessage[]): OpenAI.Chat.ChatCompletionMessageParam[] => {
+  const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
+
+  for (const input of inputs) {
+    if (input.role === 'system') {
+      const parts = toOpenAIChatContent(input.contents) as OpenAI.Chat.ChatCompletionContentPartText[];
+      messages.push({
+        role: input.role,
+        name: input.authorName,
+        content: parts,
+      });
+    } else if (input.role === 'user') {
+      const parts = toOpenAIChatContent(input.contents);
+      messages.push({
+        role: 'user',
+        name: input.authorName,
+        content: parts,
+      });
+    } else if (input.role === 'tool') {
+      for (const item of input.contents) {
+        if (item instanceof FunctionResultContent) {
+          let result = item.result as string;
+
+          if (!result && item.result) {
+            try {
+              result = JSON.stringify(item.result);
+            } catch {
+              // If the type can't be serialized, skip it.
+            }
+          }
+
+          messages.push({
+            role: 'tool',
+            tool_call_id: item.callId,
+            content: result || '',
+          });
+        }
+      }
+    } else if (input.role === 'assistant') {
+      const message: OpenAI.Chat.ChatCompletionAssistantMessageParam = {
+        role: 'assistant',
+        name: input.authorName,
+        content: toOpenAIChatContent(input.contents) as OpenAI.Chat.ChatCompletionContentPartText[],
+      };
+
+      for (const content of input.contents) {
+        if (content instanceof FunctionCallContent) {
+          if (!message.tool_calls) {
+            message.tool_calls = [];
+          }
+
+          message.tool_calls.push({
+            id: content.callId,
+            type: 'function',
+            function: {
+              name: content.name,
+              arguments: JSON.stringify(content.arguments),
+            },
+          });
+        }
+      }
+
+      message.refusal = input.additionalProperties?.get('refusal') as string | undefined | null;
+
+      messages.push(message);
+    }
+  }
+  
+  return messages;
+}
