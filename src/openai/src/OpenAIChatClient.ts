@@ -1,4 +1,4 @@
-import { toOpenAIChatMessages, toOpenAIChatOptions } from './mapper/chatCompletionMapper';
+import { fromOpenAIChatCompletion, toOpenAIChatMessages, toOpenAIChatOptions } from './mapper/chatCompletionMapper';
 import {
   ChatClient,
   ChatClientMetadata,
@@ -28,7 +28,23 @@ export class OpenAIChatClient implements ChatClient {
     return this._metadata;
   }
 
-  complete(chatMessages: ChatMessage[], options?: ChatOptions): Promise<ChatCompletion> {
+  getService<T>(serviceType: T, serviceKey?: string) {
+    if (serviceKey) {
+      return undefined;
+    }
+
+    if (serviceType === OpenAI) {
+      return this._openAIClient;
+    }
+
+    if (serviceType === OpenAIChatClient) {
+      return this;
+    }
+
+    return undefined;
+  }
+
+  async complete(chatMessages: ChatMessage[], options?: ChatOptions): Promise<ChatCompletion> {
     const modelId = this.metadata.modelId ?? options?.modelId;
 
     if (!modelId) {
@@ -41,9 +57,14 @@ export class OpenAIChatClient implements ChatClient {
     const params: OpenAI.Chat.ChatCompletionCreateParams = {
       messages,
       model: modelId,
-      ...chatCompletionCreateParams
+      ...chatCompletionCreateParams,
     };
 
-    return this._openAIClient.chat.completions.create(params);
+    const response = await this._openAIClient.chat.completions.create({
+      ...params,
+      stream: false,
+    });
+
+    return fromOpenAIChatCompletion({ openAICompletion: response, options });
   }
 }
