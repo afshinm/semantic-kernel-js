@@ -1,16 +1,15 @@
-import { KernelContent } from './KernelContent';
+import { AIContent } from './AIContent';
 
-export class FunctionResultContent<T = unknown> extends KernelContent {
-  callId?: string;
-  pluginName?: string;
-  functionName?: string;
-  result?: T;
+export class FunctionResultContent extends AIContent {
+  callId: string;
+  name: string;
+  result: unknown;
+  exception?: Error;
 
-  constructor(props: { callId?: string; pluginName?: string; functionName?: string; result?: T }) {
-    super({});
-    this.callId = props.callId;
-    this.pluginName = props.pluginName;
-    this.functionName = props.functionName;
-    this.result = props.result;
+  constructor({ callId, name, result }: { callId: string; name: string; result: unknown }) {
+    super();
+    this.callId = callId;
+    this.name = name;
+    this.result = result;
   }
 }
