@@ -1,6 +1,6 @@
-import { ChatToolMode } from './ChatToolMode';
+import { ChatToolModeBase } from './ChatToolModeBase';
 
-export class RequiredChatToolMode extends ChatToolMode {
+export class RequiredChatToolMode extends ChatToolModeBase {
   requiredFunctionName?: string;
 
   constructor(requiredFunctionName: string | undefined) {
