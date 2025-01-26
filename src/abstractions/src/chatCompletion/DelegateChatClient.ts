@@ -1,13 +1,13 @@
-import { AIServiceType } from '../services';
 import { ChatClient } from './ChatClient';
 import { ChatCompletion } from './ChatCompletion';
 import { ChatMessage } from './ChatMessage';
 import { ChatOptions } from './ChatOptions';
 
-export class DelegateChatClient implements ChatClient {
+export class DelegateChatClient extends ChatClient {
   protected _innerClient: ChatClient;
 
   protected constructor(innerClient: ChatClient) {
+    super();
     this._innerClient = innerClient;
   }
 
@@ -15,10 +15,10 @@ export class DelegateChatClient implements ChatClient {
     return this._innerClient.metadata;
   }
 
-  getService<T extends AIServiceType>(serviceType: T, serviceKey?: string): T | undefined {
+  getService<T>(serviceType: T, serviceKey?: string): object | undefined {
     // If the key is non-null, we don't know what it means so pass through to the inner service.
-    if (!serviceKey && serviceType instanceof this.constructor) {
-      return this as unknown as T;
+    if (!serviceKey && serviceType === DelegateChatClient) {
+      return this;
     }
 
     return this._innerClient.getService(serviceType, serviceKey);
