@@ -323,7 +323,7 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
 
     try {
       this.currentContext = context;
-      result = await context.function.invokeAsync(context.callContent.arguments);
+      result = await context.function.invoke(context.callContent.arguments);
     } catch (e) {
       console.error('Error invoking function', e);
       throw e;
@@ -334,13 +334,13 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
 
   private createFunctionResultContent(result: FunctionInvocationResult): FunctionResultContent {
     let functionResult: unknown | undefined;
-    if (result.status == FunctionStatus.CompletedSuccessfully) {
+    if (result.status === FunctionStatus.CompletedSuccessfully) {
       functionResult = result.result ?? 'Success: Function completed.';
     } else {
       let message = 'Error: Unknown error.';
-      if (result.status == FunctionStatus.NotFound) {
+      if (result.status === FunctionStatus.NotFound) {
         message = 'Error: Requested function not found.';
-      } else if (result.status == FunctionStatus.Failed) {
+      } else if (result.status === FunctionStatus.Failed) {
         message = 'Error: Function failed.';
       }
 
