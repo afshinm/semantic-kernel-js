@@ -69,7 +69,7 @@ export class ChatOptions {
    */
   public additionalProperties?: AdditionalProperties;
 
-  constructor(props: Omit<ChatOptions, "clone">) {
+  constructor(props: Omit<ChatOptions, 'clone'>) {
     this.temperature = props.temperature;
     this.maxOutputTokens = props.maxOutputTokens;
     this.topP = props.topP;

@@ -9,7 +9,6 @@ import { DelegatingChatClient } from './DelegatingChatClient';
 import { FunctionInvocationContext } from './FunctionInvocationContext';
 import { RequiredChatToolMode } from './RequiredChatToolMode';
 
-
 enum ContinueMode {
   /**
    * Send back the responses and continue processing.
@@ -44,47 +43,51 @@ enum FunctionStatus {
   Failed,
 }
 
-export class FunctionInvocationResult
-{
-    constructor({
-        continueMode,
-        status,
-        callContent,
-        result,
-        exception,
-    }: { continueMode: ContinueMode, status: FunctionStatus, callContent: FunctionCallContent, result?: unknown, exception?: Error })
-    {
-        this.continueMode = continueMode;
-        this.status = status;
-        this.callContent = callContent;
-        this.result = result;
-        this.exception = exception;
-    }
+export class FunctionInvocationResult {
+  constructor({
+    continueMode,
+    status,
+    callContent,
+    result,
+    exception,
+  }: {
+    continueMode: ContinueMode;
+    status: FunctionStatus;
+    callContent: FunctionCallContent;
+    result?: unknown;
+    exception?: Error;
+  }) {
+    this.continueMode = continueMode;
+    this.status = status;
+    this.callContent = callContent;
+    this.result = result;
+    this.exception = exception;
+  }
 
-    /**
-     * Gets status about how the function invocation completed.
-     */
-    readonly status: FunctionStatus;
+  /**
+   * Gets status about how the function invocation completed.
+   */
+  readonly status: FunctionStatus;
 
-    /**
-     * Gets the function call content information associated with this invocation.
-     */
-    readonly callContent: FunctionCallContent;
+  /**
+   * Gets the function call content information associated with this invocation.
+   */
+  readonly callContent: FunctionCallContent;
 
-    /**
-     * Gets the result of the function call.
-     */
-    readonly result?: unknown;
+  /**
+   * Gets the result of the function call.
+   */
+  readonly result?: unknown;
 
-    /**
-     * Gets any exception the function call threw.
-     */
-    readonly exception?: Error;
+  /**
+   * Gets any exception the function call threw.
+   */
+  readonly exception?: Error;
 
-    /**
-     * Gets an indication for how the caller should continue the processing loop.
-     */
-    readonly continueMode: ContinueMode;
+  /**
+   * Gets an indication for how the caller should continue the processing loop.
+   */
+  readonly continueMode: ContinueMode;
 }
 
 export class FunctionInvokingChatClient extends DelegatingChatClient {
@@ -201,11 +204,15 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
 
       return response;
     } finally {
-        this.removeMessagesAndContentFromList({ messagesToRemove, contentToRemove: contentsToRemove, messages: chatMessages });
+      this.removeMessagesAndContentFromList({
+        messagesToRemove,
+        contentToRemove: contentsToRemove,
+        messages: chatMessages,
+      });
 
-        if (response) {
-          response.usage = totalUsage;
-        }
+      if (response) {
+        response.usage = totalUsage;
+      }
     }
   }
 

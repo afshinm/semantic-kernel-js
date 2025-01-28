@@ -1,6 +1,18 @@
-import { AIContent, AIFunction, AutoChatToolMode, ChatCompletion, ChatFinishReason, ChatMessage, ChatOptions, FunctionCallContent, FunctionResultContent, RequiredChatToolMode, TextContent, UsageDetails } from '@semantic-kernel/abstractions';
+import {
+  AIContent,
+  AIFunction,
+  AutoChatToolMode,
+  ChatCompletion,
+  ChatFinishReason,
+  ChatMessage,
+  ChatOptions,
+  FunctionCallContent,
+  FunctionResultContent,
+  RequiredChatToolMode,
+  TextContent,
+  UsageDetails,
+} from '@semantic-kernel/abstractions';
 import OpenAI from 'openai';
-
 
 export const toOpenAIChatOptions = (
   chatOptions?: ChatOptions

@@ -2,8 +2,9 @@ import { ChatHistory } from '../../AI/chatCompletion';
 import { FunctionChoiceBehaviorConfiguration } from '../../AI/functionChoiceBehaviors';
 import { FunctionChoiceBehaviorBase } from '../../AI/functionChoiceBehaviors/FunctionChoiceBehaviorBase';
 import { Kernel } from '../../Kernel';
-import { ChatMessageContent, FunctionCallContent, 
-  //FunctionResultContent
+import {
+  ChatMessageContent,
+  FunctionCallContent, //FunctionResultContent
 } from '../../contents';
 
 /**
@@ -43,7 +44,7 @@ export class FunctionCallsProcessor {
     checkIfFunctionAdvertised: (functionCallContent: FunctionCallContent) => boolean;
     kernel?: Kernel;
   }): Promise<ChatMessageContent | undefined> {
-      return undefined;
+    return undefined;
     // const functionCalls = FunctionCallContent.getFunctionCalls(chatMessageContent);
 
     // if (!functionCalls) {
