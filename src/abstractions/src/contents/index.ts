@@ -13,3 +13,4 @@ export * from './StreamingFunctionCallUpdateContent';
 
 export * from "./AIContent";
 export * from "./TextContent";
+export * from "./FunctionResultContent";

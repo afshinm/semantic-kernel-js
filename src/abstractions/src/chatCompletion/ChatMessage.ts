@@ -5,7 +5,7 @@ import { ChatRole } from './ChatRole';
 
 
 export class ChatMessage {
-  private _contents?: AIContent[];
+  private _contents: AIContent[] = [];
   private _authorName?: string;
   public role: ChatRole;
   public rawRepresentation: unknown;
@@ -54,7 +54,7 @@ export class ChatMessage {
   }
 
   get contents(): AIContent[] {
-    return this._contents ?? [];
+    return this._contents;
   }
 
   set contents(value: AIContent[]) {

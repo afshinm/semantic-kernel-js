@@ -3,7 +3,7 @@ import { ChatCompletion } from './ChatCompletion';
 import { ChatMessage } from './ChatMessage';
 import { ChatOptions } from './ChatOptions';
 
-export class DelegateChatClient extends ChatClient {
+export class DelegatingChatClient extends ChatClient {
   protected _innerClient: ChatClient;
 
   protected constructor(innerClient: ChatClient) {
@@ -17,7 +17,7 @@ export class DelegateChatClient extends ChatClient {
 
   getService<T>(serviceType: T, serviceKey?: string): object | undefined {
     // If the key is non-null, we don't know what it means so pass through to the inner service.
-    if (!serviceKey && serviceType === DelegateChatClient) {
+    if (!serviceKey && serviceType === DelegatingChatClient) {
       return this;
     }
 

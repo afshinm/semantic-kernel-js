@@ -2,6 +2,7 @@ import { AdditionalProperties } from '../AdditionalProperties';
 import { AIFunctionParameterMetadata } from './AIFunctionParameterMetadata';
 import { AIFunctionReturnParameterMetadata } from './AIFunctionReturnParameterMetadata';
 
+
 export class AIFunctionMetadata {
   private _name: string = '';
   private _description: string = '';
@@ -9,8 +10,22 @@ export class AIFunctionMetadata {
   private readonly _returnParameter?: AIFunctionReturnParameterMetadata;
   private readonly _additionalProperties?: AdditionalProperties;
 
-  constructor({ name }: { name: string }) {
+  constructor({
+    name,
+    description,
+    parameters,
+    returnParameter,
+  }: {
+    name: string;
+    description?: string;
+    parameters?: AIFunctionParameterMetadata;
+    returnParameter?: AIFunctionReturnParameterMetadata;
+    additionalProperties?: AdditionalProperties;
+  }) {
     this._name = name;
+    this._description = description || '';
+    this.parameters = parameters;
+    this._returnParameter = returnParameter;
   }
 
   get name() {
