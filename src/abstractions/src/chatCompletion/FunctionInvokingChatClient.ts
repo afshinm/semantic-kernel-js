@@ -409,3 +409,5 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
     }
   }
 }
+
+export const functionInvocation = (chatClient: ChatClient) => new FunctionInvokingChatClient(chatClient);
