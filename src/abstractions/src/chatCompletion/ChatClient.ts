@@ -1,10 +1,11 @@
+import { ChatClientBuilder } from './ChatClientBuilder';
 import { ChatClientMetadata } from './ChatClientMetadata';
 import { ChatCompletion } from './ChatCompletion';
 import { ChatMessage } from './ChatMessage';
 import { ChatOptions } from './ChatOptions';
 
-export interface ChatClient {
-  complete(chatMessages: ChatMessage[], options?: ChatOptions): Promise<ChatCompletion>;
+export abstract class ChatClient {
+  abstract complete(chatMessages: ChatMessage[], options?: ChatOptions): Promise<ChatCompletion>;
 
   /** 
      * TODO
@@ -14,6 +15,10 @@ export interface ChatClient {
     ): AsyncGenerator<StreamingChatCompletionUpdate>;
     */
 
-  get metadata(): ChatClientMetadata;
-  getService<T>(serviceType: T, serviceKey?: string): object | undefined;
+  abstract get metadata(): ChatClientMetadata;
+  abstract getService<T>(serviceType: T, serviceKey?: string): object | undefined;
+
+  asBuilder(): ChatClientBuilder {
+    return new ChatClientBuilder({ innerClient: this });
+  }
 }

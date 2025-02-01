@@ -8,11 +8,12 @@ import {
 } from '@semantic-kernel/abstractions';
 import OpenAI from 'openai';
 
-export class OpenAIChatClient implements ChatClient {
+export class OpenAIChatClient extends ChatClient {
   private readonly _openAIClient: OpenAI;
   private readonly _metadata: ChatClientMetadata;
 
   constructor({ openAIClient, modelId }: { openAIClient: OpenAI; modelId: string }) {
+    super();
     this._openAIClient = openAIClient;
 
     const providerUri = this._openAIClient.baseURL;

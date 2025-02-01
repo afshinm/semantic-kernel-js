@@ -6,4 +6,6 @@ export * from './RequiredChatToolMode';
 export * from './ChatToolMode';
 export * from './ChatMessage';
 export * from './ChatCompletion';
-export * from "./ChatFinishReason"
+export * from './ChatFinishReason';
+export * from './FunctionInvokingChatClient';
+export * from './FunctionInvocationContext';

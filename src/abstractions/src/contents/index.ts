@@ -11,5 +11,6 @@ export * from './StreamingTextContent';
 export * from './StreamingChatMessageContent';
 export * from './StreamingFunctionCallUpdateContent';
 
-export * from "./AIContent";
-export * from "./TextContent";
+export * from './AIContent';
+export * from './TextContent';
+export * from './FunctionResultContent';

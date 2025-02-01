@@ -68,4 +68,48 @@ export class ChatOptions {
    * Gets or sets any additional properties associated with the options.
    */
   public additionalProperties?: AdditionalProperties;
+
+  constructor(props: Omit<ChatOptions, 'clone'>) {
+    this.temperature = props.temperature;
+    this.maxOutputTokens = props.maxOutputTokens;
+    this.topP = props.topP;
+    this.topK = props.topK;
+    this.frequencyPenalty = props.frequencyPenalty;
+    this.presencePenalty = props.presencePenalty;
+    this.seed = props.seed;
+    this.responseFormat = props.responseFormat;
+    this.modelId = props.modelId;
+    this.stopSequences = props.stopSequences;
+    this.toolMode = props.toolMode ?? ChatToolMode.Auto;
+    this.tools = props.tools;
+    this.additionalProperties = props.additionalProperties;
+  }
+
+  clone(): ChatOptions {
+    const options = new ChatOptions({
+      temperature: this.temperature,
+      maxOutputTokens: this.maxOutputTokens,
+      topP: this.topP,
+      topK: this.topK,
+      frequencyPenalty: this.frequencyPenalty,
+      presencePenalty: this.presencePenalty,
+      seed: this.seed,
+      responseFormat: this.responseFormat,
+      modelId: this.modelId,
+      stopSequences: this.stopSequences,
+      toolMode: this.toolMode,
+      tools: this.tools,
+      additionalProperties: new AdditionalProperties(this.additionalProperties),
+    });
+
+    if (this.stopSequences) {
+      options.stopSequences = [...this.stopSequences];
+    }
+
+    if (this.tools) {
+      options.tools = [...this.tools];
+    }
+
+    return options;
+  }
 }

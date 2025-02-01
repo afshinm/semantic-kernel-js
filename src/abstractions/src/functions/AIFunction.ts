@@ -1,13 +1,17 @@
 import { AITool } from '../AITool';
 import { AIFunctionMetadata } from './AIFunctionMetadata';
+import { AIFunctionParameterMetadata } from './AIFunctionParameterMetadata';
+import { FromSchema } from 'json-schema-to-ts';
 
-export abstract class AIFunction extends AITool {
-  abstract metadata: AIFunctionMetadata;
+export abstract class AIFunction<
+  PARAMETERS extends AIFunctionParameterMetadata = AIFunctionParameterMetadata,
+  SCHEMA = FromSchema<PARAMETERS>,
+> extends AITool {
+  abstract metadata: AIFunctionMetadata<PARAMETERS>;
 
-  invokeAsync(args?: Record<string, unknown>) {
-    args = args ?? {};
-    return this.invokeCoreAsync(args);
+  invoke(args: SCHEMA) {
+    return this.invokeCore(args);
   }
 
-  protected abstract invokeCoreAsync(args: Record<string, unknown>): Promise<unknown>;
+  protected abstract invokeCore(args: SCHEMA): Promise<unknown>;
 }

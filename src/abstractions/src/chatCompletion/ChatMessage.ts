@@ -3,23 +3,14 @@ import { AIContent } from '../contents/AIContent';
 import { TextContent } from '../contents/TextContent';
 import { ChatRole } from './ChatRole';
 
-
 export class ChatMessage {
-  private _contents?: AIContent[];
+  private _contents: AIContent[] = [];
   private _authorName?: string;
   public role: ChatRole;
   public rawRepresentation: unknown;
   public additionalProperties?: AdditionalProperties;
 
-  constructor({
-    role,
-    content,
-    contents,
-  }: {
-    role: ChatRole;
-    content?: string | null;
-    contents?: AIContent[];
-  }) {
+  constructor({ role, content, contents }: { role: ChatRole; content?: string | null; contents?: AIContent[] }) {
     if (content) {
       this._contents = [new TextContent(content)];
     }
@@ -54,7 +45,7 @@ export class ChatMessage {
   }
 
   get contents(): AIContent[] {
-    return this._contents ?? [];
+    return this._contents;
   }
 
   set contents(value: AIContent[]) {
