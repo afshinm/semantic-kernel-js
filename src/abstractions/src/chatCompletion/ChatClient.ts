@@ -9,9 +9,9 @@ export abstract class ChatClient {
   abstract complete(chatMessages: ChatMessage[], options?: ChatOptions): Promise<ChatCompletion>;
 
   abstract completeStreaming(
-        chatMessages: ChatMessage[],
-        options?: ChatOptions,
-    ): AsyncGenerator<StreamingChatCompletionUpdate>;
+    chatMessages: ChatMessage[],
+    options?: ChatOptions
+  ): AsyncGenerator<StreamingChatCompletionUpdate>;
 
   abstract get metadata(): ChatClientMetadata;
   abstract getService<T>(serviceType: T, serviceKey?: string): object | undefined;

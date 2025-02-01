@@ -8,6 +8,8 @@ import { ChatOptions } from './ChatOptions';
 import { DelegatingChatClient } from './DelegatingChatClient';
 import { FunctionInvocationContext } from './FunctionInvocationContext';
 import { RequiredChatToolMode } from './RequiredChatToolMode';
+import { StreamingChatCompletionUpdate } from './StreamingChatCompletionUpdate';
+
 
 enum ContinueMode {
   /**
@@ -213,6 +215,102 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
       if (response) {
         response.usage = totalUsage;
       }
+    }
+  }
+
+  override async *completeStreaming(
+    chatMessages: ChatMessage[],
+    options?: ChatOptions
+  ): AsyncGenerator<StreamingChatCompletionUpdate> {
+    let messagesToRemove: Set<ChatMessage> | undefined = undefined;
+    let functionCallContents: FunctionCallContent[] = [];
+    let choice: number | undefined;
+
+    try {
+      for (let iteration = 0; ; iteration++) {
+        choice = undefined;
+        functionCallContents = [];
+
+        for await (const update of this.completeStreaming(chatMessages, options)) {
+          // Find all the FCCs. We need to track these separately in order to be able to process them later.
+          const preFccCount = functionCallContents.length;
+          functionCallContents.push(...update.contents.filter((content) => content instanceof FunctionCallContent));
+
+          // If there were any, remove them from the update. We do this before yielding the update so
+          // that we're not modifying an instance already provided back to the caller.
+          const addedFccs = functionCallContents.length - preFccCount;
+          if (addedFccs > 0) {
+            update.contents =
+              addedFccs === update.contents.length
+                ? []
+                : update.contents.filter((c) => !(c instanceof FunctionCallContent));
+          }
+
+          // Only one choice is allowed with automatic function calling.
+          if (choice === undefined) {
+            choice = update.choiceIndex;
+          } else if (choice !== update.choiceIndex) {
+            throw new Error('Multiple choices were received.');
+          }
+
+          yield update;
+        }
+
+        // If there are no tools to call, or for any other reason we should stop, return the response.
+        if (
+          !options ||
+          !options.tools ||
+          functionCallContents.length === 0 ||
+          (this.maximumIterationsPerRequest && iteration >= this.maximumIterationsPerRequest)
+        ) {
+          break;
+        }
+
+        // Track all added messages in order to remove them, if requested.
+        if (this.keepFunctionCallingMessages) {
+          messagesToRemove ??= new Set();
+        }
+
+        // Add a manufactured response message containing the function call contents to the chat history.
+        const functionCallMessage = new ChatMessage({ role: 'assistant', contents: [...functionCallContents] });
+        chatMessages.push(functionCallMessage);
+        messagesToRemove?.add(functionCallMessage);
+
+        // Process all of the functions, adding their results into the history.
+        const modeAndMessages = await this.processFunctionCalls({
+          chatMessages,
+          options,
+          functionCallContents,
+          iteration,
+        });
+        if (modeAndMessages.messagesAdded && messagesToRemove) {
+          modeAndMessages.messagesAdded.forEach(messagesToRemove.add, messagesToRemove);
+        }
+
+        // Decide how to proceed based on the result of the function calls.
+        switch (modeAndMessages.mode) {
+          case ContinueMode.Continue:
+            // We have to reset this after the first iteration, otherwise we'll be in an infinite loop.
+            if (options.toolMode instanceof RequiredChatToolMode) {
+              options = options.clone();
+              options.toolMode = 'auto';
+            }
+            break;
+          case ContinueMode.AllowOneMoreRoundtrip:
+            // The LLM gets one further chance to answer, but cannot use tools.
+            options = options.clone();
+            options.tools = undefined;
+            break;
+          case ContinueMode.Terminate:
+            // Bail immediately.
+            return;
+        }
+      }
+    } finally {
+      this.removeMessagesAndContentFromList({
+        messagesToRemove,
+        messages: chatMessages,
+      });
     }
   }
 
