@@ -83,7 +83,7 @@ const toOpenAIChatTool = (aiFunction: AIFunction): OpenAI.Chat.Completions.ChatC
   const functionDefinition = {
     name: aiFunction.metadata.name,
     description: aiFunction.metadata.description,
-    parameters: aiFunction.metadata.parameters,
+    parameters: aiFunction.metadata.parameters as OpenAI.FunctionParameters,
     strict,
   };
 
@@ -277,7 +277,7 @@ export const fromOpenAIChatCompletion = ({
   return completion;
 };
 
-export const fromOpenAIStreamingChatCompletion = async function* (chatCompletionUpdates: Stream<OpenAI.Chat.Completions.ChatCompletionChunk>)
+export const fromOpenAIStreamingChatCompletion = async function* (chatCompletionUpdates: Promise<Stream<OpenAI.Chat.Completions.ChatCompletionChunk>>)
 {
   let functionCallInfos: Map<number, OpenAI.Chat.ChatCompletionChunk.Choice.Delta.ToolCall> | undefined = undefined;
   let streamedRole: ChatRole | undefined = undefined;
@@ -288,7 +288,7 @@ export const fromOpenAIStreamingChatCompletion = async function* (chatCompletion
   let modelId: string | undefined = undefined;
   let fingerprint: string | undefined = undefined;
 
-  for await (const chatCompletionUpdate of chatCompletionUpdates) {
+  for await (const chatCompletionUpdate of await chatCompletionUpdates) {
     const choice = chatCompletionUpdate.choices[0];
     const role = choice.delta.role;
 

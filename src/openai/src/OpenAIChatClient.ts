@@ -64,10 +64,10 @@ export class OpenAIChatClient extends ChatClient {
     return fromOpenAIChatCompletion({ openAICompletion: response, options });
   }
 
-  override async completeStreaming(
+  override completeStreaming(
     chatMessages: ChatMessage[],
     options?: ChatOptions
-  ): Promise<AsyncGenerator<StreamingChatCompletionUpdate>> {
+  ): AsyncGenerator<StreamingChatCompletionUpdate> {
     const modelId = this.metadata.modelId ?? options?.modelId;
 
     if (!modelId) {
@@ -83,7 +83,7 @@ export class OpenAIChatClient extends ChatClient {
       ...openAIOptions,
     };
 
-    const chatCompletionUpdates = await this._openAIClient.chat.completions.create({
+    const chatCompletionUpdates = this._openAIClient.chat.completions.create({
       ...params,
       stream: true,
     });
