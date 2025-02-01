@@ -1,12 +1,7 @@
-import { fromOpenAIChatCompletion, toOpenAIChatMessages, toOpenAIChatOptions } from './mapper/chatCompletionMapper';
-import {
-  ChatClient,
-  ChatClientMetadata,
-  ChatCompletion,
-  ChatMessage,
-  ChatOptions,
-} from '@semantic-kernel/abstractions';
+import { fromOpenAIChatCompletion, fromOpenAIStreamingChatCompletion, toOpenAIChatMessages, toOpenAIChatOptions } from './mapper/chatCompletionMapper';
+import { ChatClient, ChatClientMetadata, ChatCompletion, ChatMessage, ChatOptions, StreamingChatCompletionUpdate } from '@semantic-kernel/abstractions';
 import OpenAI from 'openai';
+
 
 export class OpenAIChatClient extends ChatClient {
   private readonly _openAIClient: OpenAI;
@@ -52,13 +47,13 @@ export class OpenAIChatClient extends ChatClient {
       throw new Error('Model ID is required');
     }
 
-    const messages = toOpenAIChatMessages(chatMessages);
-    const chatCompletionCreateParams = toOpenAIChatOptions(options);
+    const openAIChatMessages = toOpenAIChatMessages(chatMessages);
+    const openAIOptions = toOpenAIChatOptions(options);
 
     const params: OpenAI.Chat.ChatCompletionCreateParams = {
-      messages,
+      messages: openAIChatMessages,
       model: modelId,
-      ...chatCompletionCreateParams,
+      ...openAIOptions,
     };
 
     const response = await this._openAIClient.chat.completions.create({
@@ -67,5 +62,32 @@ export class OpenAIChatClient extends ChatClient {
     });
 
     return fromOpenAIChatCompletion({ openAICompletion: response, options });
+  }
+
+  override async completeStreaming(
+    chatMessages: ChatMessage[],
+    options?: ChatOptions
+  ): Promise<AsyncGenerator<StreamingChatCompletionUpdate>> {
+    const modelId = this.metadata.modelId ?? options?.modelId;
+
+    if (!modelId) {
+      throw new Error('Model ID is required');
+    }
+
+    const openAIChatMessages = toOpenAIChatMessages(chatMessages);
+    const openAIOptions = toOpenAIChatOptions(options);
+
+    const params: OpenAI.Chat.ChatCompletionCreateParams = {
+      messages: openAIChatMessages,
+      model: modelId,
+      ...openAIOptions,
+    };
+
+    const chatCompletionUpdates = await this._openAIClient.chat.completions.create({
+      ...params,
+      stream: true,
+    });
+
+    return fromOpenAIStreamingChatCompletion(chatCompletionUpdates);
   }
 }
