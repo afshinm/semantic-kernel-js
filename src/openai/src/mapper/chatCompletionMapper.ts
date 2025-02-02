@@ -353,7 +353,7 @@ export const fromOpenAIStreamingChatCompletion = async function* (chatCompletion
 
         existing.function.name ??= toolCallUpdate.function?.name;
         if (toolCallUpdate.function?.arguments && toolCallUpdate.function.arguments.length > 0) {
-          existing.function.arguments ??= (existing.function.arguments ?? '') + toolCallUpdate.function.arguments;
+          existing.function.arguments = (existing.function.arguments ?? '') + toolCallUpdate.function.arguments;
         }
       }
     }

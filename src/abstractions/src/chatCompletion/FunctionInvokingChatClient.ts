@@ -231,7 +231,7 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
         choice = undefined;
         functionCallContents = [];
 
-        for await (const update of this.completeStreaming(chatMessages, options)) {
+        for await (const update of super.completeStreaming(chatMessages, options)) {
           // Find all the FCCs. We need to track these separately in order to be able to process them later.
           const preFccCount = functionCallContents.length;
           functionCallContents.push(...update.contents.filter((content) => content instanceof FunctionCallContent));
@@ -243,7 +243,7 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
             update.contents =
               addedFccs === update.contents.length
                 ? []
-                : update.contents.filter((c) => !(c instanceof FunctionCallContent));
+                : update.contents.filter((content) => !(content instanceof FunctionCallContent));
           }
 
           // Only one choice is allowed with automatic function calling.

@@ -3,6 +3,7 @@ import { AIContent, TextContent } from '../contents';
 import { ChatFinishReason } from './ChatFinishReason';
 import { ChatRole } from './ChatRole';
 
+
 /**
  * Represents a single streaming response chunk from a ChatClient.
  */
@@ -93,4 +94,8 @@ export class StreamingChatCompletionUpdate {
    * Gets or sets the model ID using in the creation of the chat completion of which this update is a part.
    */
   modelId?: string;
+
+  toString(): string {
+    return this.contents.join('');
+  }
 }
