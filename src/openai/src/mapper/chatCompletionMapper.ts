@@ -16,6 +16,7 @@ import {
   UsageDetails,
 } from '@semantic-kernel/abstractions';
 import OpenAI from 'openai';
+import { ChatCompletionChunk } from 'openai/resources';
 import { Stream } from 'openai/streaming';
 
 export const toOpenAIChatOptions = (
@@ -306,11 +307,11 @@ export const fromOpenAIStreamingChatCompletion = async function* (
   let fingerprint: string | undefined = undefined;
 
   for await (const chatCompletionUpdate of await chatCompletionUpdates) {
-    const choice = chatCompletionUpdate.choices[0];
-    const role = choice.delta.role;
+    // choices can be empty if the model has no more completions to provide.
+    const choice: ChatCompletionChunk.Choice | undefined = chatCompletionUpdate.choices[0];
 
-    streamedRole ??= role;
-    finishReason ??= choice.finish_reason as ChatFinishReason;
+    streamedRole ??= choice?.delta.role;
+    finishReason ??= choice?.finish_reason as ChatFinishReason;
     completionId ??= chatCompletionUpdate.id;
     createdAt ??= chatCompletionUpdate.created;
     modelId ??= chatCompletionUpdate.model;
@@ -324,11 +325,11 @@ export const fromOpenAIStreamingChatCompletion = async function* (
     completionUpdate.rawRepresentation = chatCompletionUpdate;
     completionUpdate.role = streamedRole;
 
-    if (choice.logprobs?.content?.length) {
+    if (choice?.logprobs?.content?.length) {
       (completionUpdate.additionalProperties ??= new Map()).set('logprobs.content', choice.logprobs?.content);
     }
 
-    if (choice.logprobs?.refusal?.length) {
+    if (choice?.logprobs?.refusal?.length) {
       (completionUpdate.additionalProperties ??= new Map()).set('logprobs.refusal', choice.logprobs?.refusal);
     }
 
@@ -336,18 +337,18 @@ export const fromOpenAIStreamingChatCompletion = async function* (
       (completionUpdate.additionalProperties ??= new Map()).set('system_fingerprint', fingerprint);
     }
 
-    if (choice.delta.content?.length) {
+    if (choice?.delta.content?.length) {
       for (const contentPart of choice.delta.content) {
         const aiContent = new TextContent(contentPart);
         completionUpdate.contents.push(aiContent);
       }
     }
 
-    if (choice.delta.refusal) {
+    if (choice?.delta.refusal) {
       refusal = (refusal ?? '') + choice.delta.refusal;
     }
 
-    if (choice.delta.tool_calls?.length) {
+    if (choice?.delta.tool_calls?.length) {
       for (const toolCallUpdate of choice.delta.tool_calls) {
         functionCallInfos ??= new Map();
         if (!functionCallInfos.has(toolCallUpdate.index)) {

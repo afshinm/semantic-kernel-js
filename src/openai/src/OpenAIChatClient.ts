@@ -96,6 +96,7 @@ export class OpenAIChatClient extends ChatClient {
 
     const chatCompletionUpdates = this._openAIClient.chat.completions.create({
       ...params,
+      stream_options: { include_usage: true },
       stream: true,
     });
 
