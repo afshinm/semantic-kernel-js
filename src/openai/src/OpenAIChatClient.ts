@@ -1,10 +1,16 @@
-import { fromOpenAIChatCompletion, toOpenAIChatMessages, toOpenAIChatOptions } from './mapper/chatCompletionMapper';
+import {
+  fromOpenAIChatCompletion,
+  fromOpenAIStreamingChatCompletion,
+  toOpenAIChatMessages,
+  toOpenAIChatOptions,
+} from './mapper/chatCompletionMapper';
 import {
   ChatClient,
   ChatClientMetadata,
   ChatCompletion,
   ChatMessage,
   ChatOptions,
+  StreamingChatCompletionUpdate,
 } from '@semantic-kernel/abstractions';
 import OpenAI from 'openai';
 
@@ -52,13 +58,13 @@ export class OpenAIChatClient extends ChatClient {
       throw new Error('Model ID is required');
     }
 
-    const messages = toOpenAIChatMessages(chatMessages);
-    const chatCompletionCreateParams = toOpenAIChatOptions(options);
+    const openAIChatMessages = toOpenAIChatMessages(chatMessages);
+    const openAIOptions = toOpenAIChatOptions(options);
 
     const params: OpenAI.Chat.ChatCompletionCreateParams = {
-      messages,
+      messages: openAIChatMessages,
       model: modelId,
-      ...chatCompletionCreateParams,
+      ...openAIOptions,
     };
 
     const response = await this._openAIClient.chat.completions.create({
@@ -67,5 +73,33 @@ export class OpenAIChatClient extends ChatClient {
     });
 
     return fromOpenAIChatCompletion({ openAICompletion: response, options });
+  }
+
+  override completeStreaming(
+    chatMessages: ChatMessage[],
+    options?: ChatOptions
+  ): AsyncGenerator<StreamingChatCompletionUpdate> {
+    const modelId = this.metadata.modelId ?? options?.modelId;
+
+    if (!modelId) {
+      throw new Error('Model ID is required');
+    }
+
+    const openAIChatMessages = toOpenAIChatMessages(chatMessages);
+    const openAIOptions = toOpenAIChatOptions(options);
+
+    const params: OpenAI.Chat.ChatCompletionCreateParams = {
+      messages: openAIChatMessages,
+      model: modelId,
+      ...openAIOptions,
+    };
+
+    const chatCompletionUpdates = this._openAIClient.chat.completions.create({
+      ...params,
+      stream_options: { include_usage: true },
+      stream: true,
+    });
+
+    return fromOpenAIStreamingChatCompletion(chatCompletionUpdates);
   }
 }

@@ -2,6 +2,7 @@ import { ChatClient } from './ChatClient';
 import { ChatCompletion } from './ChatCompletion';
 import { ChatMessage } from './ChatMessage';
 import { ChatOptions } from './ChatOptions';
+import { StreamingChatCompletionUpdate } from './StreamingChatCompletionUpdate';
 
 export class DelegatingChatClient extends ChatClient {
   protected _innerClient: ChatClient;
@@ -24,7 +25,14 @@ export class DelegatingChatClient extends ChatClient {
     return this._innerClient.getService(serviceType, serviceKey);
   }
 
-  complete(chatMessages: ChatMessage[], options?: ChatOptions): Promise<ChatCompletion> {
+  override complete(chatMessages: ChatMessage[], options?: ChatOptions): Promise<ChatCompletion> {
     return this._innerClient.complete(chatMessages, options);
+  }
+
+  override completeStreaming(
+    chatMessages: ChatMessage[],
+    options?: ChatOptions
+  ): AsyncGenerator<StreamingChatCompletionUpdate> {
+    return this._innerClient.completeStreaming(chatMessages, options);
   }
 }

@@ -6,13 +6,18 @@ import {
   ChatFinishReason,
   ChatMessage,
   ChatOptions,
+  ChatRole,
   FunctionCallContent,
   FunctionResultContent,
   RequiredChatToolMode,
+  StreamingChatCompletionUpdate,
   TextContent,
+  UsageContent,
   UsageDetails,
 } from '@semantic-kernel/abstractions';
 import OpenAI from 'openai';
+import { ChatCompletionChunk } from 'openai/resources';
+import { Stream } from 'openai/streaming';
 
 export const toOpenAIChatOptions = (
   chatOptions?: ChatOptions
@@ -95,7 +100,7 @@ const toOpenAIChatTool = (aiFunction: AIFunction): OpenAI.Chat.Completions.ChatC
   const functionDefinition = {
     name: aiFunction.metadata.name,
     description: aiFunction.metadata.description,
-    parameters: aiFunction.metadata.parameters,
+    parameters: aiFunction.metadata.parameters as OpenAI.FunctionParameters,
     strict,
   };
 
@@ -287,4 +292,129 @@ export const fromOpenAIChatCompletion = ({
   }
 
   return completion;
+};
+
+export const fromOpenAIStreamingChatCompletion = async function* (
+  chatCompletionUpdates: Promise<Stream<OpenAI.Chat.Completions.ChatCompletionChunk>>
+) {
+  let functionCallInfos: Map<number, OpenAI.Chat.ChatCompletionChunk.Choice.Delta.ToolCall> | undefined = undefined;
+  let streamedRole: ChatRole | undefined = undefined;
+  let finishReason: ChatFinishReason | undefined = undefined;
+  let refusal: string | undefined = undefined;
+  let completionId: string | undefined = undefined;
+  let createdAt: number | undefined = undefined;
+  let modelId: string | undefined = undefined;
+  let fingerprint: string | undefined = undefined;
+
+  for await (const chatCompletionUpdate of await chatCompletionUpdates) {
+    // choices can be empty if the model has no more completions to provide.
+    const choice: ChatCompletionChunk.Choice | undefined = chatCompletionUpdate.choices[0];
+
+    streamedRole ??= choice?.delta.role;
+    finishReason ??= choice?.finish_reason as ChatFinishReason;
+    completionId ??= chatCompletionUpdate.id;
+    createdAt ??= chatCompletionUpdate.created;
+    modelId ??= chatCompletionUpdate.model;
+    fingerprint ??= chatCompletionUpdate.system_fingerprint;
+
+    const completionUpdate = new StreamingChatCompletionUpdate();
+    completionUpdate.completionId = chatCompletionUpdate.id;
+    completionUpdate.createdAt = chatCompletionUpdate.created;
+    completionUpdate.finishReason = finishReason;
+    completionUpdate.modelId = modelId;
+    completionUpdate.rawRepresentation = chatCompletionUpdate;
+    completionUpdate.role = streamedRole;
+
+    if (choice?.logprobs?.content?.length) {
+      (completionUpdate.additionalProperties ??= new Map()).set('logprobs.content', choice.logprobs?.content);
+    }
+
+    if (choice?.logprobs?.refusal?.length) {
+      (completionUpdate.additionalProperties ??= new Map()).set('logprobs.refusal', choice.logprobs?.refusal);
+    }
+
+    if (fingerprint) {
+      (completionUpdate.additionalProperties ??= new Map()).set('system_fingerprint', fingerprint);
+    }
+
+    if (choice?.delta.content?.length) {
+      for (const contentPart of choice.delta.content) {
+        const aiContent = new TextContent(contentPart);
+        completionUpdate.contents.push(aiContent);
+      }
+    }
+
+    if (choice?.delta.refusal) {
+      refusal = (refusal ?? '') + choice.delta.refusal;
+    }
+
+    if (choice?.delta.tool_calls?.length) {
+      for (const toolCallUpdate of choice.delta.tool_calls) {
+        functionCallInfos ??= new Map();
+        if (!functionCallInfos.has(toolCallUpdate.index)) {
+          functionCallInfos.set(toolCallUpdate.index, {
+            index: toolCallUpdate.index,
+          });
+        }
+
+        const existing = functionCallInfos.get(toolCallUpdate.index);
+
+        if (!existing) {
+          throw new Error('Function call info not found');
+        }
+
+        existing.id ??= toolCallUpdate.id;
+
+        if (!existing.function) {
+          existing.function = {};
+        }
+
+        existing.function.name ??= toolCallUpdate.function?.name;
+        if (toolCallUpdate.function?.arguments && toolCallUpdate.function.arguments.length > 0) {
+          existing.function.arguments = (existing.function.arguments ?? '') + toolCallUpdate.function.arguments;
+        }
+      }
+    }
+
+    if (chatCompletionUpdate.usage) {
+      const usageDetails = fromOpenAIUsage(chatCompletionUpdate.usage);
+      completionUpdate.contents.push(new UsageContent(usageDetails));
+    }
+
+    yield completionUpdate;
+  }
+
+  // Now that we've received all updates, combine any for function calls into a single item to yield.
+  if (functionCallInfos) {
+    const completionUpdate = new StreamingChatCompletionUpdate();
+    completionUpdate.completionId = completionId;
+    completionUpdate.createdAt = createdAt;
+    completionUpdate.finishReason = finishReason;
+    completionUpdate.modelId = modelId;
+    completionUpdate.role = streamedRole;
+
+    for (const toolCall of functionCallInfos.values()) {
+      if (toolCall.function?.name && toolCall.id) {
+        const callContent = new FunctionCallContent({
+          callId: toolCall.id,
+          name: toolCall.function.name,
+          arguments: toolCall.function.arguments && JSON.parse(toolCall.function.arguments),
+        });
+        completionUpdate.contents.push(callContent);
+      }
+    }
+
+    // Refusals are about the model not following the schema for tool calls. As such, if we have any refusal,
+    // add it to this function calling item.
+    if (refusal) {
+      (completionUpdate.additionalProperties ??= new Map()).set('refusal', refusal);
+    }
+
+    // Propagate additional relevant metadata.
+    if (fingerprint) {
+      (completionUpdate.additionalProperties ??= new Map()).set('system_fingerprint', fingerprint);
+    }
+
+    yield completionUpdate;
+  }
 };
