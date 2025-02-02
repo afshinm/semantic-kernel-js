@@ -9,5 +9,5 @@ export * from './ChatCompletion';
 export * from './ChatFinishReason';
 export * from './FunctionInvokingChatClient';
 export * from './FunctionInvocationContext';
-export * from "./StreamingChatCompletionUpdate";
-export * from "./ChatRole";
+export * from './StreamingChatCompletionUpdate';
+export * from './ChatRole';

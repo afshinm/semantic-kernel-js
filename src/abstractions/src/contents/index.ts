@@ -14,4 +14,4 @@ export * from './StreamingFunctionCallUpdateContent';
 export * from './AIContent';
 export * from './TextContent';
 export * from './FunctionResultContent';
-export * from "./UsageContent";
+export * from './UsageContent';

@@ -1,7 +1,18 @@
-import { fromOpenAIChatCompletion, fromOpenAIStreamingChatCompletion, toOpenAIChatMessages, toOpenAIChatOptions } from './mapper/chatCompletionMapper';
-import { ChatClient, ChatClientMetadata, ChatCompletion, ChatMessage, ChatOptions, StreamingChatCompletionUpdate } from '@semantic-kernel/abstractions';
+import {
+  fromOpenAIChatCompletion,
+  fromOpenAIStreamingChatCompletion,
+  toOpenAIChatMessages,
+  toOpenAIChatOptions,
+} from './mapper/chatCompletionMapper';
+import {
+  ChatClient,
+  ChatClientMetadata,
+  ChatCompletion,
+  ChatMessage,
+  ChatOptions,
+  StreamingChatCompletionUpdate,
+} from '@semantic-kernel/abstractions';
 import OpenAI from 'openai';
-
 
 export class OpenAIChatClient extends ChatClient {
   private readonly _openAIClient: OpenAI;

@@ -10,7 +10,6 @@ import { FunctionInvocationContext } from './FunctionInvocationContext';
 import { RequiredChatToolMode } from './RequiredChatToolMode';
 import { StreamingChatCompletionUpdate } from './StreamingChatCompletionUpdate';
 
-
 enum ContinueMode {
   /**
    * Send back the responses and continue processing.

@@ -1,6 +1,22 @@
-import { AIContent, AIFunction, AutoChatToolMode, ChatCompletion, ChatFinishReason, ChatMessage, ChatOptions, ChatRole, FunctionCallContent, FunctionResultContent, RequiredChatToolMode, StreamingChatCompletionUpdate, TextContent, UsageContent, UsageDetails } from '@semantic-kernel/abstractions';
+import {
+  AIContent,
+  AIFunction,
+  AutoChatToolMode,
+  ChatCompletion,
+  ChatFinishReason,
+  ChatMessage,
+  ChatOptions,
+  ChatRole,
+  FunctionCallContent,
+  FunctionResultContent,
+  RequiredChatToolMode,
+  StreamingChatCompletionUpdate,
+  TextContent,
+  UsageContent,
+  UsageDetails,
+} from '@semantic-kernel/abstractions';
 import OpenAI from 'openai';
-import { Stream } from "openai/streaming";
+import { Stream } from 'openai/streaming';
 
 export const toOpenAIChatOptions = (
   chatOptions?: ChatOptions
@@ -277,8 +293,9 @@ export const fromOpenAIChatCompletion = ({
   return completion;
 };
 
-export const fromOpenAIStreamingChatCompletion = async function* (chatCompletionUpdates: Promise<Stream<OpenAI.Chat.Completions.ChatCompletionChunk>>)
-{
+export const fromOpenAIStreamingChatCompletion = async function* (
+  chatCompletionUpdates: Promise<Stream<OpenAI.Chat.Completions.ChatCompletionChunk>>
+) {
   let functionCallInfos: Map<number, OpenAI.Chat.ChatCompletionChunk.Choice.Delta.ToolCall> | undefined = undefined;
   let streamedRole: ChatRole | undefined = undefined;
   let finishReason: ChatFinishReason | undefined = undefined;
@@ -335,7 +352,7 @@ export const fromOpenAIStreamingChatCompletion = async function* (chatCompletion
         functionCallInfos ??= new Map();
         if (!functionCallInfos.has(toolCallUpdate.index)) {
           functionCallInfos.set(toolCallUpdate.index, {
-            index: toolCallUpdate.index
+            index: toolCallUpdate.index,
           });
         }
 
@@ -347,7 +364,7 @@ export const fromOpenAIStreamingChatCompletion = async function* (chatCompletion
 
         existing.id ??= toolCallUpdate.id;
 
-        if (!existing.function)  {
+        if (!existing.function) {
           existing.function = {};
         }
 
@@ -399,4 +416,4 @@ export const fromOpenAIStreamingChatCompletion = async function* (chatCompletion
 
     yield completionUpdate;
   }
-}
+};

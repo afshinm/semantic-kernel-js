@@ -3,7 +3,6 @@ import { AIContent, TextContent } from '../contents';
 import { ChatFinishReason } from './ChatFinishReason';
 import { ChatRole } from './ChatRole';
 
-
 /**
  * Represents a single streaming response chunk from a ChatClient.
  */
