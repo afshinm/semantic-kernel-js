@@ -25,12 +25,12 @@ export class DelegatingChatClient extends ChatClient {
     return this._innerClient.getService(serviceType, serviceKey);
   }
 
-  override complete(chatMessages: ChatMessage[], options?: ChatOptions): Promise<ChatCompletion> {
+  override complete(chatMessages: string | ChatMessage[], options?: ChatOptions): Promise<ChatCompletion> {
     return this._innerClient.complete(chatMessages, options);
   }
 
   override completeStreaming(
-    chatMessages: ChatMessage[],
+    chatMessages: string | ChatMessage[],
     options?: ChatOptions
   ): AsyncGenerator<StreamingChatCompletionUpdate> {
     return this._innerClient.completeStreaming(chatMessages, options);

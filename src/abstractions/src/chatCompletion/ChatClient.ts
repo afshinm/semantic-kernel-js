@@ -6,10 +6,10 @@ import { ChatOptions } from './ChatOptions';
 import { StreamingChatCompletionUpdate } from './StreamingChatCompletionUpdate';
 
 export abstract class ChatClient {
-  abstract complete(chatMessages: ChatMessage[], options?: ChatOptions): Promise<ChatCompletion>;
+  abstract complete(chatMessages: string | ChatMessage[], options?: ChatOptions): Promise<ChatCompletion>;
 
   abstract completeStreaming(
-    chatMessages: ChatMessage[],
+    chatMessages: string | ChatMessage[],
     options?: ChatOptions
   ): AsyncGenerator<StreamingChatCompletionUpdate>;
 
