@@ -1,18 +1,7 @@
-import {
-  fromOpenAIChatCompletion,
-  fromOpenAIStreamingChatCompletion,
-  toOpenAIChatMessages,
-  toOpenAIChatOptions,
-} from './mapper/chatCompletionMapper';
-import {
-  ChatClient,
-  ChatClientMetadata,
-  ChatCompletion,
-  ChatMessage,
-  ChatOptions,
-  StreamingChatCompletionUpdate,
-} from '@semantic-kernel/abstractions';
+import { fromOpenAIChatCompletion, fromOpenAIStreamingChatCompletion, toOpenAIChatMessages, toOpenAIChatOptions } from './mapper/chatCompletionMapper';
+import { ChatClient, ChatClientMetadata, ChatCompletion, ChatMessage, ChatOptions, StreamingChatCompletionUpdate } from '@semantic-kernel/abstractions';
 import OpenAI from 'openai';
+
 
 export class OpenAIChatClient extends ChatClient {
   private readonly _openAIClient: OpenAI;
@@ -51,7 +40,8 @@ export class OpenAIChatClient extends ChatClient {
     return undefined;
   }
 
-  async complete(chatMessages: ChatMessage[], options?: ChatOptions): Promise<ChatCompletion> {
+  async complete(chatMessages: string | ChatMessage[], options?: ChatOptions): Promise<ChatCompletion> {
+    chatMessages = ChatMessage.create(chatMessages);
     const modelId = this.metadata.modelId ?? options?.modelId;
 
     if (!modelId) {
@@ -76,9 +66,10 @@ export class OpenAIChatClient extends ChatClient {
   }
 
   override completeStreaming(
-    chatMessages: ChatMessage[],
+    chatMessages: string | ChatMessage[],
     options?: ChatOptions
   ): AsyncGenerator<StreamingChatCompletionUpdate> {
+    chatMessages = ChatMessage.create(chatMessages);
     const modelId = this.metadata.modelId ?? options?.modelId;
 
     if (!modelId) {

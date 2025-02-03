@@ -122,7 +122,8 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
     super(innerClient);
   }
 
-  override async complete(chatMessages: ChatMessage[], options?: ChatOptions): Promise<ChatCompletion> {
+  override async complete(chatMessages: string | ChatMessage[], options?: ChatOptions): Promise<ChatCompletion> {
+    chatMessages = ChatMessage.create(chatMessages);
     let response: ChatCompletion | undefined = undefined;
     let messagesToRemove: Set<ChatMessage> | undefined = undefined;
     let contentsToRemove: Set<AIContent> | undefined = undefined;
@@ -218,9 +219,10 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
   }
 
   override async *completeStreaming(
-    chatMessages: ChatMessage[],
+    chatMessages: string | ChatMessage[],
     options?: ChatOptions
   ): AsyncGenerator<StreamingChatCompletionUpdate> {
+    chatMessages = ChatMessage.create(chatMessages);
     let messagesToRemove: Set<ChatMessage> | undefined = undefined;
     let functionCallContents: FunctionCallContent[] = [];
     let choice: number | undefined;
