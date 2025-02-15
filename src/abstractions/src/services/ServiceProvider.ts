@@ -1,13 +1,11 @@
-import { ChatCompletionService, PromptExecutionSettings, defaultServiceId } from '../AI';
+import { defaultServiceId } from '../AI';
+import { ChatClient, ChatOptions } from '../chatCompletion';
 import { KernelFunction } from '../functions';
-import { KernelArguments } from '../functions/KernelArguments';
-import { JsonSchema } from '../jsonSchema';
-import { AIService, AIServiceType, getServiceModelId } from './AIService';
 
-/**
- * Maps an AIServiceType to the corresponding service.
- */
-type ServiceMapping<T> = T extends 'ChatCompletion' ? ChatCompletionService : AIService;
+
+// import { getServiceModelId } from './AIService';
+
+type Constructor = abstract new (...args: unknown[]) => unknown;
 
 /**
  * Represents a service provider.
@@ -17,7 +15,9 @@ export interface ServiceProvider {
    * Adds a service.
    * @param service The service to add.
    */
-  addService(service: AIService): void;
+  addService(service: object): void;
+
+  getService<T extends Constructor>(serviceType: T): InstanceType<T>;
 
   /**
    * Get service of a specific type.
@@ -25,14 +25,12 @@ export interface ServiceProvider {
    * @param params.serviceType The type of service to get.
    * @param params.executionSettings Execution settings for the service.
    */
-  trySelectAIService<T extends AIServiceType>(params: {
-    serviceType: T;
-    kernelFunction?: KernelFunction<JsonSchema>;
-    kernelArguments?: KernelArguments<JsonSchema, unknown>;
+  trySelectChatClient(params: {
+    kernelFunction?: KernelFunction;
   }):
     | {
-        service: ServiceMapping<T>;
-        executionSettings?: PromptExecutionSettings;
+        chatClient: ChatClient;
+        chatOptions?: ChatOptions;
       }
     | undefined;
 }
@@ -41,9 +39,13 @@ export interface ServiceProvider {
  * Represents a service provider that uses a map to store services.
  */
 export class MapServiceProvider implements ServiceProvider {
-  private readonly services: Map<string, AIService> = new Map();
+  getService<T extends Constructor>(serviceType: T): InstanceType<T> {
+    return this.getServicesByType(serviceType)[0];
+  }
 
-  addService(service: AIService) {
+  private readonly services: Map<string, object> = new Map();
+
+  addService(service: object) {
     const serviceId = this.getServiceId(service);
 
     if (this.hasService(serviceId)) {
@@ -53,72 +55,63 @@ export class MapServiceProvider implements ServiceProvider {
     this.services.set(serviceId, service);
   }
 
-  trySelectAIService<T extends AIServiceType>({
-    serviceType,
-    kernelFunction,
-    kernelArguments,
-  }: {
-    serviceType: T;
-    kernelFunction?: KernelFunction<JsonSchema>;
-    kernelArguments?: KernelArguments<JsonSchema, unknown>;
-  }) {
-    const executionSettings = kernelFunction?.executionSettings ?? kernelArguments?.executionSettings;
+  trySelectChatClient({ kernelFunction }: { kernelFunction?: KernelFunction }) {
+    const chatOptionsMapping = kernelFunction?.metadata?.chatOptions;
+    const chatClients = this.getServicesByType(ChatClient);
 
-    const services = this.getServicesByType(serviceType);
-
-    if (!services.length) {
+    if (!chatClients.length) {
       return undefined;
     }
 
-    if (!executionSettings || executionSettings.size === 0) {
+    if (!chatOptionsMapping || chatOptionsMapping.size === 0) {
       // return the first service if no execution settings are provided
       return {
-        service: services[0],
-        executionSettings: undefined,
+        chatClient: chatClients[0],
+        chatOptions: undefined,
       };
     }
 
-    let defaultExecutionSettings: PromptExecutionSettings | undefined;
+    let defaultChatOptions: ChatOptions | undefined;
 
     // search by service id first
-    for (const [serviceId, _executionSettings] of executionSettings) {
+    for (const [serviceId, chatOptions] of chatOptionsMapping) {
       if (!serviceId || serviceId === defaultServiceId) {
-        defaultExecutionSettings = _executionSettings;
+        defaultChatOptions = chatOptions;
       }
 
-      const service = services.find((s) => this.getServiceId(s) === serviceId);
-      if (service) {
+      const chatClient = chatClients.find((s) => this.getServiceId(s) === serviceId);
+      if (chatClient) {
         return {
-          service,
-          executionSettings: _executionSettings,
+          chatClient,
+          chatOptions,
         };
       }
     }
 
     // search by model id next
-    for (const _executionSettings of executionSettings.values()) {
-      const modelId = _executionSettings.modelId;
-      const service = services.find((s) => getServiceModelId(s) === modelId);
-      if (service) {
+    for (const chatOptions of chatOptionsMapping.values()) {
+      const modelId = chatOptions.modelId;
+      const chatClient = chatClients.find((s) => s.metadata.modelId === modelId);
+      if (chatClient) {
         return {
-          service,
-          executionSettings: _executionSettings,
+          chatClient,
+          chatOptions,
         };
       }
     }
 
     // search by default service id last
-    if (defaultExecutionSettings) {
+    if (defaultChatOptions) {
       return {
-        service: services[0],
-        executionSettings: defaultExecutionSettings,
+        chatClient: chatClients[0],
+        chatOptions: defaultChatOptions,
       };
     }
 
     return undefined;
   }
 
-  private getServiceId(service: AIService) {
+  private getServiceId(service: object) {
     return service.constructor.name;
   }
 
@@ -126,9 +119,7 @@ export class MapServiceProvider implements ServiceProvider {
     return this.services.has(serviceKey);
   }
 
-  private getServicesByType<T extends AIServiceType>(serviceType: T) {
-    return Array.from(this.services.values()).filter((service) => service.serviceType === serviceType) as Array<
-      ServiceMapping<T>
-    >;
+  private getServicesByType<T extends Constructor>(serviceType: T) {
+    return Array.from(this.services.values()).filter((service) => service instanceof serviceType) as InstanceType<T>[];
   }
 }

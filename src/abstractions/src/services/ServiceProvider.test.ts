@@ -1,4 +1,5 @@
 import { PromptExecutionSettings, ServiceId } from '../AI';
+import { ChatClient, ChatClientMetadata, ChatCompletion, StreamingChatCompletionUpdate } from '../chatCompletion';
 import { KernelArguments } from '../functions';
 import { AIService, ModelIdKey } from './AIService';
 import { MapServiceProvider } from './ServiceProvider';
@@ -17,22 +18,35 @@ class MockServiceWithModelId implements AIService {
   }
 }
 
+class MyChatClient extends ChatClient {
+  override complete(): Promise<ChatCompletion> {
+    throw new Error('Method not implemented.');
+  }
+  override completeStreaming(): AsyncGenerator<StreamingChatCompletionUpdate> {
+    throw new Error('Method not implemented.');
+  }
+  override get metadata(): ChatClientMetadata {
+    throw new Error('Method not implemented.');
+  }
+  override getService(): object | undefined {
+    throw new Error('Method not implemented.');
+  }
+}
+
 describe('MapServiceProvider', () => {
   describe('addService', () => {
     it('should add a service', () => {
       // Arrange
       const serviceProvider = new MapServiceProvider();
-      const mockService = new MockService();
+      // const mockService = new MockService();
 
       // Act
-      serviceProvider.addService(mockService);
+      serviceProvider.addService(new MyChatClient());
 
       // Assert
       expect(
-        serviceProvider.trySelectAIService({
-          serviceType: 'ChatCompletion',
-        })?.service
-      ).toEqual(mockService);
+        serviceProvider.getService(ChatClient)
+      ).toBeDefined();
     });
 
     it('should not add the same serviceKey twice', () => {
@@ -57,7 +71,7 @@ describe('MapServiceProvider', () => {
 
       // Act
       const service = serviceProvider.trySelectAIService({
-        serviceType: 'ChatCompletion',
+        serviceType: ChatClient,
       })?.service;
 
       // Assert
@@ -72,7 +86,7 @@ describe('MapServiceProvider', () => {
 
       // Act
       const service = serviceProvider.trySelectAIService({
-        serviceType: 'ChatCompletion',
+        serviceType: ChatClient,
       });
 
       // Assert
@@ -101,7 +115,7 @@ describe('MapServiceProvider', () => {
 
       // Act
       const service = serviceProvider.trySelectAIService({
-        serviceType: 'ChatCompletion',
+        serviceType: ChatClient,
         kernelArguments: stubKernelArguments,
       });
 
@@ -128,7 +142,7 @@ describe('MapServiceProvider', () => {
 
       // Act
       const service = serviceProvider.trySelectAIService({
-        serviceType: 'ChatCompletion',
+        serviceType: ChatClient,
         kernelArguments: stubKernelArguments,
       });
 
