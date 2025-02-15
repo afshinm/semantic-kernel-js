@@ -1,26 +1,22 @@
 import { Kernel } from '../Kernel';
 import { ChatClient, ChatOptions } from '../chatCompletion';
 import { type FromSchema } from '../jsonSchema';
-import { KernelFunctionFromPromptMetadata, PassThroughPromptTemplate, PromptTemplate, PromptTemplateFormat } from '../promptTemplate';
+import {
+  KernelFunctionFromPromptMetadata,
+  PassThroughPromptTemplate,
+  PromptTemplate,
+  PromptTemplateFormat,
+} from '../promptTemplate';
 import { KernelFunction } from './KernelFunction';
 
-
-export type PromptRenderingResult = {
-  renderedPrompt: string;
-  chatOptions?: ChatOptions;
-  chatClient: ChatClient;
-};
-
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const schema = {
   type: 'object',
 } as const;
 
 export type PromptType = FromSchema<typeof schema>;
 
-export class KernelFunctionFromPrompt extends KernelFunction<
-  typeof schema,
-  PromptType
-> {
+export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, PromptType> {
   private readonly kernelFunctionFromPromptMetadata: KernelFunctionFromPromptMetadata<typeof schema>;
 
   public override get metadata(): KernelFunctionFromPromptMetadata<typeof schema> {
@@ -65,20 +61,20 @@ export class KernelFunctionFromPrompt extends KernelFunction<
     });
   }
 
-  override async invokeCore (args?: PromptType, kernel?: Kernel) {
+  override async invokeCore(args?: PromptType, kernel?: Kernel) {
     const { renderedPrompt, chatClient, chatOptions } = await this.renderPrompt(kernel, args);
 
     if (!chatClient) {
       throw new Error('ChatClient not found in kernel');
     }
 
-      const chatCompletionResult = await chatClient.complete(renderedPrompt, chatOptions);
+    const chatCompletionResult = await chatClient.complete(renderedPrompt, chatOptions);
 
-      return {
-        chatCompletion: chatCompletionResult,
-        renderedPrompt: renderedPrompt,
-      };
-  };
+    return {
+      chatCompletion: chatCompletionResult,
+      renderedPrompt: renderedPrompt,
+    };
+  }
 
   override async *invokeStreamingCore(args?: PromptType, kernel?: Kernel) {
     const { renderedPrompt, chatClient, chatOptions } = await this.renderPrompt(kernel, args);
@@ -103,16 +99,24 @@ export class KernelFunctionFromPrompt extends KernelFunction<
     }
   };
 
-  private async renderPrompt(kernel?: Kernel, args?: PromptType): Promise<PromptRenderingResult> {
+  private async renderPrompt(
+    kernel?: Kernel,
+    args?: PromptType
+  ): Promise<{
+    renderedPrompt: string;
+    chatOptions?: ChatOptions;
+    chatClient: ChatClient;
+  }> {
     if (!kernel) {
       throw new Error('Kernel is required to render prompt');
     }
 
     const promptTemplate = this.getPromptTemplate();
 
-    const { chatClient, chatOptions } = kernel.services.trySelectChatClient({
-      kernelFunction: this,
-    }) ?? {};
+    const { chatClient, chatOptions } =
+      kernel.services.trySelectChatClient({
+        kernelFunction: this,
+      }) ?? {};
 
     if (!chatClient) {
       throw new Error('ChatClient not found in kernel');

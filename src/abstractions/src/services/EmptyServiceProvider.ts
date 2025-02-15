@@ -1,13 +1,13 @@
-import { ServiceProvider } from './ServiceProvider';
+import { Constructor, ServiceProvider } from './ServiceProvider';
 
 export class EmptyServiceProvider implements ServiceProvider {
-  getService(): object {
+  getService<T extends Constructor>(): InstanceType<T> {
     throw new Error('Method not implemented.');
   }
   addService(): void {
     throw new Error('Method not implemented.');
   }
-  trySelectAIService(): undefined {
+  trySelectChatClient(): undefined {
     return undefined;
   }
 }

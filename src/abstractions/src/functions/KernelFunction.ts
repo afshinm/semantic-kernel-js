@@ -1,3 +1,4 @@
+import { defaultServiceId } from '../AI';
 import { Kernel } from '../Kernel';
 import { ChatOptions } from '../chatCompletion';
 import { FromSchema } from '../jsonSchema';
@@ -35,6 +36,28 @@ export abstract class KernelFunction<
   SCHEMA = FromSchema<PARAMETERS>,
 > extends AIFunction<PARAMETERS, SCHEMA> {
   abstract override get metadata(): KernelFunctionMetadata<PARAMETERS>;
+
+  get chatOptions(): Map<string, ChatOptions> | undefined {
+    return this.metadata.chatOptions;
+  }
+
+  set chatOptions(options: Map<string, ChatOptions> | ChatOptions) {
+    if (options instanceof Map) {
+      const newChatOptions = new Map<string, ChatOptions>();
+
+      for (const [serviceId, chatOptions] of options) {
+        if (this.metadata?.chatOptions?.has(serviceId)) {
+          throw new Error(`Execution settings for service ID ${serviceId} already exists.`);
+        }
+
+        newChatOptions.set(serviceId, chatOptions);
+      }
+
+      this.metadata.chatOptions = newChatOptions;
+    } else {
+      this.metadata.chatOptions = new Map([[defaultServiceId, options]]);
+    }
+  }
 
   protected abstract override invokeCore(args?: SCHEMA, kernel?: Kernel): Promise<unknown>;
 

@@ -2,10 +2,7 @@ import { defaultServiceId } from '../AI';
 import { ChatClient, ChatOptions } from '../chatCompletion';
 import { KernelFunction } from '../functions';
 
-
-// import { getServiceModelId } from './AIService';
-
-type Constructor = abstract new (...args: unknown[]) => unknown;
+export type Constructor = abstract new (...args: unknown[]) => unknown;
 
 /**
  * Represents a service provider.
