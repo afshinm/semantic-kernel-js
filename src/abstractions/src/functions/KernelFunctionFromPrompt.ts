@@ -1,13 +1,9 @@
 import { Kernel } from '../Kernel';
 import { ChatClient, ChatOptions } from '../chatCompletion';
 import { type FromSchema } from '../jsonSchema';
-import {
-  KernelFunctionFromPromptMetadata,
-  PassThroughPromptTemplate,
-  PromptTemplate,
-  PromptTemplateFormat,
-} from '../promptTemplate';
+import { KernelFunctionFromPromptMetadata, PassThroughPromptTemplate, PromptTemplate, PromptTemplateFormat } from '../promptTemplate';
 import { KernelFunction } from './KernelFunction';
+
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const schema = {
@@ -17,15 +13,8 @@ const schema = {
 export type PromptType = FromSchema<typeof schema>;
 
 export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, PromptType> {
-  private readonly kernelFunctionFromPromptMetadata: KernelFunctionFromPromptMetadata<typeof schema>;
-
-  public override get metadata(): KernelFunctionFromPromptMetadata<typeof schema> {
-    return this.kernelFunctionFromPromptMetadata;
-  }
-
   private constructor(kernelFunctionFromPromptMetadata: KernelFunctionFromPromptMetadata<typeof schema>) {
-    super();
-    this.kernelFunctionFromPromptMetadata = kernelFunctionFromPromptMetadata;
+    super(kernelFunctionFromPromptMetadata);
   }
 
   /**
@@ -68,6 +57,10 @@ export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, Prom
       throw new Error('ChatClient not found in kernel');
     }
 
+    if (chatOptions) {
+      this.addFunctionsToChatOptions(kernel, chatOptions);
+    }
+
     const chatCompletionResult = await chatClient.complete(renderedPrompt, chatOptions);
 
     return {
@@ -83,6 +76,10 @@ export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, Prom
       throw new Error('ChatClient not found in kernel');
     }
 
+    if (chatOptions) {
+      this.addFunctionsToChatOptions(kernel, chatOptions);
+    }
+
     const chatCompletionUpdates = chatClient.completeStreaming(renderedPrompt, chatOptions);
 
     for await (const chatCompletionUpdate of chatCompletionUpdates) {
@@ -91,13 +88,35 @@ export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, Prom
   }
 
   private getPromptTemplate = (): PromptTemplate => {
-    switch (this.metadata.templateFormat) {
+    const metadata = this.metadata as KernelFunctionFromPromptMetadata;
+    switch (metadata.templateFormat) {
       case 'passthrough':
-        return new PassThroughPromptTemplate(this.metadata.template);
+        return new PassThroughPromptTemplate(metadata.template);
       default:
-        throw new Error(`${this.metadata.templateFormat} template rendering not implemented`);
+        throw new Error(`${metadata.templateFormat} template rendering not implemented`);
     }
   };
+
+  private addFunctionsToChatOptions(kernel?: Kernel, chatOptions?: ChatOptions) {
+    if (!kernel) {
+      return;
+    }
+
+    if (!chatOptions) {
+      return;
+    }
+
+    const plugins = kernel.plugins.getPlugins();
+    const availableFunctions: Array<KernelFunction> = [];
+
+    for (const plugin of plugins) {
+      for (const kernelFunction of plugin.functions.values()) {
+        availableFunctions.push(kernelFunction);
+      }
+    }
+
+    chatOptions.tools = [...(chatOptions.tools ?? []), ...availableFunctions];
+  }
 
   private async renderPrompt(
     kernel?: Kernel,
@@ -111,8 +130,6 @@ export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, Prom
       throw new Error('Kernel is required to render prompt');
     }
 
-    const promptTemplate = this.getPromptTemplate();
-
     const { chatClient, chatOptions } =
       kernel.services.trySelectChatClient({
         kernelFunction: this,
@@ -122,6 +139,7 @@ export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, Prom
       throw new Error('ChatClient not found in kernel');
     }
 
+    const promptTemplate = this.getPromptTemplate();
     const renderedPrompt = await promptTemplate.render(kernel, args);
 
     return {

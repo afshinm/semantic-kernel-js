@@ -5,6 +5,7 @@ import { FromSchema } from '../jsonSchema';
 import { AIFunction } from './AIFunction';
 import { AIFunctionMetadata } from './AIFunctionMetadata';
 import { AIFunctionParameterMetadata } from './AIFunctionParameterMetadata';
+import { FunctionName } from './FunctionName';
 
 
 // export type Fn<Result, Args> = (args: Args, kernel?: Kernel) => Result;
@@ -35,7 +36,26 @@ export abstract class KernelFunction<
   PARAMETERS extends AIFunctionParameterMetadata = AIFunctionParameterMetadata,
   SCHEMA = FromSchema<PARAMETERS>,
 > extends AIFunction<PARAMETERS, SCHEMA> {
-  abstract override get metadata(): KernelFunctionMetadata<PARAMETERS>;
+  private _metadata: KernelFunctionMetadata<PARAMETERS>;
+
+  constructor(metadata: KernelFunctionMetadata<PARAMETERS>) {
+    super();
+    this._metadata = metadata;
+  }
+
+  override get metadata(): KernelFunctionMetadata<PARAMETERS> {
+    return {
+      ...this._metadata,
+      name: FunctionName.fullyQualifiedName({
+        functionName: this._metadata.name,
+        pluginName: this._metadata.pluginName,
+      }),
+    };
+  };
+
+  set metadata(metadata: KernelFunctionMetadata<PARAMETERS>) {
+    this._metadata = metadata;
+  }
 
   get chatOptions(): Map<string, ChatOptions> | undefined {
     return this.metadata.chatOptions;
@@ -46,16 +66,16 @@ export abstract class KernelFunction<
       const newChatOptions = new Map<string, ChatOptions>();
 
       for (const [serviceId, chatOptions] of options) {
-        if (this.metadata?.chatOptions?.has(serviceId)) {
+        if (this._metadata?.chatOptions?.has(serviceId)) {
           throw new Error(`Execution settings for service ID ${serviceId} already exists.`);
         }
 
         newChatOptions.set(serviceId, chatOptions);
       }
 
-      this.metadata.chatOptions = newChatOptions;
+      this._metadata.chatOptions = newChatOptions;
     } else {
-      this.metadata.chatOptions = new Map([[defaultServiceId, options]]);
+      this._metadata.chatOptions = new Map([[defaultServiceId, options]]);
     }
   }
 
@@ -85,11 +105,7 @@ export const kernelFunction = <
 ): KernelFunction<PARAMETERS, SCHEMA> => {
   return new (class extends KernelFunction<PARAMETERS, SCHEMA> {
     public constructor() {
-      super();
-    }
-
-    override get metadata(): KernelFunctionMetadata<PARAMETERS> {
-      return metadata;
+      super(metadata);
     }
 
     protected override invokeStreamingCore(): AsyncGenerator<unknown> {
