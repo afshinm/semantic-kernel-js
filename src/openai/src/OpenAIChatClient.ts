@@ -1,15 +1,35 @@
-import { fromOpenAIChatCompletion, fromOpenAIStreamingChatCompletion, toOpenAIChatMessages, toOpenAIChatOptions } from './mapper/chatCompletionMapper';
-import { ChatClient, ChatClientMetadata, ChatCompletion, ChatMessage, ChatOptions, StreamingChatCompletionUpdate } from '@semantic-kernel/abstractions';
+import {
+  fromOpenAIChatCompletion,
+  fromOpenAIStreamingChatCompletion,
+  toOpenAIChatMessages,
+  toOpenAIChatOptions,
+} from './mapper/chatCompletionMapper';
+import {
+  ChatClient,
+  ChatClientMetadata,
+  ChatCompletion,
+  ChatMessage,
+  ChatOptions,
+  StreamingChatCompletionUpdate,
+} from '@semantic-kernel/abstractions';
 import OpenAI from 'openai';
-
 
 export class OpenAIChatClient extends ChatClient {
   private readonly _openAIClient: OpenAI;
   private readonly _metadata: ChatClientMetadata;
 
-  constructor({ openAIClient, modelId }: { openAIClient: OpenAI; modelId: string }) {
+  constructor({ apiKey, openAIClient, modelId }: { apiKey?: string; openAIClient?: OpenAI; modelId: string }) {
     super();
-    this._openAIClient = openAIClient;
+
+    if (!openAIClient && !apiKey) {
+      throw new Error('Either an OpenAI instance or an API key is required');
+    }
+
+    if (!openAIClient) {
+      this._openAIClient = new OpenAI({ apiKey });
+    } else {
+      this._openAIClient = openAIClient;
+    }
 
     const providerUri = this._openAIClient.baseURL;
 

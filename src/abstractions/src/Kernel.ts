@@ -1,9 +1,9 @@
 import { ChatOptions } from './chatCompletion';
-import {  KernelFunction, KernelFunctionFromPrompt, KernelPlugin, PromptType } from './functions';
+import { KernelFunction, KernelFunctionFromPrompt, KernelPlugin, PromptType } from './functions';
 import { AIFunctionParameterMetadata } from './functions/AIFunctionParameterMetadata';
 import { KernelPlugins, MapKernelPlugins } from './functions/KernelPlugins';
 import { PromptTemplateFormat } from './promptTemplate';
-import { AIService, MapServiceProvider, ServiceProvider } from './services';
+import { MapServiceProvider, ServiceProvider } from './services';
 
 
 /**
@@ -40,7 +40,7 @@ export class Kernel {
    * @param service The service to add.
    * @returns The kernel.
    */
-  public addService(service: AIService) {
+  public add<T extends object>(service: T) {
     this._serviceProvider.addService(service);
     return this;
   }
