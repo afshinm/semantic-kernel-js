@@ -1,4 +1,4 @@
-import { ChatOptions } from './chatCompletion';
+import { PromptExecutionSettings } from './AI/promptExecutionSettings/PromptExecutionSettings';
 import { KernelFunction, KernelFunctionFromPrompt, KernelPlugin, PromptType } from './functions';
 import { AIFunctionParameterMetadata } from './functions/AIFunctionParameterMetadata';
 import { KernelPlugins, MapKernelPlugins } from './functions/KernelPlugins';
@@ -40,7 +40,7 @@ export class Kernel {
    * @param service The service to add.
    * @returns The kernel.
    */
-  public add<T extends object>(service: T) {
+  public addService<T extends object>(service: T) {
     this._serviceProvider.addService(service);
     return this;
   }
@@ -67,14 +67,14 @@ export class Kernel {
   public async invoke<PARAMETERS extends AIFunctionParameterMetadata, SCHEMA>({
     kernelFunction,
     args,
-    chatOptions,
+    executionSettings,
   }: {
     kernelFunction: KernelFunction<PARAMETERS, SCHEMA>;
     args?: SCHEMA;
-    chatOptions?: Map<string, ChatOptions> | ChatOptions;
+    executionSettings?: Map<string, PromptExecutionSettings> | PromptExecutionSettings[] | PromptExecutionSettings;
   }) {
-    if (chatOptions) {
-      kernelFunction.chatOptions = chatOptions;
+    if (executionSettings) {
+      kernelFunction.executionSettings = executionSettings;
     }
 
     return kernelFunction.invoke(args, this);
@@ -83,14 +83,14 @@ export class Kernel {
   public invokeStreaming<PARAMETERS extends AIFunctionParameterMetadata, SCHEMA>({
     kernelFunction,
     args,
-    chatOptions,
+    executionSettings,
   }: {
     kernelFunction: KernelFunction<PARAMETERS, SCHEMA>;
     args?: SCHEMA;
-    chatOptions?: Map<string, ChatOptions> | ChatOptions;
+    executionSettings?: Map<string, PromptExecutionSettings> | PromptExecutionSettings[] | PromptExecutionSettings;
   }) {
-    if (chatOptions) {
-      kernelFunction.chatOptions = chatOptions;
+    if (executionSettings) {
+      kernelFunction.executionSettings = executionSettings;
     }
 
     return kernelFunction.invokeStreaming(args, this);
@@ -118,7 +118,7 @@ export class Kernel {
     inputVariables,
     allowDangerouslySetContent,
     args,
-    chatOptions,
+    executionSettings,
   }: {
     promptTemplate: string;
     name?: string;
@@ -127,7 +127,7 @@ export class Kernel {
     inputVariables?: string[];
     allowDangerouslySetContent?: boolean;
     args?: PromptType;
-    chatOptions?: Map<string, ChatOptions> | ChatOptions;
+    executionSettings?: Map<string, PromptExecutionSettings> | PromptExecutionSettings[] | PromptExecutionSettings;
   }) {
     const kernelFunctionFromPrompt = KernelFunctionFromPrompt.create({
       promptTemplate,
@@ -138,7 +138,7 @@ export class Kernel {
       allowDangerouslySetContent,
     });
 
-    return this.invoke({ kernelFunction: kernelFunctionFromPrompt, args, chatOptions });
+    return this.invoke({ kernelFunction: kernelFunctionFromPrompt, args, executionSettings });
   }
 
   /**
@@ -163,7 +163,7 @@ export class Kernel {
     inputVariables,
     allowDangerouslySetContent,
     args,
-    chatOptions,
+    executionSettings,
   }: {
     promptTemplate: string;
     name?: string;
@@ -172,7 +172,7 @@ export class Kernel {
     inputVariables?: string[];
     allowDangerouslySetContent?: boolean;
     args?: PromptType;
-    chatOptions?: Map<string, ChatOptions> | ChatOptions;
+    executionSettings?: Map<string, PromptExecutionSettings> | PromptExecutionSettings[] | PromptExecutionSettings;
   }) {
     const kernelFunctionFromPrompt = KernelFunctionFromPrompt.create({
       promptTemplate,
@@ -183,7 +183,7 @@ export class Kernel {
       allowDangerouslySetContent,
     });
 
-    return this.invokeStreaming({ kernelFunction: kernelFunctionFromPrompt, args, chatOptions });
+    return this.invokeStreaming({ kernelFunction: kernelFunctionFromPrompt, args, executionSettings });
   }
 }
 

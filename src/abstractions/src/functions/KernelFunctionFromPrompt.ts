@@ -1,3 +1,4 @@
+import { PromptExecutionSettings } from '../AI';
 import { Kernel } from '../Kernel';
 import { ChatClient, ChatOptions } from '../chatCompletion';
 import { type FromSchema } from '../jsonSchema';
@@ -51,22 +52,26 @@ export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, Prom
   }
 
   override async invokeCore(args?: PromptType, kernel?: Kernel) {
-    const { renderedPrompt, chatClient, chatOptions } = await this.renderPrompt(kernel, args);
+    const { renderedPrompt, service, executionSettings } = await this.renderPrompt(kernel, args);
 
-    if (!chatClient) {
-      throw new Error('ChatClient not found in kernel');
+    if (!service) {
+      throw new Error('Service not found in kernel');
     }
 
-    if (chatOptions) {
-      this.addFunctionsToChatOptions(kernel, chatOptions);
+    if (service instanceof ChatClient) {
+      if (executionSettings) {
+        this.addFunctionsToChatOptions(kernel, chatOptions);
+      }
+
+      const chatCompletionResult = await service.complete(renderedPrompt, chatOptions);
+
+      return {
+        chatCompletion: chatCompletionResult,
+        renderedPrompt: renderedPrompt,
+      };
     }
 
-    const chatCompletionResult = await chatClient.complete(renderedPrompt, chatOptions);
-
-    return {
-      chatCompletion: chatCompletionResult,
-      renderedPrompt: renderedPrompt,
-    };
+    throw new Error(`Unsupported service type: ${service}`)
   }
 
   override async *invokeStreamingCore(args?: PromptType, kernel?: Kernel) {
@@ -123,20 +128,21 @@ export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, Prom
     args?: PromptType
   ): Promise<{
     renderedPrompt: string;
-    chatOptions?: ChatOptions;
-    chatClient: ChatClient;
+    executionSettings?: PromptExecutionSettings;
+    service: ChatClient;
   }> {
     if (!kernel) {
       throw new Error('Kernel is required to render prompt');
     }
 
-    const { chatClient, chatOptions } =
-      kernel.services.trySelectChatClient({
+    const { service, executionSettings } =
+      kernel.services.trySelectService({
+        serviceType: ChatClient,
         kernelFunction: this,
       }) ?? {};
 
-    if (!chatClient) {
-      throw new Error('ChatClient not found in kernel');
+    if (!service) {
+      throw new Error('Service not found in kernel');
     }
 
     const promptTemplate = this.getPromptTemplate();
@@ -144,8 +150,8 @@ export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, Prom
 
     return {
       renderedPrompt,
-      chatOptions,
-      chatClient,
+      executionSettings,
+      service,
     };
   }
 

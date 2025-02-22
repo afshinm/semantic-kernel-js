@@ -1,6 +1,5 @@
-import { defaultServiceId } from '../AI';
+import { PromptExecutionSettings, defaultServiceId } from '../AI';
 import { Kernel } from '../Kernel';
-import { ChatOptions } from '../chatCompletion';
 import { FromSchema } from '../jsonSchema';
 import { AIFunction } from './AIFunction';
 import { AIFunctionMetadata } from './AIFunctionMetadata';
@@ -29,7 +28,7 @@ export type KernelFunctionProps<Props> = Props;
 
 export class KernelFunctionMetadata<PARAMETERS = AIFunctionParameterMetadata> extends AIFunctionMetadata<PARAMETERS> {
   pluginName?: string;
-  chatOptions?: Map<string, ChatOptions>;
+  executionSettings?: Map<string, PromptExecutionSettings>;
 };
 
 export abstract class KernelFunction<
@@ -51,31 +50,37 @@ export abstract class KernelFunction<
         pluginName: this._metadata.pluginName,
       }),
     };
-  };
+  }
 
   set metadata(metadata: KernelFunctionMetadata<PARAMETERS>) {
     this._metadata = metadata;
   }
 
-  get chatOptions(): Map<string, ChatOptions> | undefined {
-    return this.metadata.chatOptions;
+  get executionSettings(): Map<string, PromptExecutionSettings> | undefined {
+    return this.metadata.executionSettings;
   }
 
-  set chatOptions(options: Map<string, ChatOptions> | ChatOptions) {
-    if (options instanceof Map) {
-      const newChatOptions = new Map<string, ChatOptions>();
+  set executionSettings(
+    settings: Map<string, PromptExecutionSettings> | PromptExecutionSettings[] | PromptExecutionSettings
+  ) {
+    if (Array.isArray(settings)) {
+      const newExecutionSettings = new Map<string, PromptExecutionSettings>();
 
-      for (const [serviceId, chatOptions] of options) {
-        if (this._metadata?.chatOptions?.has(serviceId)) {
-          throw new Error(`Execution settings for service ID ${serviceId} already exists.`);
+      for (const _settings of settings) {
+        const targetServiceId = _settings.serviceId ?? defaultServiceId;
+
+        if (this.metadata.executionSettings?.has(targetServiceId)) {
+          throw new Error(`Execution settings for service ID ${targetServiceId} already exists.`);
         }
 
-        newChatOptions.set(serviceId, chatOptions);
+        newExecutionSettings.set(targetServiceId, _settings);
       }
 
-      this._metadata.chatOptions = newChatOptions;
+      this.metadata.executionSettings = newExecutionSettings;
+    } else if (settings instanceof Map) {
+      this.metadata.executionSettings = settings;
     } else {
-      this._metadata.chatOptions = new Map([[defaultServiceId, options]]);
+      this.metadata.executionSettings = new Map([[settings.serviceId ?? defaultServiceId, settings]]);
     }
   }
 
@@ -83,9 +88,9 @@ export abstract class KernelFunction<
 
   protected abstract invokeStreamingCore(args?: SCHEMA, kernel?: Kernel): AsyncGenerator<unknown>;
 
-  override async invoke (args?: SCHEMA, kernel?: Kernel): Promise<unknown> {
+  override async invoke(args?: SCHEMA, kernel?: Kernel): Promise<unknown> {
     return this.invokeCore(args, kernel);
-  };
+  }
 
   async *invokeStreaming(args?: SCHEMA, kernel?: Kernel): AsyncGenerator<unknown> {
     const enumerable = this.invokeStreamingCore(args, kernel);

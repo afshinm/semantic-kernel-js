@@ -1,7 +1,7 @@
 import { Kernel } from '../../Kernel';
 import { ChatMessageContent, StreamingChatMessageContent } from '../../contents';
 import { AIService } from '../../services/AIService';
-import { PromptExecutionSettings } from '../PromptExecutionSettings';
+import { PromptExecutionSettings } from '../promptExecutionSettings/PromptExecutionSettings';
 import { ChatHistory } from './ChatHistory';
 
 /**
