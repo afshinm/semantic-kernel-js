@@ -57,7 +57,7 @@ export class ChatOptions {
   /**
    * Gets or sets the tool mode for the chat request.
    */
-  public toolMode: ChatToolMode = ChatToolMode.Auto;
+  public toolMode?: ChatToolMode = ChatToolMode.Auto;
 
   /**
    * Gets or sets the list of tools to include with a chat request.
@@ -69,20 +69,20 @@ export class ChatOptions {
    */
   public additionalProperties?: AdditionalProperties;
 
-  constructor(props: Omit<ChatOptions, 'clone'>) {
-    this.temperature = props.temperature;
-    this.maxOutputTokens = props.maxOutputTokens;
-    this.topP = props.topP;
-    this.topK = props.topK;
-    this.frequencyPenalty = props.frequencyPenalty;
-    this.presencePenalty = props.presencePenalty;
-    this.seed = props.seed;
-    this.responseFormat = props.responseFormat;
-    this.modelId = props.modelId;
-    this.stopSequences = props.stopSequences;
-    this.toolMode = props.toolMode ?? ChatToolMode.Auto;
-    this.tools = props.tools;
-    this.additionalProperties = props.additionalProperties;
+  constructor(props?: Omit<ChatOptions, 'clone'>) {
+    this.temperature = props?.temperature;
+    this.maxOutputTokens = props?.maxOutputTokens;
+    this.topP = props?.topP;
+    this.topK = props?.topK;
+    this.frequencyPenalty = props?.frequencyPenalty;
+    this.presencePenalty = props?.presencePenalty;
+    this.seed = props?.seed;
+    this.responseFormat = props?.responseFormat;
+    this.modelId = props?.modelId;
+    this.stopSequences = props?.stopSequences;
+    this.toolMode = props?.toolMode;
+    this.tools = props?.tools;
+    this.additionalProperties = props?.additionalProperties;
   }
 
   clone(): ChatOptions {

@@ -1,11 +1,12 @@
-import { JsonSchema } from '../jsonSchema';
+import { AIFunctionParameterMetadata } from './AIFunctionParameterMetadata';
 import { KernelFunction, KernelFunctionMetadata } from './KernelFunction';
 import { KernelPlugin, MapKernelPlugin } from './KernelPlugin';
+
 
 export type KernelPlugins = {
   addPlugin: (plugin: KernelPlugin) => KernelPlugins;
   getPlugins: () => Iterable<MapKernelPlugin>;
-  getFunctionsMetadata: () => KernelFunctionMetadata<JsonSchema>[];
+  getFunctionsMetadata: () => KernelFunctionMetadata<AIFunctionParameterMetadata>[];
   getFunction: (functionName: string, pluginName?: string) => KernelFunction | undefined;
 };
 
@@ -38,7 +39,10 @@ export class MapKernelPlugins implements KernelPlugins {
         }
 
         // Add the plugin name to the metadata of each function
-        pluginFunction.metadata.pluginName = plugin.name;
+        pluginFunction.metadata = {
+          ...pluginFunction.metadata,
+          pluginName: plugin.name
+        }
         // TODO: is this necessary?
         mapPlugin.functions.set(pluginFunction.metadata.name, pluginFunction);
       }
@@ -57,10 +61,10 @@ export class MapKernelPlugins implements KernelPlugins {
    * Gets a collection of KernelFunctionMetadata instances, one for every function in this plugin.
    */
   getFunctionsMetadata() {
-    return Array.from(this.plugins.values()).flatMap((plugin) =>
+    return Array.from(this.getPlugins()).flatMap((plugin) =>
       Array.from(plugin.functions.values())
         .filter((fn) => fn.metadata)
-        .map((fn) => fn.metadata as KernelFunctionMetadata<JsonSchema>)
+        .map((fn) => fn.metadata)
     );
   }
 

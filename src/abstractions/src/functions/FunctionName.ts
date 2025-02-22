@@ -6,7 +6,7 @@ export class FunctionName {
   /**
    * The separator used between the plugin name and the function name, if a plugin name is present.
    */
-  public static readonly NameSeparator = '.';
+  public static readonly NameSeparator = '_';
 
   static parse = (
     fullyQualifiedName: string,

@@ -7,11 +7,11 @@ export abstract class AIFunction<
   PARAMETERS extends AIFunctionParameterMetadata = AIFunctionParameterMetadata,
   SCHEMA = FromSchema<PARAMETERS>,
 > extends AITool {
-  abstract metadata: AIFunctionMetadata<PARAMETERS>;
+  abstract get metadata(): AIFunctionMetadata<PARAMETERS>;
 
-  invoke(args: SCHEMA) {
+  invoke(args?: SCHEMA) {
     return this.invokeCore(args);
   }
 
-  protected abstract invokeCore(args: SCHEMA): Promise<unknown>;
+  protected abstract invokeCore(args?: SCHEMA): Promise<unknown>;
 }
