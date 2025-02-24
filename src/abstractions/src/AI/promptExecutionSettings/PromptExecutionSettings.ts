@@ -37,7 +37,7 @@ export interface PromptExecutionSettings {
    * Extra properties that may be included in the serialized execution settings.
    * Avoid using this property if possible. Instead, use one of the classes that extends {@link PromptExecutionSettings}.
    */
-  extensionData?: Map<string, object>;
+  extensionData?: Map<string, unknown>;
 
   /**
    * Gets or sets the behavior defining the way functions are chosen by LLM and how they are invoked by AI connectors.

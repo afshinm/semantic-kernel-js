@@ -1,6 +1,7 @@
 import { PromptExecutionSettings } from '../AI';
+import { toChatOptions } from '../AI/promptExecutionSettings/PromptExecutionSettingsMapper';
 import { Kernel } from '../Kernel';
-import { ChatClient, ChatOptions } from '../chatCompletion';
+import { ChatClient } from '../chatCompletion';
 import { type FromSchema } from '../jsonSchema';
 import { KernelFunctionFromPromptMetadata, PassThroughPromptTemplate, PromptTemplate, PromptTemplateFormat } from '../promptTemplate';
 import { KernelFunction } from './KernelFunction';
@@ -59,11 +60,7 @@ export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, Prom
     }
 
     if (service instanceof ChatClient) {
-      if (executionSettings) {
-        this.addFunctionsToChatOptions(kernel, chatOptions);
-      }
-
-      const chatCompletionResult = await service.complete(renderedPrompt, chatOptions);
+      const chatCompletionResult = await service.complete(renderedPrompt, toChatOptions(executionSettings, kernel));
 
       return {
         chatCompletion: chatCompletionResult,
@@ -75,21 +72,21 @@ export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, Prom
   }
 
   override async *invokeStreamingCore(args?: PromptType, kernel?: Kernel) {
-    const { renderedPrompt, chatClient, chatOptions } = await this.renderPrompt(kernel, args);
+    const { renderedPrompt, service, executionSettings } = await this.renderPrompt(kernel, args);
 
-    if (!chatClient) {
-      throw new Error('ChatClient not found in kernel');
+    if (!service) {
+      throw new Error('Service not found in kernel');
     }
 
-    if (chatOptions) {
-      this.addFunctionsToChatOptions(kernel, chatOptions);
+    if (service instanceof ChatClient) {
+      const chatCompletionUpdates = service.completeStreaming(renderedPrompt, toChatOptions(executionSettings, kernel));
+
+      for await (const chatCompletionUpdate of chatCompletionUpdates) {
+        yield chatCompletionUpdate;
+      }
     }
 
-    const chatCompletionUpdates = chatClient.completeStreaming(renderedPrompt, chatOptions);
-
-    for await (const chatCompletionUpdate of chatCompletionUpdates) {
-      yield chatCompletionUpdate;
-    }
+    throw new Error(`Unsupported service type: ${service}`)
   }
 
   private getPromptTemplate = (): PromptTemplate => {
@@ -102,26 +99,26 @@ export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, Prom
     }
   };
 
-  private addFunctionsToChatOptions(kernel?: Kernel, chatOptions?: ChatOptions) {
-    if (!kernel) {
-      return;
-    }
+  // private addFunctionsToChatOptions(kernel?: Kernel, chatOptions?: ChatOptions) {
+  //   if (!kernel) {
+  //     return;
+  //   }
 
-    if (!chatOptions) {
-      return;
-    }
+  //   if (!chatOptions) {
+  //     return;
+  //   }
 
-    const plugins = kernel.plugins.getPlugins();
-    const availableFunctions: Array<KernelFunction> = [];
+  //   const plugins = kernel.plugins.getPlugins();
+  //   const availableFunctions: Array<KernelFunction> = [];
 
-    for (const plugin of plugins) {
-      for (const kernelFunction of plugin.functions.values()) {
-        availableFunctions.push(kernelFunction);
-      }
-    }
+  //   for (const plugin of plugins) {
+  //     for (const kernelFunction of plugin.functions.values()) {
+  //       availableFunctions.push(kernelFunction);
+  //     }
+  //   }
 
-    chatOptions.tools = [...(chatOptions.tools ?? []), ...availableFunctions];
-  }
+  //   chatOptions.tools = [...(chatOptions.tools ?? []), ...availableFunctions];
+  // }
 
   private async renderPrompt(
     kernel?: Kernel,
