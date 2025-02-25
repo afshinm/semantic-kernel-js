@@ -3,7 +3,7 @@ import { KernelFunction, KernelFunctionFromPrompt, KernelPlugin, PromptType } fr
 import { AIFunctionParameterMetadata } from './functions/AIFunctionParameterMetadata';
 import { KernelPlugins, MapKernelPlugins } from './functions/KernelPlugins';
 import { PromptTemplateFormat } from './promptTemplate';
-import { MapServiceProvider, Service, ServiceProvider } from './services';
+import { MapServiceProvider, ServiceProvider } from './services';
 
 
 /**
@@ -40,8 +40,8 @@ export class Kernel {
    * @param service The service to add.
    * @returns The kernel.
    */
-  public addService(service: InstanceType<Service>) {
-    this._serviceProvider.addService(service);
+  public addService(...props: Parameters<ServiceProvider['addService']>) {
+    this._serviceProvider.addService(...props);
     return this;
   }
 

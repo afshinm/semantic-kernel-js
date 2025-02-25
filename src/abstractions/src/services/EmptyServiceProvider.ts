@@ -1,7 +1,7 @@
-import { Service, ServiceProvider } from './ServiceProvider';
+import { ServiceProvider } from './ServiceProvider';
 
 export class EmptyServiceProvider implements ServiceProvider {
-  getService<T extends Service>(): InstanceType<T> {
+  getService(): undefined {
     throw new Error('Method not implemented.');
   }
   addService(): void {

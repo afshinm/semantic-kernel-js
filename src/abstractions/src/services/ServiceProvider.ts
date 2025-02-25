@@ -12,9 +12,9 @@ export interface ServiceProvider {
    * Adds a service.
    * @param service The service to add.
    */
-  addService(service: InstanceType<Service>): void;
+  addService(service: InstanceType<Service>, options?: { serviceId: string }): void;
 
-  getService<T extends Service>(serviceType: T): InstanceType<T>;
+  getService<T extends Service>(serviceType: T): InstanceType<T> | undefined;
 
   /**
    * Get service of a specific type.
@@ -28,34 +28,31 @@ export interface ServiceProvider {
   }: {
     serviceType: T;
     kernelFunction?: KernelFunction;
-  }): {
-    service: InstanceType<T>;
-    executionSettings?: PromptExecutionSettings;
-  } | undefined;
+  }):
+    | {
+        service: InstanceType<T>;
+        executionSettings?: PromptExecutionSettings;
+      }
+    | undefined;
 }
 
 /**
  * Represents a service provider that uses a map to store services.
  */
 export class MapServiceProvider implements ServiceProvider {
-  getService<T extends Service>(serviceType: T): InstanceType<T> {
-    return this.getServicesByType(serviceType)[0].service;
+  private readonly services: Map<string, InstanceType<Service>> = new Map();
+
+  getService<T extends Service>(serviceType: T): InstanceType<T> | undefined {
+    const servicesByType = this.getServicesByType(serviceType);
+    if (servicesByType.length > 0) {
+      return servicesByType[0].service;
+    }
   }
 
-  private readonly services: Map<string, object> = new Map();
-
-  addService(
-    service:
-      | Service
-      | {
-          service: Service;
-          serviceId: string;
-        }
-  ) {
+  addService(service: InstanceType<Service>, options?: { serviceId: string }) {
     let serviceId = defaultServiceId;
-    if ('serviceId' in service) {
-      serviceId = service.serviceId;
-      service = service.service;
+    if (options?.serviceId) {
+      serviceId = options.serviceId;
     }
 
     if (this.services.has(serviceId)) {
