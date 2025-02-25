@@ -12,7 +12,7 @@ export interface ServiceProvider {
    * Adds a service.
    * @param service The service to add.
    */
-  addService(service: Service): void;
+  addService(service: InstanceType<Service>): void;
 
   getService<T extends Service>(serviceType: T): InstanceType<T>;
 
@@ -128,6 +128,7 @@ export class MapServiceProvider implements ServiceProvider {
   }
 
   private getServiceModelId<T extends Service>(service: InstanceType<T>): string | undefined {
+    // TODO: Improve this to avoid hardcoded `metadata` and `modelId` lookups
     if (
       service &&
       typeof service === 'object' &&

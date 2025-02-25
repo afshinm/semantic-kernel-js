@@ -1,7 +1,7 @@
 import { JsonSchema } from '../jsonSchema';
-import { ChatResponseFormat } from './ChatResponseFormat';
+import { ChatResponseFormatBase } from './ChatResponseFormatBase';
 
-export class ChatResponseFormatJson extends ChatResponseFormat {
+export class ChatResponseFormatJson extends ChatResponseFormatBase {
   constructor({
     schema,
     schemaName,

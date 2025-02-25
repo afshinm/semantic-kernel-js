@@ -1,3 +1,7 @@
-import { ChatResponseFormat } from './ChatResponseFormat';
+import { ChatResponseFormatBase } from './ChatResponseFormatBase';
 
-export class ChatResponseFormatText extends ChatResponseFormat {}
+export class ChatResponseFormatText extends ChatResponseFormatBase {
+  public constructor() {
+    super();
+  }
+}

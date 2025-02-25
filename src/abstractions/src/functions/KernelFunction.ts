@@ -69,18 +69,18 @@ export abstract class KernelFunction<
       for (const _settings of settings) {
         const targetServiceId = _settings.serviceId ?? defaultServiceId;
 
-        if (this.metadata.executionSettings?.has(targetServiceId)) {
+        if (this._metadata.executionSettings?.has(targetServiceId)) {
           throw new Error(`Execution settings for service ID ${targetServiceId} already exists.`);
         }
 
         newExecutionSettings.set(targetServiceId, _settings);
       }
 
-      this.metadata.executionSettings = newExecutionSettings;
+      this._metadata.executionSettings = newExecutionSettings;
     } else if (settings instanceof Map) {
-      this.metadata.executionSettings = settings;
+      this._metadata.executionSettings = settings;
     } else {
-      this.metadata.executionSettings = new Map([[settings.serviceId ?? defaultServiceId, settings]]);
+      this._metadata.executionSettings = new Map([[settings.serviceId ?? defaultServiceId, settings]]);
     }
   }
 

@@ -3,7 +3,7 @@ import { ChatResponseFormatText } from './ChatResponseFormatText';
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class ChatResponseFormat {
-  protected constructor() {}
+  private constructor() {}
 
   static Text = new ChatResponseFormatText();
   static Json = new ChatResponseFormatJson({});
