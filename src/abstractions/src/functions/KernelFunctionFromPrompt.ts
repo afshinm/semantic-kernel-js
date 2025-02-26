@@ -3,9 +3,13 @@ import { toChatOptions } from '../AI/promptExecutionSettings/PromptExecutionSett
 import { Kernel } from '../Kernel';
 import { ChatClient } from '../chatCompletion';
 import { type FromSchema } from '../jsonSchema';
-import { KernelFunctionFromPromptMetadata, PassThroughPromptTemplate, PromptTemplate, PromptTemplateFormat } from '../promptTemplate';
+import {
+  KernelFunctionFromPromptMetadata,
+  PassThroughPromptTemplate,
+  PromptTemplate,
+  PromptTemplateFormat,
+} from '../promptTemplate';
 import { KernelFunction } from './KernelFunction';
-
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const schema = {
@@ -68,7 +72,7 @@ export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, Prom
       };
     }
 
-    throw new Error(`Unsupported service type: ${service}`)
+    throw new Error(`Unsupported service type: ${service}`);
   }
 
   override async *invokeStreamingCore(kernel: Kernel, args?: PromptType) {
@@ -86,7 +90,7 @@ export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, Prom
       }
     }
 
-    throw new Error(`Unsupported service type: ${service}`)
+    throw new Error(`Unsupported service type: ${service}`);
   }
 
   private getPromptTemplate = (): PromptTemplate => {

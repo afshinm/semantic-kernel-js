@@ -5,7 +5,6 @@ import { KernelPlugins, MapKernelPlugins } from './functions/KernelPlugins';
 import { PromptTemplateFormat } from './promptTemplate';
 import { MapServiceProvider, ServiceProvider } from './services';
 
-
 /**
  * Represents a kernel.
  */

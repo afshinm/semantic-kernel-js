@@ -44,9 +44,7 @@ describe('MapServiceProvider', () => {
       serviceProvider.addService(new MyChatClient());
 
       // Assert
-      expect(
-        serviceProvider.getService(ChatClient)
-      ).toBeDefined();
+      expect(serviceProvider.getService(ChatClient)).toBeDefined();
     });
 
     it('should not add the same serviceKey twice', () => {

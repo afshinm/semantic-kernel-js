@@ -3,7 +3,6 @@ import { AIContent } from '../contents/AIContent';
 import { TextContent } from '../contents/TextContent';
 import { ChatRole } from './ChatRole';
 
-
 export class ChatMessage {
   private _contents: AIContent[] = [];
   private _authorName?: string;

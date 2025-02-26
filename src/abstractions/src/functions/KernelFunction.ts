@@ -6,9 +6,8 @@ import { AIFunctionMetadata } from './AIFunctionMetadata';
 import { AIFunctionParameterMetadata } from './AIFunctionParameterMetadata';
 import { FunctionName } from './FunctionName';
 
-
 // export type Fn<Result, Args> = (args: Args, kernel?: Kernel) => Result;
-// 
+//
 // export type FunctionResult<
 //   Schema extends JsonSchema | unknown | undefined = unknown,
 //   Result = unknown,
@@ -27,7 +26,7 @@ import { FunctionName } from './FunctionName';
 export class KernelFunctionMetadata<PARAMETERS = AIFunctionParameterMetadata> extends AIFunctionMetadata<PARAMETERS> {
   pluginName?: string;
   executionSettings?: Map<string, PromptExecutionSettings>;
-};
+}
 
 export abstract class KernelFunction<
   PARAMETERS extends AIFunctionParameterMetadata = AIFunctionParameterMetadata,
@@ -118,10 +117,7 @@ export const kernelFunction = <
       throw new Error('Method not implemented.');
     }
 
-    override async invokeCore(
-      kernel: Kernel,
-      args?: SCHEMA,
-    ) {
+    override async invokeCore(kernel: Kernel, args?: SCHEMA) {
       return await fn(args, kernel);
     }
   })();

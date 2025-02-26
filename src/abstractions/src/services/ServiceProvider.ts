@@ -1,7 +1,6 @@
 import { PromptExecutionSettings, defaultServiceId } from '../AI';
 import { KernelFunction } from '../functions';
 
-
 export type Service = abstract new (...args: unknown[]) => unknown;
 
 /**
