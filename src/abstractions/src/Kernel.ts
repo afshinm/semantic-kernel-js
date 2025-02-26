@@ -77,7 +77,7 @@ export class Kernel {
       kernelFunction.executionSettings = executionSettings;
     }
 
-    return kernelFunction.invoke(args, this);
+    return kernelFunction.invoke(this, args);
   }
 
   public invokeStreaming<PARAMETERS extends AIFunctionParameterMetadata, SCHEMA>({
@@ -93,7 +93,7 @@ export class Kernel {
       kernelFunction.executionSettings = executionSettings;
     }
 
-    return kernelFunction.invokeStreaming(args, this);
+    return kernelFunction.invokeStreaming(this, args);
   }
 
   /**

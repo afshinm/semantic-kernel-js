@@ -52,7 +52,7 @@ export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, Prom
     });
   }
 
-  override async invokeCore(args?: PromptType, kernel?: Kernel) {
+  override async invokeCore(kernel: Kernel, args?: PromptType) {
     const { renderedPrompt, service, executionSettings } = await this.renderPrompt(kernel, args);
 
     if (!service) {
@@ -71,7 +71,7 @@ export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, Prom
     throw new Error(`Unsupported service type: ${service}`)
   }
 
-  override async *invokeStreamingCore(args?: PromptType, kernel?: Kernel) {
+  override async *invokeStreamingCore(kernel: Kernel, args?: PromptType) {
     const { renderedPrompt, service, executionSettings } = await this.renderPrompt(kernel, args);
 
     if (!service) {
@@ -98,27 +98,6 @@ export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, Prom
         throw new Error(`${metadata.templateFormat} template rendering not implemented`);
     }
   };
-
-  // private addFunctionsToChatOptions(kernel?: Kernel, chatOptions?: ChatOptions) {
-  //   if (!kernel) {
-  //     return;
-  //   }
-
-  //   if (!chatOptions) {
-  //     return;
-  //   }
-
-  //   const plugins = kernel.plugins.getPlugins();
-  //   const availableFunctions: Array<KernelFunction> = [];
-
-  //   for (const plugin of plugins) {
-  //     for (const kernelFunction of plugin.functions.values()) {
-  //       availableFunctions.push(kernelFunction);
-  //     }
-  //   }
-
-  //   chatOptions.tools = [...(chatOptions.tools ?? []), ...availableFunctions];
-  // }
 
   private async renderPrompt(
     kernel?: Kernel,

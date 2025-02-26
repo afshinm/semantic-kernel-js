@@ -1,7 +1,7 @@
 import { PromptExecutionSettings, defaultServiceId } from '../AI';
 import { Kernel } from '../Kernel';
 import { FromSchema } from '../jsonSchema';
-import { AIFunction } from './AIFunction';
+import { AIFunctionFactory } from './AIFunctionFactory';
 import { AIFunctionMetadata } from './AIFunctionMetadata';
 import { AIFunctionParameterMetadata } from './AIFunctionParameterMetadata';
 import { FunctionName } from './FunctionName';
@@ -24,8 +24,6 @@ import { FunctionName } from './FunctionName';
 //   metadata?: ReadonlyMap<string, unknown>;
 // };
 
-export type KernelFunctionProps<Props> = Props;
-
 export class KernelFunctionMetadata<PARAMETERS = AIFunctionParameterMetadata> extends AIFunctionMetadata<PARAMETERS> {
   pluginName?: string;
   executionSettings?: Map<string, PromptExecutionSettings>;
@@ -34,15 +32,14 @@ export class KernelFunctionMetadata<PARAMETERS = AIFunctionParameterMetadata> ex
 export abstract class KernelFunction<
   PARAMETERS extends AIFunctionParameterMetadata = AIFunctionParameterMetadata,
   SCHEMA = FromSchema<PARAMETERS>,
-> extends AIFunction<PARAMETERS, SCHEMA> {
+> {
   private _metadata: KernelFunctionMetadata<PARAMETERS>;
 
   constructor(metadata: KernelFunctionMetadata<PARAMETERS>) {
-    super();
     this._metadata = metadata;
   }
 
-  override get metadata(): KernelFunctionMetadata<PARAMETERS> {
+  get metadata(): KernelFunctionMetadata<PARAMETERS> {
     return {
       ...this._metadata,
       name: FunctionName.fullyQualifiedName({
@@ -84,20 +81,24 @@ export abstract class KernelFunction<
     }
   }
 
-  protected abstract override invokeCore(args?: SCHEMA, kernel?: Kernel): Promise<unknown>;
+  protected abstract invokeCore(kernel: Kernel, args?: SCHEMA): Promise<unknown>;
 
-  protected abstract invokeStreamingCore(args?: SCHEMA, kernel?: Kernel): AsyncGenerator<unknown>;
+  protected abstract invokeStreamingCore(kernel: Kernel, args?: SCHEMA): AsyncGenerator<unknown>;
 
-  override async invoke(args?: SCHEMA, kernel?: Kernel): Promise<unknown> {
-    return this.invokeCore(args, kernel);
+  async invoke(kernel: Kernel, args?: SCHEMA): Promise<unknown> {
+    return this.invokeCore(kernel, args);
   }
 
-  async *invokeStreaming(args?: SCHEMA, kernel?: Kernel): AsyncGenerator<unknown> {
-    const enumerable = this.invokeStreamingCore(args, kernel);
+  async *invokeStreaming(kernel: Kernel, args?: SCHEMA): AsyncGenerator<unknown> {
+    const enumerable = this.invokeStreamingCore(kernel, args);
 
     for await (const value of enumerable) {
       yield value;
     }
+  }
+
+  asAIFunction(kernel?: Kernel) {
+    return AIFunctionFactory.create((args: SCHEMA) => this.invoke(kernel ?? new Kernel(), args), this.metadata);
   }
 }
 
@@ -118,8 +119,8 @@ export const kernelFunction = <
     }
 
     override async invokeCore(
+      kernel: Kernel,
       args?: SCHEMA,
-      kernel?: Kernel 
     ) {
       return await fn(args, kernel);
     }

@@ -65,7 +65,7 @@ export const toChatOptions = (settings?: PromptExecutionSettings, kernel?: Kerne
       chatOptions.toolMode = ChatToolMode.RequireAny;
     }
 
-    chatOptions.tools = functionChoiceBehaviorFunctions;
+    chatOptions.tools = functionChoiceBehaviorFunctions.map((fn) => fn.asAIFunction(kernel));
   }
 
   return chatOptions;
