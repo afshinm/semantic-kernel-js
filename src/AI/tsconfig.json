@@ -1,0 +1,11 @@
+{
+  "extends": "@semantic-kernel/tsconfig/tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "resolveJsonModule": true,
+    "esModuleInterop": true
+  },
+  "include": ["src"],
+  "exclude": ["node_modules"]
+}

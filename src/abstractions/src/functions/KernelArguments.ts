@@ -1,5 +1,5 @@
+import { FromSchema, JsonSchema } from '@semantic-kernel/ai';
 import { PromptExecutionSettings, defaultServiceId } from '../AI';
-import { FromSchema, JsonSchema } from '../jsonSchema';
 
 /**
  * Represents the arguments for a kernel function.

@@ -1,22 +1,14 @@
-import { PromptExecutionSettings } from './AI';
-import {
-  FunctionInvocationFilter,
-  FunctionResult,
-  KernelFunction,
-  KernelFunctionFromPrompt,
-  KernelPlugin,
-} from './functions';
-import { FunctionInvocationContext } from './functions/FunctionInvocationContext';
-import { KernelArguments } from './functions/KernelArguments';
+import { MapServiceProvider, ServiceProvider } from '@semantic-kernel/service-provider';
+import { PromptExecutionSettings } from './AI/promptExecutionSettings/PromptExecutionSettings';
+import { KernelFunction, KernelFunctionFromPrompt, KernelPlugin, PromptType } from './functions';
 import { KernelPlugins, MapKernelPlugins } from './functions/KernelPlugins';
 import { PromptTemplateFormat } from './promptTemplate';
-import { AIService, MapServiceProvider, ServiceProvider } from './services';
+import { AIFunctionParameterMetadata } from '@semantic-kernel/ai';
 
 /**
  * Represents a kernel.
  */
 export class Kernel {
-  private readonly _functionInvocationFilters: FunctionInvocationFilter[] = [];
   private readonly _serviceProvider: ServiceProvider;
   private readonly _plugins: KernelPlugins;
 
@@ -43,19 +35,12 @@ export class Kernel {
   }
 
   /**
-   * Gets the function invocation filters for the kernel.
-   */
-  public get functionInvocationFilters() {
-    return this._functionInvocationFilters;
-  }
-
-  /**
    * Adds a service to the kernel.
    * @param service The service to add.
    * @returns The kernel.
    */
-  public addService(service: AIService) {
-    this._serviceProvider.addService(service);
+  public addService(...props: Parameters<ServiceProvider['addService']>) {
+    this._serviceProvider.addService(...props);
     return this;
   }
 
@@ -69,66 +54,6 @@ export class Kernel {
     return this;
   }
 
-  public async onFunctionInvocation<Schema, Result, Args>({
-    function: fn,
-    arguments: args,
-    functionResult,
-    isStreaming,
-    functionCallback,
-  }: {
-    function: KernelFunction<Schema, Result, Args>;
-    arguments: KernelArguments<Schema, Args>;
-    functionResult: FunctionResult<Schema, Result, Args>;
-    isStreaming: boolean;
-    functionCallback: (context: FunctionInvocationContext<Schema, Result, Args>) => Promise<void>;
-  }) {
-    const context = new FunctionInvocationContext<Schema, Result, Args>({
-      isStreaming,
-      kernel: this,
-      function: fn,
-      arguments: args,
-      result: functionResult,
-    });
-
-    await Kernel.invokeFilterOrFunction<Schema, Result, Args>({
-      functionFilters: this.functionInvocationFilters,
-      functionCallback,
-      context,
-    });
-
-    return context;
-  }
-
-  public static async invokeFilterOrFunction<Schema, Result, Args>({
-    functionFilters,
-    functionCallback,
-    context,
-    index,
-  }: {
-    functionFilters: Array<FunctionInvocationFilter>;
-    functionCallback: (context: FunctionInvocationContext<Schema, Result, Args>) => Promise<void>;
-    context: FunctionInvocationContext<Schema, Result, Args>;
-    index?: number;
-  }) {
-    index = index ?? 0;
-
-    if (functionFilters.length > 0 && index < functionFilters.length) {
-      const functionFilter = functionFilters[index];
-      await functionFilter.onFunctionInvocationFilter({
-        context,
-        next: async (context) =>
-          await Kernel.invokeFilterOrFunction<Schema, Result, Args>({
-            functionFilters,
-            functionCallback,
-            context,
-            index: index + 1,
-          }),
-      });
-    } else {
-      await functionCallback(context);
-    }
-  }
-
   /**
    * Invokes a kernel function.
    * @param params The parameters for the kernel function.
@@ -138,38 +63,36 @@ export class Kernel {
    * @param params.executionSettings The execution settings to pass to the kernel function (optional).
    * @returns The result of the kernel function.
    */
-  public async invoke<Schema, Result, Args>({
+  public async invoke<PARAMETERS extends AIFunctionParameterMetadata, SCHEMA>({
     kernelFunction,
-    kernelArguments,
-    ...props
+    args,
+    executionSettings,
   }: {
-    kernelFunction: KernelFunction<Schema, Result, Args>;
-    kernelArguments?: KernelArguments<Schema, Args>;
-    arguments?: Args;
+    kernelFunction: KernelFunction<PARAMETERS, SCHEMA>;
+    args?: SCHEMA;
     executionSettings?: Map<string, PromptExecutionSettings> | PromptExecutionSettings[] | PromptExecutionSettings;
   }) {
-    if (!kernelArguments) {
-      kernelArguments = new KernelArguments(props);
+    if (executionSettings) {
+      kernelFunction.executionSettings = executionSettings;
     }
 
-    return kernelFunction.invoke(this, kernelArguments);
+    return kernelFunction.invoke(this, args);
   }
 
-  public invokeStreaming<Schema, Result, Args>({
+  public invokeStreaming<PARAMETERS extends AIFunctionParameterMetadata, SCHEMA>({
     kernelFunction,
-    kernelArguments,
-    ...props
+    args,
+    executionSettings,
   }: {
-    kernelFunction: KernelFunction<Schema, Result, Args>;
-    kernelArguments?: KernelArguments<Schema, Args>;
-    arguments?: Args;
+    kernelFunction: KernelFunction<PARAMETERS, SCHEMA>;
+    args?: SCHEMA;
     executionSettings?: Map<string, PromptExecutionSettings> | PromptExecutionSettings[] | PromptExecutionSettings;
   }) {
-    if (!kernelArguments) {
-      kernelArguments = new KernelArguments(props);
+    if (executionSettings) {
+      kernelFunction.executionSettings = executionSettings;
     }
 
-    return kernelFunction.invokeStreaming(this, kernelArguments);
+    return kernelFunction.invokeStreaming(this, args);
   }
 
   /**
@@ -186,9 +109,15 @@ export class Kernel {
    * @param params.executionSettings The execution settings to pass to the kernel function (optional).
    * @returns The result of the prompt.
    */
-  public async invokePrompt<Schema, Args>({
+  public async invokePrompt({
     promptTemplate,
-    ...props
+    name,
+    description,
+    templateFormat,
+    inputVariables,
+    allowDangerouslySetContent,
+    args,
+    executionSettings,
   }: {
     promptTemplate: string;
     name?: string;
@@ -196,16 +125,19 @@ export class Kernel {
     templateFormat?: PromptTemplateFormat;
     inputVariables?: string[];
     allowDangerouslySetContent?: boolean;
-    kernelArguments?: KernelArguments<Schema, Args>;
-    arguments?: Args;
+    args?: PromptType;
     executionSettings?: Map<string, PromptExecutionSettings> | PromptExecutionSettings[] | PromptExecutionSettings;
   }) {
     const kernelFunctionFromPrompt = KernelFunctionFromPrompt.create({
       promptTemplate,
-      ...props,
+      name,
+      description,
+      templateFormat,
+      inputVariables,
+      allowDangerouslySetContent,
     });
 
-    return this.invoke({ kernelFunction: kernelFunctionFromPrompt, ...props });
+    return this.invoke({ kernelFunction: kernelFunctionFromPrompt, args, executionSettings });
   }
 
   /**
@@ -222,20 +154,35 @@ export class Kernel {
    * @param params.executionSettings The execution settings to pass to the kernel function (optional).
    * @returns The result of the prompt.
    */
-  public invokeStreamingPrompt<Schema, Args>(props: {
+  public invokeStreamingPrompt({
+    promptTemplate,
+    name,
+    description,
+    templateFormat,
+    inputVariables,
+    allowDangerouslySetContent,
+    args,
+    executionSettings,
+  }: {
     promptTemplate: string;
     name?: string;
     description?: string;
     templateFormat?: PromptTemplateFormat;
     inputVariables?: string[];
     allowDangerouslySetContent?: boolean;
-    kernelArguments?: KernelArguments<Schema, Args>;
-    arguments?: Args;
+    args?: PromptType;
     executionSettings?: Map<string, PromptExecutionSettings> | PromptExecutionSettings[] | PromptExecutionSettings;
   }) {
-    const kernelFunctionFromPrompt = KernelFunctionFromPrompt.create(props);
+    const kernelFunctionFromPrompt = KernelFunctionFromPrompt.create({
+      promptTemplate,
+      name,
+      description,
+      templateFormat,
+      inputVariables,
+      allowDangerouslySetContent,
+    });
 
-    return this.invokeStreaming({ kernelFunction: kernelFunctionFromPrompt, ...props });
+    return this.invokeStreaming({ kernelFunction: kernelFunctionFromPrompt, args, executionSettings });
   }
 }
 

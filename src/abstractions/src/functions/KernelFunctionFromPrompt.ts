@@ -1,45 +1,26 @@
-import { ChatCompletionService, PromptExecutionSettings } from '../AI';
+import { PromptExecutionSettings } from '../AI';
+import { toChatOptions } from '../AI/promptExecutionSettings/PromptExecutionSettingsMapper';
 import { Kernel } from '../Kernel';
-import { ChatMessageContent } from '../contents';
-import { type FromSchema } from '../jsonSchema';
 import {
+  KernelFunctionFromPromptMetadata,
   PassThroughPromptTemplate,
   PromptTemplate,
-  PromptTemplateConfig,
   PromptTemplateFormat,
 } from '../promptTemplate';
-import { AIService } from '../services';
-import { KernelArguments } from './KernelArguments';
+import '../serviceProviderExtension';
 import { KernelFunction } from './KernelFunction';
+import { ChatClient, FromSchema } from '@semantic-kernel/ai';
 
-export type PromptRenderingResult = {
-  renderedPrompt: string;
-  executionSettings?: PromptExecutionSettings;
-  AIService: AIService;
-};
-
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const schema = {
   type: 'object',
 } as const;
 
 export type PromptType = FromSchema<typeof schema>;
 
-export class KernelFunctionFromPrompt extends KernelFunction<
-  PromptType,
-  ChatMessageContent | ChatMessageContent[] | undefined
-> {
-  private readonly promptTemplateConfig: PromptTemplateConfig;
-
-  private constructor({ promptTemplateConfig }: { promptTemplateConfig: PromptTemplateConfig }) {
-    super({
-      metadata: {
-        name: promptTemplateConfig.name ?? KernelFunctionFromPrompt.createRandomFunctionName(),
-        description: promptTemplateConfig.description,
-        schema: schema,
-      },
-    });
-
-    this.promptTemplateConfig = promptTemplateConfig;
+export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, PromptType> {
+  private constructor(kernelFunctionFromPromptMetadata: KernelFunctionFromPromptMetadata<typeof schema>) {
+    super(kernelFunctionFromPromptMetadata);
   }
 
   /**
@@ -67,104 +48,90 @@ export class KernelFunctionFromPrompt extends KernelFunction<
     allowDangerouslySetContent?: boolean;
   }) {
     return new KernelFunctionFromPrompt({
-      promptTemplateConfig: {
-        name: name ?? KernelFunctionFromPrompt.createRandomFunctionName(),
-        description: description ?? 'Generic function, unknown purpose',
-        templateFormat: templateFormat ?? 'passthrough',
-        template: props.promptTemplate,
-        ...props,
-      },
+      name: name ?? KernelFunctionFromPrompt.createRandomFunctionName(),
+      description: description ?? 'Generic function, unknown purpose',
+      templateFormat: templateFormat ?? 'passthrough',
+      template: props.promptTemplate,
+      ...props,
     });
   }
 
-  override invokeCore = async (kernel: Kernel, args: KernelArguments<PromptType>) => {
-    const { renderedPrompt, AIService, executionSettings } = await this.renderPrompt(kernel, args);
+  override async invokeCore(kernel: Kernel, args?: PromptType) {
+    const { renderedPrompt, service, executionSettings } = await this.renderPrompt(kernel, args);
 
-    if (AIService.serviceType === 'ChatCompletion') {
-      const chatContents = await (AIService as ChatCompletionService).getChatMessageContents({
-        prompt: renderedPrompt,
-        executionSettings,
-        kernel,
-      });
+    if (!service) {
+      throw new Error('Service not found in kernel');
+    }
 
-      if (!chatContents || chatContents.length === 0) {
-        return {
-          value: undefined,
-          renderedPrompt: renderedPrompt,
-        };
-      }
-
-      if (chatContents.length === 1) {
-        return {
-          value: chatContents[0],
-          renderedPrompt: renderedPrompt,
-        };
-      }
+    if (service instanceof ChatClient) {
+      const chatCompletionResult = await service.complete(renderedPrompt, toChatOptions(executionSettings, kernel));
 
       return {
-        value: chatContents,
+        chatCompletion: chatCompletionResult,
         renderedPrompt: renderedPrompt,
       };
     }
 
-    throw new Error(`Unsupported AI service type: ${AIService.serviceType}`);
-  };
+    throw new Error(`Unsupported service type: ${service}`);
+  }
 
-  override async *invokeStreamingCore<T>(kernel: Kernel, args: KernelArguments<PromptType>): AsyncGenerator<T> {
-    const { renderedPrompt, AIService, executionSettings } = await this.renderPrompt(kernel, args);
+  override async *invokeStreamingCore(kernel: Kernel, args?: PromptType) {
+    const { renderedPrompt, service, executionSettings } = await this.renderPrompt(kernel, args);
 
-    if (AIService.serviceType === 'ChatCompletion') {
-      const chatContents = (AIService as ChatCompletionService).getStreamingChatMessageContents({
-        prompt: renderedPrompt,
-        executionSettings,
-        kernel,
-      });
-
-      for await (const chatContent of chatContents) {
-        yield chatContent as T;
-      }
-
-      return;
+    if (!service) {
+      throw new Error('Service not found in kernel');
     }
 
-    throw new Error(`Unsupported AI service type: ${AIService.serviceType}`);
+    if (service instanceof ChatClient) {
+      const chatCompletionUpdates = service.completeStreaming(renderedPrompt, toChatOptions(executionSettings, kernel));
+
+      for await (const chatCompletionUpdate of chatCompletionUpdates) {
+        yield chatCompletionUpdate;
+      }
+    }
+
+    throw new Error(`Unsupported service type: ${service}`);
   }
 
   private getPromptTemplate = (): PromptTemplate => {
-    switch (this.promptTemplateConfig.templateFormat) {
+    const metadata = this.metadata as KernelFunctionFromPromptMetadata;
+    switch (metadata.templateFormat) {
       case 'passthrough':
-        return new PassThroughPromptTemplate(this.promptTemplateConfig.template);
+        return new PassThroughPromptTemplate(metadata.template);
       default:
-        throw new Error(`${this.promptTemplateConfig.templateFormat} template rendering not implemented`);
+        throw new Error(`${metadata.templateFormat} template rendering not implemented`);
     }
   };
 
-  private async renderPrompt(kernel: Kernel, args: KernelArguments<PromptType>): Promise<PromptRenderingResult> {
-    const promptTemplate = this.getPromptTemplate();
-
-    const { service, executionSettings } =
-      kernel.services.trySelectAIService({
-        serviceType: 'ChatCompletion',
-        kernelFunction: this,
-        kernelArguments: args,
-      }) ||
-      kernel.services.trySelectAIService({
-        serviceType: 'TextCompletion',
-        kernelFunction: this,
-        kernelArguments: args,
-      }) ||
-      {};
-
-    if (!service) {
-      throw new Error('AIService not found in kernel');
+  private async renderPrompt(
+    kernel?: Kernel,
+    args?: PromptType
+  ): Promise<{
+    renderedPrompt: string;
+    executionSettings?: PromptExecutionSettings;
+    service: ChatClient;
+  }> {
+    if (!kernel) {
+      throw new Error('Kernel is required to render prompt');
     }
 
+    const { service, executionSettings } =
+      kernel.services.trySelectService({
+        serviceType: ChatClient,
+        kernelFunction: this,
+      }) ?? {};
+
+    if (!service) {
+      throw new Error('Service not found in kernel');
+    }
+
+    const promptTemplate = this.getPromptTemplate();
     const renderedPrompt = await promptTemplate.render(kernel, args);
 
     return {
       renderedPrompt,
       executionSettings,
-      AIService: service,
+      service,
     };
   }
 

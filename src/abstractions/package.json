@@ -27,12 +27,17 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
+    "@semantic-kernel/service-provider": "*",
     "@semantic-kernel/tsconfig": "*",
     "@types/eslint__js": "^8.42.3",
+    "@types/node": "^22.13.9",
     "eslint": "^9.9.0",
     "tsup": "^8.2.4",
     "typescript": "^5.5.4",
     "typescript-eslint": "^8.2.0"
+  },
+  "peerDependencies": {
+    "@semantic-kernel/ai": "*"
   },
   "dependencies": {
     "json-schema-to-ts": "^3.1.1"

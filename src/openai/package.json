@@ -22,8 +22,10 @@
       "require": "./dist/index.js"
     }
   },
+  "peerDependencies": {
+    "@semantic-kernel/ai": "*"
+  },
   "dependencies": {
-    "@semantic-kernel/abstractions": "*",
     "openai": "^4.56.0"
   },
   "devDependencies": {

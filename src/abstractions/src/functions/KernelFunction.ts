@@ -1,142 +1,121 @@
-import { PromptExecutionSettings } from '../AI';
+import { PromptExecutionSettings, defaultServiceId } from '../AI';
 import { Kernel } from '../Kernel';
-import { FromSchema, JsonSchema } from '../jsonSchema';
-import { KernelArguments } from './KernelArguments';
+import { FunctionName } from './FunctionName';
+import { AIFunctionFactory, AIFunctionMetadata, AIFunctionParameterMetadata, FromSchema } from '@semantic-kernel/ai';
 
-export type Fn<Result, Args> = (args: Args, kernel?: Kernel) => Result;
+// export type Fn<Result, Args> = (args: Args, kernel?: Kernel) => Result;
+//
+// export type FunctionResult<
+//   Schema extends JsonSchema | unknown | undefined = unknown,
+//   Result = unknown,
+//   Args = Schema extends JsonSchema
+//     ? FromSchema<Schema>
+//     : Schema extends undefined
+//       ? undefined
+//       : Record<string, unknown>,
+// > = {
+//   function?: KernelFunction<Schema, Result, Args>;
+//   value?: Result;
+//   renderedPrompt?: string;
+//   metadata?: ReadonlyMap<string, unknown>;
+// };
 
-export type FunctionResult<
-  Schema extends JsonSchema | unknown | undefined = unknown,
-  Result = unknown,
-  Args = Schema extends JsonSchema
-    ? FromSchema<Schema>
-    : Schema extends undefined
-      ? undefined
-      : Record<string, unknown>,
-> = {
-  function?: KernelFunction<Schema, Result, Args>;
-  value?: Result;
-  renderedPrompt?: string;
-  metadata?: ReadonlyMap<string, unknown>;
-};
-
-export type KernelFunctionProps<Props> = Props;
-
-export type KernelFunctionMetadata<Schema extends JsonSchema | unknown> = {
-  name: string;
-  description?: string;
+export class KernelFunctionMetadata<PARAMETERS = AIFunctionParameterMetadata> extends AIFunctionMetadata<PARAMETERS> {
   pluginName?: string;
-  schema?: Schema;
-};
+  executionSettings?: Map<string, PromptExecutionSettings>;
+}
 
 export abstract class KernelFunction<
-  Schema extends JsonSchema | unknown | undefined = unknown,
-  Result = unknown,
-  Args = Schema extends JsonSchema
-    ? FromSchema<Schema>
-    : Schema extends undefined
-      ? undefined
-      : Record<string, unknown>,
+  PARAMETERS extends AIFunctionParameterMetadata = AIFunctionParameterMetadata,
+  SCHEMA = FromSchema<PARAMETERS>,
 > {
-  private readonly _metadata: KernelFunctionMetadata<Schema>;
-  private readonly _executionSettings?: Map<string, PromptExecutionSettings>;
+  private _metadata: KernelFunctionMetadata<PARAMETERS>;
 
-  constructor({
-    metadata,
-    executionSettings,
-  }: {
-    metadata: KernelFunctionMetadata<Schema>;
-    executionSettings?: Map<string, PromptExecutionSettings>;
-  }) {
+  constructor(metadata: KernelFunctionMetadata<PARAMETERS>) {
     this._metadata = metadata;
-    this._executionSettings = executionSettings;
   }
 
-  public get executionSettings(): Map<string, PromptExecutionSettings> | undefined {
-    return this._executionSettings;
+  get metadata(): KernelFunctionMetadata<PARAMETERS> {
+    return {
+      ...this._metadata,
+      name: FunctionName.fullyQualifiedName({
+        functionName: this._metadata.name,
+        pluginName: this._metadata.pluginName,
+      }),
+    };
   }
 
-  public get metadata(): KernelFunctionMetadata<Schema> {
-    return this._metadata;
+  set metadata(metadata: KernelFunctionMetadata<PARAMETERS>) {
+    this._metadata = metadata;
   }
 
-  protected abstract invokeCore(
-    kernel: Kernel,
-    args?: KernelArguments<Schema, Args>
-  ): Promise<FunctionResult<Schema, Result, Args>>;
+  get executionSettings(): Map<string, PromptExecutionSettings> | undefined {
+    return this.metadata.executionSettings;
+  }
 
-  protected abstract invokeStreamingCore<T>(kernel: Kernel, args?: KernelArguments<Schema, Args>): AsyncGenerator<T>;
+  set executionSettings(
+    settings: Map<string, PromptExecutionSettings> | PromptExecutionSettings[] | PromptExecutionSettings
+  ) {
+    if (Array.isArray(settings)) {
+      const newExecutionSettings = new Map<string, PromptExecutionSettings>();
 
-  invoke = async (
-    kernel: Kernel,
-    args?: KernelArguments<Schema, Args>
-  ): Promise<FunctionResult<Schema, Result, Args>> => {
-    args = args ?? new KernelArguments({});
-    let functionResult: FunctionResult<Schema, Result, Args> = { function: this };
+      for (const _settings of settings) {
+        const targetServiceId = _settings.serviceId ?? defaultServiceId;
 
-    const invocationContext = await kernel.onFunctionInvocation<Schema, Result, Args>({
-      arguments: args,
-      function: this,
-      functionResult,
-      isStreaming: false,
-      functionCallback: async (context) => {
-        context.result = await this.invokeCore(kernel, args);
-      },
-    });
+        if (this._metadata.executionSettings?.has(targetServiceId)) {
+          throw new Error(`Execution settings for service ID ${targetServiceId} already exists.`);
+        }
 
-    functionResult = invocationContext.result;
+        newExecutionSettings.set(targetServiceId, _settings);
+      }
 
-    return functionResult;
-  };
+      this._metadata.executionSettings = newExecutionSettings;
+    } else if (settings instanceof Map) {
+      this._metadata.executionSettings = settings;
+    } else {
+      this._metadata.executionSettings = new Map([[settings.serviceId ?? defaultServiceId, settings]]);
+    }
+  }
 
-  async *invokeStreaming(kernel: Kernel, args?: KernelArguments<Schema, Args>): AsyncGenerator<Result> {
-    args = args ?? new KernelArguments({});
-    const functionResult: FunctionResult<Schema, Result, Args> = { function: this };
+  protected abstract invokeCore(kernel: Kernel, args?: SCHEMA): Promise<unknown>;
 
-    const invocationContext = await kernel.onFunctionInvocation<Schema, Result, Args>({
-      arguments: args,
-      function: this,
-      functionResult,
-      isStreaming: true,
-      functionCallback: async (context) => {
-        const enumerable = this.invokeStreamingCore(kernel, args);
-        context.result = { value: enumerable as Result };
-      },
-    });
+  protected abstract invokeStreamingCore(kernel: Kernel, args?: SCHEMA): AsyncGenerator<unknown>;
 
-    const enumerable = invocationContext.result.value as AsyncGenerator<Result>;
+  async invoke(kernel: Kernel, args?: SCHEMA): Promise<unknown> {
+    return this.invokeCore(kernel, args);
+  }
+
+  async *invokeStreaming(kernel: Kernel, args?: SCHEMA): AsyncGenerator<unknown> {
+    const enumerable = this.invokeStreamingCore(kernel, args);
 
     for await (const value of enumerable) {
       yield value;
     }
   }
+
+  asAIFunction(kernel?: Kernel) {
+    return AIFunctionFactory.create((args: SCHEMA) => this.invoke(kernel ?? new Kernel(), args), this.metadata);
+  }
 }
 
 export const kernelFunction = <
-  Schema extends JsonSchema | undefined = undefined,
-  Result = unknown,
-  Args = Schema extends JsonSchema ? FromSchema<Schema> : undefined,
+  PARAMETERS extends AIFunctionParameterMetadata = AIFunctionParameterMetadata,
+  SCHEMA = FromSchema<PARAMETERS>,
 >(
-  fn: Fn<Result, Args>,
-  metadata: KernelFunctionMetadata<Schema>
-): KernelFunction<Schema, Result, Args> => {
-  return new (class extends KernelFunction<Schema, Result, Args> {
-    constructor() {
-      super({ metadata });
+  fn: (args?: SCHEMA, kernel?: Kernel) => unknown,
+  metadata: KernelFunctionMetadata<PARAMETERS>
+): KernelFunction<PARAMETERS, SCHEMA> => {
+  return new (class extends KernelFunction<PARAMETERS, SCHEMA> {
+    public constructor() {
+      super(metadata);
     }
 
-    protected override invokeStreamingCore<T>(): AsyncGenerator<T> {
+    protected override invokeStreamingCore(): AsyncGenerator<unknown> {
       throw new Error('Method not implemented.');
     }
 
-    override async invokeCore(
-      kernel: Kernel,
-      args: Args extends undefined ? KernelArguments<Schema, Args> | undefined : KernelArguments<Schema, Args>
-    ) {
-      return {
-        value: await fn(args?.arguments as Args, kernel),
-        function: this,
-      };
+    override async invokeCore(kernel: Kernel, args?: SCHEMA) {
+      return await fn(args, kernel);
     }
   })();
 };
