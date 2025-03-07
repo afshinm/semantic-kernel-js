@@ -1,9 +1,9 @@
+import { MapServiceProvider, ServiceProvider } from '@semantic-kernel/service-provider';
 import { PromptExecutionSettings } from './AI/promptExecutionSettings/PromptExecutionSettings';
 import { KernelFunction, KernelFunctionFromPrompt, KernelPlugin, PromptType } from './functions';
-import { AIFunctionParameterMetadata } from './functions/AIFunctionParameterMetadata';
 import { KernelPlugins, MapKernelPlugins } from './functions/KernelPlugins';
 import { PromptTemplateFormat } from './promptTemplate';
-import { MapServiceProvider, ServiceProvider } from './services';
+import { AIFunctionParameterMetadata } from '@semantic-kernel/ai';
 
 /**
  * Represents a kernel.

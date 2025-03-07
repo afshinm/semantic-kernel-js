@@ -1,4 +1,4 @@
-import { AIFunctionParameterMetadata } from './AIFunctionParameterMetadata';
+import { AIFunctionParameterMetadata } from '@semantic-kernel/ai';
 import { KernelFunction, KernelFunctionMetadata } from './KernelFunction';
 import { KernelPlugin, MapKernelPlugin } from './KernelPlugin';
 

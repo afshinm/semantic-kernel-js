@@ -11,7 +11,7 @@ import {
   ChatMessage,
   ChatOptions,
   StreamingChatCompletionUpdate,
-} from '@semantic-kernel/abstractions';
+} from '@semantic-kernel/ai';
 import OpenAI from 'openai';
 
 export class OpenAIChatClient extends ChatClient {

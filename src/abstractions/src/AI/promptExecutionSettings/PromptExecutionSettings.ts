@@ -1,4 +1,3 @@
-import { ModelId } from '../../contents/ModelId';
 import { FunctionChoiceBehaviorBase } from '../functionChoiceBehaviors/FunctionChoiceBehaviorBase';
 
 /**
@@ -31,7 +30,7 @@ export interface PromptExecutionSettings {
    * Model identifier.
    * This identifies the AI model these settings are configured for e.g., gpt-4, gpt-3.5-turbo
    */
-  modelId?: ModelId;
+  modelId?: string;
 
   /**
    * Extra properties that may be included in the serialized execution settings.

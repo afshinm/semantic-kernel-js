@@ -1,7 +1,7 @@
+import { ChatMessage } from '@semantic-kernel/ai';
 import { Kernel } from '../../Kernel';
 import { FunctionName } from '../../functions/FunctionName';
 import { KernelFunction } from '../../functions/KernelFunction';
-import { ChatHistory } from '../chatCompletion';
 import { FunctionChoiceBehaviorConfiguration } from './FunctionChoiceBehaviorConfiguration';
 import { FunctionChoiceBehaviorOptions } from './FunctionChoiceBehaviorOptions';
 
@@ -15,7 +15,7 @@ export abstract class FunctionChoiceBehaviorBase {
 
   abstract getConfiguredOptions(context: {
     requestSequenceIndex: number;
-    chatHistory: ChatHistory;
+    chatHistory: ChatMessage[];
     kernel?: Kernel;
   }): FunctionChoiceBehaviorConfiguration;
 

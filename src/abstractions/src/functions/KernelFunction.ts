@@ -1,10 +1,7 @@
 import { PromptExecutionSettings, defaultServiceId } from '../AI';
 import { Kernel } from '../Kernel';
-import { FromSchema } from '../jsonSchema';
-import { AIFunctionFactory } from './AIFunctionFactory';
-import { AIFunctionMetadata } from './AIFunctionMetadata';
-import { AIFunctionParameterMetadata } from './AIFunctionParameterMetadata';
 import { FunctionName } from './FunctionName';
+import { AIFunctionFactory, AIFunctionMetadata, AIFunctionParameterMetadata, FromSchema } from '@semantic-kernel/ai';
 
 // export type Fn<Result, Args> = (args: Args, kernel?: Kernel) => Result;
 //

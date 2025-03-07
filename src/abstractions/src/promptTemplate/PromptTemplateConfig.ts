@@ -1,5 +1,5 @@
+import { AIFunctionParameterMetadata } from '@semantic-kernel/ai';
 import { KernelFunctionMetadata } from '../functions';
-import { AIFunctionParameterMetadata } from '../functions/AIFunctionParameterMetadata';
 
 export type PromptTemplateFormat = 'handlebars' | 'passthrough';
 

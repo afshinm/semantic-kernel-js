@@ -35,7 +35,8 @@
     "url": "https://github.com/afshinm/semantic-kernel-js/issues"
   },
   "dependencies": {
-    "@semantic-kernel/abstractions": "*"
+    "@semantic-kernel/abstractions": "*",
+    "@semantic-kernel/ai": "*"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
