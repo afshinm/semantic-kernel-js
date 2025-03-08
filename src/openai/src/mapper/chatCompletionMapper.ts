@@ -1,4 +1,20 @@
-import { AIContent, AIFunction, AutoChatToolMode, ChatCompletion, ChatFinishReason, ChatMessage, ChatOptions, ChatRole, FunctionCallContent, FunctionResultContent, RequiredChatToolMode, StreamingChatCompletionUpdate, TextContent, UsageContent, UsageDetails } from '@semantic-kernel/ai';
+import {
+  AIContent,
+  AIFunction,
+  AutoChatToolMode,
+  ChatCompletion,
+  ChatFinishReason,
+  ChatMessage,
+  ChatOptions,
+  ChatRole,
+  FunctionCallContent,
+  FunctionResultContent,
+  RequiredChatToolMode,
+  StreamingChatCompletionUpdate,
+  TextContent,
+  UsageContent,
+  UsageDetails,
+} from '@semantic-kernel/ai';
 import OpenAI from 'openai';
 import { ChatCompletionChunk } from 'openai/resources';
 import { Stream } from 'openai/streaming';
