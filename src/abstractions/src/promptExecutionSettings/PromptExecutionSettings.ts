@@ -1,4 +1,4 @@
-import { FunctionChoiceBehaviorBase } from '../functionChoiceBehaviors/FunctionChoiceBehaviorBase';
+import { FunctionChoiceBehaviorBase } from '../functionChoiceBehaviors';
 
 /**
  * Gets the default service identifier.

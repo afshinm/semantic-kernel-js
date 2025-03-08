@@ -1,6 +1,6 @@
-import { PromptExecutionSettings } from '../AI';
-import { toChatOptions } from '../AI/promptExecutionSettings/PromptExecutionSettingsMapper';
+import { ChatClient, FromSchema } from '@semantic-kernel/ai';
 import { Kernel } from '../Kernel';
+import { PromptExecutionSettings, toChatOptions } from '../promptExecutionSettings';
 import {
   KernelFunctionFromPromptMetadata,
   PassThroughPromptTemplate,
@@ -9,7 +9,6 @@ import {
 } from '../promptTemplate';
 import '../serviceProviderExtension';
 import { KernelFunction } from './KernelFunction';
-import { ChatClient, FromSchema } from '@semantic-kernel/ai';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const schema = {

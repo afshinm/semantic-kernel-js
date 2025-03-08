@@ -1,5 +1,10 @@
 import { PromptExecutionSettings, ServiceId } from '../../abstractions/src/AI';
-import { ChatClient, ChatClientMetadata, ChatCompletion, StreamingChatCompletionUpdate } from '../../abstractions/src/chatCompletion';
+import {
+  ChatClient,
+  ChatClientMetadata,
+  ChatCompletion,
+  StreamingChatCompletionUpdate,
+} from '../../abstractions/src/chatCompletion';
 import { KernelArguments } from '../../abstractions/src/functions';
 import { AIService, ModelIdKey } from '../../abstractions/src/services/AIService';
 import { MapServiceProvider } from './MapServiceProvider';

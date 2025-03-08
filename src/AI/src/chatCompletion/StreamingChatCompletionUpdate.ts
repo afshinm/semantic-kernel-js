@@ -1,8 +1,7 @@
-import { AdditionalProperties } from '../../../AI/src/AdditionalProperties';
+import { AdditionalProperties } from '../AdditionalProperties';
+import { AIContent, TextContent } from '../contents';
 import { ChatFinishReason } from './ChatFinishReason';
-import { ChatRole } from '../../../AI/src/chatCompletion/ChatRole';
-import { AIContent } from '../contents/AIContent';
-import { TextContent } from '../contents/TextContent';
+import { ChatRole } from './ChatRole';
 
 /**
  * Represents a single streaming response chunk from a ChatClient.

@@ -1,10 +1,4 @@
 import {
-  fromOpenAIChatCompletion,
-  fromOpenAIStreamingChatCompletion,
-  toOpenAIChatMessages,
-  toOpenAIChatOptions,
-} from './mapper/chatCompletionMapper';
-import {
   ChatClient,
   ChatClientMetadata,
   ChatCompletion,
@@ -13,6 +7,12 @@ import {
   StreamingChatCompletionUpdate,
 } from '@semantic-kernel/ai';
 import OpenAI from 'openai';
+import {
+  fromOpenAIChatCompletion,
+  fromOpenAIStreamingChatCompletion,
+  toOpenAIChatMessages,
+  toOpenAIChatOptions,
+} from './mapper';
 
 export class OpenAIChatClient extends ChatClient {
   private readonly _openAIClient: OpenAI;

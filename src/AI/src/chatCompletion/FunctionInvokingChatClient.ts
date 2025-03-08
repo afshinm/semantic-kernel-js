@@ -1,16 +1,10 @@
+import { ChatClient, ChatCompletion, DelegatingChatClient, FunctionInvocationContext } from '.';
+import { AIContent, ChatMessage, FunctionCallContent, FunctionResultContent } from '../contents';
+import { AIFunction } from '../functions';
 import { UsageDetails } from '../UsageDetails';
-import { ChatClient } from '.';
-import { ChatCompletion } from '.';
-import { ChatMessage } from '../contents/ChatMessage';
 import { ChatOptions } from './ChatOptions';
-import { DelegatingChatClient } from '.';
-import { FunctionInvocationContext } from '.';
 import { RequiredChatToolMode } from './RequiredChatToolMode';
-import { FunctionCallContent } from '../contents/FunctionCallContent';
 import { StreamingChatCompletionUpdate } from './StreamingChatCompletionUpdate';
-import { AIContent } from '../contents/AIContent';
-import { FunctionResultContent } from '../contents/FunctionResultContent';
-import { AIFunction } from '../functions/AIFunction';
 
 enum ContinueMode {
   /**

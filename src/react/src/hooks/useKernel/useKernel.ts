@@ -1,13 +1,13 @@
-import { OpenAIChatCompletionService } from '@semantic-kernel/openai';
+import { OpenAIChatClient } from '@semantic-kernel/openai';
 import { useEffect, useState } from 'react';
-import { ChatCompletionService, Kernel, kernel } from 'semantic-kernel';
+import { ChatClient, Kernel, kernel } from 'semantic-kernel';
 
 export type useKernelProps = {
   openAIModel?: string;
   openAIApiKey?: string;
   openAIorganization?: string;
   kernel?: Kernel;
-  chatCompletionService?: ChatCompletionService;
+  chatClient?: ChatClient;
 };
 
 export const useKernel = (props: useKernelProps) => {
@@ -22,14 +22,13 @@ export const useKernel = (props: useKernelProps) => {
   useEffect(() => {
     if (!sk) return;
 
-    if (props.chatCompletionService) {
-      sk.addService(props.chatCompletionService);
+    if (props.chatClient) {
+      sk.addService(props.chatClient);
     } else if (props.openAIApiKey && props.openAIModel) {
       sk.addService(
-        new OpenAIChatCompletionService({
+        new OpenAIChatClient({
           modelId: props.openAIModel,
           apiKey: props.openAIApiKey,
-          organization: props.openAIorganization,
         })
       );
     } else {

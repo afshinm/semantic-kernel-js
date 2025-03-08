@@ -1,4 +1,4 @@
-import { KernelFunction } from '../../functions';
+import { KernelFunction } from '../functions';
 import { AutoFunctionChoiceBehavior } from './AutoFunctionChoiceBehavior';
 import { FunctionChoiceBehaviorOptions } from './FunctionChoiceBehaviorOptions';
 import { NoneFunctionChoiceBehavior } from './NoneFunctionChoiceBehavior';

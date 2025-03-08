@@ -1,6 +1,6 @@
-import { Kernel } from '../../Kernel';
-import { FunctionName } from '../../functions/FunctionName';
-import { KernelFunction } from '../../functions/KernelFunction';
+import { Kernel } from '../Kernel';
+import { FunctionName } from '../functions/FunctionName';
+import { KernelFunction } from '../functions/KernelFunction';
 import { FunctionChoiceBehaviorBase } from './FunctionChoiceBehaviorBase';
 import { FunctionChoiceBehaviorConfiguration } from './FunctionChoiceBehaviorConfiguration';
 import { FunctionChoiceBehaviorOptions } from './FunctionChoiceBehaviorOptions';

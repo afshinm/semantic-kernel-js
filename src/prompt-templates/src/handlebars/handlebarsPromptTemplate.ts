@@ -1,4 +1,4 @@
-import { PromptTemplate } from '@semantic-kernel/abstractions/src/promptTemplate/promptTemplate';
+import { PromptTemplate } from '@semantic-kernel/abstractions';
 import Handlebars from 'handlebars';
 
 export const handlebarsPromptTemplate = (template: string): PromptTemplate => {

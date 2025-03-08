@@ -1,7 +1,7 @@
+import { ChatMessage } from '../contents';
 import { ChatClientBuilder } from './ChatClientBuilder';
 import { ChatClientMetadata } from './ChatClientMetadata';
 import { ChatCompletion } from './ChatCompletion';
-import { ChatMessage } from '../contents/ChatMessage';
 import { ChatOptions } from './ChatOptions';
 import { StreamingChatCompletionUpdate } from './StreamingChatCompletionUpdate';
 

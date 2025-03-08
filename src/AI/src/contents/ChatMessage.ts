@@ -1,7 +1,7 @@
 import { AdditionalProperties } from '../AdditionalProperties';
+import { ChatRole } from '../chatCompletion';
 import { AIContent } from './AIContent';
 import { TextContent } from './TextContent';
-import { ChatRole } from '../chatCompletion/ChatRole';
 
 export class ChatMessage {
   public contents: AIContent[] = [];

@@ -1,6 +1,5 @@
-import { ChatMessage } from '../contents/ChatMessage';
-import { FunctionCallContent } from '../contents/FunctionCallContent';
-import { AIFunction } from '../functions/AIFunction';
+import { ChatMessage, FunctionCallContent } from '../contents';
+import { AIFunction } from '../functions';
 
 export class FunctionInvocationContext {
   function: AIFunction;

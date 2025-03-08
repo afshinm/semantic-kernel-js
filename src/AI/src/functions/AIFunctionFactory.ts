@@ -1,7 +1,7 @@
+import { FromSchema } from '../jsonSchema';
 import { AIFunction } from './AIFunction';
 import { AIFunctionMetadata } from './AIFunctionMetadata';
 import { AIFunctionParameterMetadata } from './AIFunctionParameterMetadata';
-import { FromSchema } from 'json-schema-to-ts';
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class AIFunctionFactory {

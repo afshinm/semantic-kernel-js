@@ -1,5 +1,6 @@
 export * from './AutoFunctionChoiceBehavior';
-export * from './NoneFunctionChoiceBehavior';
 export * from './FunctionChoice';
 export * from './FunctionChoiceBehavior';
+export * from './FunctionChoiceBehaviorBase';
 export * from './FunctionChoiceBehaviorConfiguration';
+export * from './NoneFunctionChoiceBehavior';

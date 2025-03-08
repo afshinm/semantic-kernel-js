@@ -1,49 +1,44 @@
-import { useKernel, useKernelProps } from '../useKernel';
-import { ChatCompletionService, ChatHistory, ChatMessageContent, TextContent } from '@semantic-kernel/abstractions';
 import { useEffect, useState } from 'react';
+import { ChatClient, ChatMessage, TextContent } from 'semantic-kernel';
+import { useKernel, useKernelProps } from '../useKernel';
 
 export type useChatProps = useKernelProps;
 
 export const useChat = (props: useChatProps) => {
   const { kernel } = useKernel(props);
-  const [chatCompletionService, setChatCompletionService] = useState<ChatCompletionService>();
-  const [chatHistory, setChatHistory] = useState<ChatHistory>([]);
+  const [chatClient, setChatClient] = useState<ChatClient>();
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
 
   useEffect(() => {
     if (!kernel) return;
 
-    const chatCompletionService = kernel.services.trySelectAIService({
-      serviceType: 'ChatCompletion',
-    })?.service;
+    const chatClient = kernel.services.getService(ChatClient);
 
-    if (!chatCompletionService) {
-      throw new Error('ChatCompletion service not found');
+    if (!chatClient) {
+      throw new Error('ChatClient not found');
     }
 
-    setChatCompletionService(chatCompletionService);
+    setChatClient(chatClient);
   }, [kernel]);
 
   const prompt = async (prompt: string) => {
-    if (!chatCompletionService) {
-      console.error('ChatCompletion service not found');
+    if (!chatClient) {
+      console.error('ChatClient not found');
       return;
     }
 
     const newChatHistory = [
       ...chatHistory,
-      new ChatMessageContent<'user'>({
+      new ChatMessage({
         role: 'user',
-        items: [new TextContent({ text: prompt })],
+        contents: [new TextContent(prompt)],
       }),
     ];
     setChatHistory(newChatHistory);
 
-    const chatMessageContents = await chatCompletionService.getChatMessageContents({
-      chatHistory: newChatHistory,
-      kernel,
-    });
+    const chatMessageContents = await chatClient.complete(newChatHistory);
 
-    for (const chatMessageContent of chatMessageContents) {
+    for (const chatMessageContent of chatMessageContents.choices) {
       setChatHistory((chatHistory) => [...chatHistory, chatMessageContent]);
     }
   };

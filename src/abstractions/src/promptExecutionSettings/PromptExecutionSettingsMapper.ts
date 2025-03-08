@@ -1,8 +1,7 @@
-import { PromptExecutionSettings } from '.';
-import { Kernel } from '../../Kernel';
-import { AutoFunctionChoiceBehavior } from '../functionChoiceBehaviors';
 import { ChatOptions, ChatResponseFormat, ChatResponseFormatJson, ChatToolMode } from '@semantic-kernel/ai';
-
+import { PromptExecutionSettings } from '.';
+import { Kernel } from '../Kernel';
+import { AutoFunctionChoiceBehavior } from '../functionChoiceBehaviors';
 
 export const toChatOptions = (settings?: PromptExecutionSettings, kernel?: Kernel): ChatOptions | undefined => {
   if (!settings) {
