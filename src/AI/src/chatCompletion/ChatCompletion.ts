@@ -1,6 +1,6 @@
 import { AdditionalProperties } from '../AdditionalProperties';
 import { UsageDetails } from '../UsageDetails';
-import { ChatMessage } from '../contents/ChatMessage';
+import { ChatMessage } from '../contents';
 import { ChatFinishReason } from './ChatFinishReason';
 
 /**
