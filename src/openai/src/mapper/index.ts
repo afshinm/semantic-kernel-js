@@ -1,1 +1,1 @@
-export * from "./chatCompletionMapper"
+export * from './chatCompletionMapper';

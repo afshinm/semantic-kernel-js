@@ -1,4 +1,4 @@
-import { AdditionalProperties } from "./AdditionalProperties";
+import { AdditionalProperties } from './AdditionalProperties';
 
 /**
  * Provides usage details about a request/response.

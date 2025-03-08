@@ -1,6 +1,6 @@
-import { useKernel, useKernelProps } from '../useKernel';
 import { useEffect, useState } from 'react';
 import { ChatClient, ChatMessage, TextContent } from 'semantic-kernel';
+import { useKernel, useKernelProps } from '../useKernel';
 
 export type useChatProps = useKernelProps;
 

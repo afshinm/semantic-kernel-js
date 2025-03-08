@@ -1,4 +1,4 @@
-import { AIContent } from "./AIContent";
+import { AIContent } from './AIContent';
 
 export class FunctionResultContent extends AIContent {
   callId: string;

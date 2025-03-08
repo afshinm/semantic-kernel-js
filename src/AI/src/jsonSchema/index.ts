@@ -1,2 +1,2 @@
-export * from './jsonSchema';
 export * from './fromSchema';
+export * from './jsonSchema';

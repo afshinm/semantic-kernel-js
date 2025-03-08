@@ -1,5 +1,5 @@
-import { ChatClient } from './ChatClient';
 import { EmptyServiceProvider, ServiceProvider } from '@semantic-kernel/service-provider';
+import { ChatClient } from './ChatClient';
 
 export class ChatClientBuilder {
   private readonly _innerClientFactory: (serviceProvider: ServiceProvider) => ChatClient;
