@@ -1,7 +1,7 @@
 import { ChatMessage } from '@semantic-kernel/ai';
-import { Kernel } from '../../Kernel';
-import { FunctionName } from '../../functions/FunctionName';
-import { KernelFunction } from '../../functions/KernelFunction';
+import { Kernel } from '../Kernel';
+import { FunctionName } from '../functions/FunctionName';
+import { KernelFunction } from '../functions/KernelFunction';
 import { FunctionChoiceBehaviorConfiguration } from './FunctionChoiceBehaviorConfiguration';
 import { FunctionChoiceBehaviorOptions } from './FunctionChoiceBehaviorOptions';
 

@@ -1,24 +1,8 @@
-import { PromptExecutionSettings, defaultServiceId } from '../AI';
-import { Kernel } from '../Kernel';
-import { FunctionName } from './FunctionName';
 import { AIFunctionFactory, AIFunctionMetadata, AIFunctionParameterMetadata, FromSchema } from '@semantic-kernel/ai';
-
-// export type Fn<Result, Args> = (args: Args, kernel?: Kernel) => Result;
-//
-// export type FunctionResult<
-//   Schema extends JsonSchema | unknown | undefined = unknown,
-//   Result = unknown,
-//   Args = Schema extends JsonSchema
-//     ? FromSchema<Schema>
-//     : Schema extends undefined
-//       ? undefined
-//       : Record<string, unknown>,
-// > = {
-//   function?: KernelFunction<Schema, Result, Args>;
-//   value?: Result;
-//   renderedPrompt?: string;
-//   metadata?: ReadonlyMap<string, unknown>;
-// };
+import { defaultServiceId } from '@semantic-kernel/service-provider';
+import { Kernel } from '../Kernel';
+import { PromptExecutionSettings } from '../promptExecutionSettings';
+import { FunctionName } from './FunctionName';
 
 export class KernelFunctionMetadata<PARAMETERS = AIFunctionParameterMetadata> extends AIFunctionMetadata<PARAMETERS> {
   pluginName?: string;

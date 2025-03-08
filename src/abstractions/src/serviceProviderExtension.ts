@@ -1,7 +1,6 @@
-import { PromptExecutionSettings } from './AI';
-import { KernelFunction } from './functions';
 import { MapServiceProvider, Service, defaultServiceId } from '@semantic-kernel/service-provider';
-
+import { KernelFunction } from './functions';
+import { PromptExecutionSettings } from './promptExecutionSettings';
 
 MapServiceProvider.prototype.trySelectService = function <T extends Service>({
   serviceType,

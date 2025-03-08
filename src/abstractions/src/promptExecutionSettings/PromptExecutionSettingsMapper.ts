@@ -1,5 +1,5 @@
 import { PromptExecutionSettings } from '.';
-import { Kernel } from '../../Kernel';
+import { Kernel } from '../Kernel';
 import { AutoFunctionChoiceBehavior } from '../functionChoiceBehaviors';
 import { ChatOptions, ChatResponseFormat, ChatResponseFormatJson, ChatToolMode } from '@semantic-kernel/ai';
 

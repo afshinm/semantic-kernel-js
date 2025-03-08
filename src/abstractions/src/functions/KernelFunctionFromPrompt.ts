@@ -1,6 +1,5 @@
-import { PromptExecutionSettings } from '../AI';
-import { toChatOptions } from '../AI/promptExecutionSettings/PromptExecutionSettingsMapper';
 import { Kernel } from '../Kernel';
+import { PromptExecutionSettings, toChatOptions } from '../promptExecutionSettings';
 import {
   KernelFunctionFromPromptMetadata,
   PassThroughPromptTemplate,
