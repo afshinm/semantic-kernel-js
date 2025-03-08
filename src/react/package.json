@@ -23,8 +23,7 @@
     }
   },
   "dependencies": {
-    "@semantic-kernel/abstractions": "*",
-    "@semantic-kernel/openai": "*"
+    "semantic-kernel": "*"
   },
   "peerDependencies": {
     "react": "^18.3.1",
