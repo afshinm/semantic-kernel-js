@@ -1,6 +1,6 @@
 import { OpenAIChatClient } from '@semantic-kernel/openai';
 import { useEffect, useState } from 'react';
-import { ChatClient, Kernel, kernel } from 'semantic-kernel';
+import { ChatClient, Kernel } from 'semantic-kernel';
 
 export type useKernelProps = {
   openAIModel?: string;
@@ -15,7 +15,7 @@ export const useKernel = (props: useKernelProps) => {
 
   useEffect(() => {
     if (!sk) {
-      setSK(props.kernel ?? kernel());
+      setSK(props.kernel ?? new Kernel());
     }
   }, []);
 

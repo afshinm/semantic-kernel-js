@@ -185,9 +185,3 @@ export class Kernel {
     return this.invokeStreaming({ kernelFunction: kernelFunctionFromPrompt, args, executionSettings });
   }
 }
-
-/**
- * Creates a new kernel.
- * @returns A new kernel.
- */
-export const kernel = (): Kernel => new Kernel();
