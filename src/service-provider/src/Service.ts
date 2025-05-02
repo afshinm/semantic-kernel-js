@@ -1,1 +1,1 @@
-export type Service = abstract new (...args: unknown[]) => unknown;
+export type Service =  abstract new (...args: unknown[] | []) => unknown;

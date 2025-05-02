@@ -22,6 +22,8 @@ export class MapServiceProvider implements ServiceProvider {
     let serviceId = defaultServiceId;
     if (options?.serviceId) {
       serviceId = options.serviceId;
+    } else if (service?.constructor?.name) {
+      serviceId = service.constructor.name;
     }
 
     if (this.services.has(serviceId)) {
