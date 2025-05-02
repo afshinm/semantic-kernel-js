@@ -1,7 +1,7 @@
 import { ChatClient } from '@semantic-kernel/ai';
 import { MapServiceProvider } from '@semantic-kernel/service-provider';
-import { PromptExecutionSettings, ServiceId } from './promptExecutionSettings';
 import { kernelFunction } from './functions';
+import { PromptExecutionSettings, ServiceId } from './promptExecutionSettings';
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 class MockBaseService {}
@@ -67,7 +67,7 @@ describe('serviceProviderExtension', () => {
       stubExecutionSettings.set(stubServiceKey, stubPromptExecutionSettings);
 
       const stubKernelFunction = kernelFunction(() => {}, {
-        name: "stubKernelFunction",
+        name: 'stubKernelFunction',
         executionSettings: stubExecutionSettings,
       });
 
@@ -97,7 +97,7 @@ describe('serviceProviderExtension', () => {
       stubExecutionSettings.set('randomService', stubPromptExecutionSettings);
 
       const stubKernelFunction = kernelFunction(() => {}, {
-        name: "stubKernelFunction",
+        name: 'stubKernelFunction',
         executionSettings: stubExecutionSettings,
       });
 
