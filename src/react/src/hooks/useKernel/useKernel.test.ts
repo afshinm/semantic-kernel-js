@@ -1,12 +1,12 @@
 import { renderHook } from '@testing-library/react';
-import { MockChatCompletionService } from '../../tests/mockChatCompletionService';
+import { MockChatClient } from '../../tests/mockChatCompletionService';
 import { useKernel, useKernelProps } from './useKernel';
 
 describe('useKernel', () => {
   it('should create the kernel', () => {
     // Arrange
     const props: useKernelProps = {
-      chatCompletionService: new MockChatCompletionService(),
+      chatClient: new MockChatClient(),
     };
 
     // Act
