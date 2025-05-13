@@ -1,6 +1,7 @@
 import { ChatClient, ChatCompletion, DelegatingChatClient, FunctionInvocationContext } from '.';
 import { AIContent, ChatMessage, FunctionCallContent, FunctionResultContent } from '../contents';
 import { AIFunction } from '../functions';
+import { AIFunctionArguments } from '../functions/AIFunctionArguments';
 import { UsageDetails } from '../UsageDetails';
 import { ChatOptions } from './ChatOptions';
 import { RequiredChatToolMode } from './RequiredChatToolMode';
@@ -383,7 +384,7 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
   }) {
     const aiFunction: AIFunction | undefined = options.tools
       ?.filter((tool) => tool instanceof AIFunction)
-      .find((tool) => tool.metadata.name === functionCallContent.name);
+      .find((tool) => tool.name === functionCallContent.name);
 
     if (!aiFunction) {
       return new FunctionInvocationResult({
@@ -395,6 +396,7 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
 
     const context = new FunctionInvocationContext({
       chatMessages,
+      args: new AIFunctionArguments(functionCallContent.arguments),
       functionCallContent,
       func: aiFunction,
     });
@@ -425,7 +427,7 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
 
     try {
       this.currentContext = context;
-      result = await context.function.invoke(context.callContent.arguments);
+      result = await context.function.invoke(context.arguments);
     } catch (e) {
       console.error('Error invoking function', e);
       throw e;

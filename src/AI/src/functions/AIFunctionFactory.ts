@@ -1,10 +1,10 @@
-import { FromSchema, JsonSchema } from '../jsonSchema';
+import { DefaultJsonSchema, FromSchema, JsonSchema } from '../jsonSchema';
 import { AIFunction } from './AIFunction';
 import { AIFunctionArguments } from './AIFunctionArguments';
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class AIFunctionFactory {
-  static create<ReturnType, Schema extends JsonSchema = false, Args = FromSchema<Schema>>(
+  static create<ReturnType, Schema extends JsonSchema = typeof DefaultJsonSchema, Args = FromSchema<Schema>>(
     delegate: (args: Args) => ReturnType | Promise<ReturnType>,
     metadata?: {
       name?: string;

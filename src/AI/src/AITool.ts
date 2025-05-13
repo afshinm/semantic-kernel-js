@@ -1,4 +1,4 @@
-import { AdditionalProperties } from '../dist';
+import { AdditionalProperties } from './AdditionalProperties';
 
 export class AITool {
   protected constructor() {}

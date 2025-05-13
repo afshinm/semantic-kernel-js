@@ -1,9 +1,9 @@
-import { FromSchema, JsonSchema } from '@semantic-kernel/ai';
+import { DefaultJsonSchema, FromSchema, JsonSchema } from '../jsonSchema';
 
 /**
  * Represents the arguments for an AI function.
  */
-export class AIFunctionArguments<Schema extends JsonSchema = false, Args = FromSchema<Schema>> {
+export class AIFunctionArguments<Schema extends JsonSchema = typeof DefaultJsonSchema, Args = FromSchema<Schema>> {
   private _arguments: Args;
 
   public constructor(args?: Args) {

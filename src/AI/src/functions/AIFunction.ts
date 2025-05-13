@@ -1,10 +1,10 @@
 import { AITool } from '../AITool';
-import { FromSchema, JsonSchema } from '../jsonSchema';
+import { DefaultJsonSchema, FromSchema, JsonSchema } from '../jsonSchema';
 import { AIFunctionArguments } from './AIFunctionArguments';
 
 export abstract class AIFunction<
-  ReturnType,
-  Schema extends JsonSchema = false,
+  ReturnType = unknown,
+  Schema extends JsonSchema = typeof DefaultJsonSchema,
   Args = FromSchema<Schema>,
 > extends AITool {
   public jsonSchema: Schema | undefined;
