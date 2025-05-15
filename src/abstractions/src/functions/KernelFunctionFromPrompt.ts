@@ -1,15 +1,10 @@
 import { ChatClient } from '@semantic-kernel/ai';
 import { Kernel } from '../Kernel';
 import { PromptExecutionSettings, toChatOptions } from '../promptExecutionSettings';
-import {
-  KernelFunctionFromPromptMetadata,
-  PassThroughPromptTemplate,
-  PromptTemplate,
-} from '../promptTemplate';
+import { KernelFunctionFromPromptMetadata, PassThroughPromptTemplate, PromptTemplate } from '../promptTemplate';
 import '../serviceProviderExtension';
-import { KernelFunction } from './KernelFunction';
 import { KernelArguments } from './KernelArguments';
-
+import { KernelFunction } from './KernelFunction';
 
 export class KernelFunctionFromPrompt extends KernelFunction {
   private constructor(kernelFunctionFromPromptMetadata: KernelFunctionFromPromptMetadata) {
@@ -27,7 +22,10 @@ export class KernelFunctionFromPrompt extends KernelFunction {
    * @param params.allowDangerouslySetContent Whether to allow dangerously set content (optional).
    * @returns A new kernel function from a prompt.
    */
-  static create(prompt: string, { name, description, templateFormat, ...props }: Partial<KernelFunctionFromPromptMetadata>) {
+  static create(
+    prompt: string,
+    { name, description, templateFormat, ...props }: Partial<KernelFunctionFromPromptMetadata>
+  ) {
     return new KernelFunctionFromPrompt({
       prompt,
       name: name ?? KernelFunctionFromPrompt.createRandomFunctionName(),
@@ -56,10 +54,7 @@ export class KernelFunctionFromPrompt extends KernelFunction {
     throw new Error(`Unsupported service type: ${service}`);
   }
 
-  override async *invokeStreamingCore<T>(
-    kernel: Kernel,
-    args: KernelArguments
-  ): AsyncGenerator<T> {
+  override async *invokeStreamingCore<T>(kernel: Kernel, args: KernelArguments): AsyncGenerator<T> {
     const { renderedPrompt, service, executionSettings } = await this.renderPrompt(kernel, args);
 
     if (!service) {

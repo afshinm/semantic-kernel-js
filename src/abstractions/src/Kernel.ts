@@ -1,10 +1,10 @@
 import { DefaultJsonSchema, FromSchema, JsonSchema } from '@semantic-kernel/ai';
 import { MapServiceProvider, ServiceProvider } from '@semantic-kernel/service-provider';
 import { KernelFunction, KernelFunctionFromPrompt, KernelPlugin } from './functions';
+import { KernelArguments } from './functions/KernelArguments';
 import { KernelPlugins, MapKernelPlugins } from './functions/KernelPlugins';
 import { PromptExecutionSettings } from './promptExecutionSettings/PromptExecutionSettings';
 import { KernelFunctionFromPromptMetadata } from './promptTemplate';
-import { KernelArguments } from './functions/KernelArguments';
 
 /**
  * Represents a kernel.

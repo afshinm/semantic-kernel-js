@@ -3,8 +3,8 @@ import { defaultServiceId } from '@semantic-kernel/service-provider';
 import { Kernel } from '../Kernel';
 import { PromptExecutionSettings } from '../promptExecutionSettings';
 import { FunctionName } from './FunctionName';
-import { KernelArguments } from './KernelArguments';
 import { FunctionResult } from './FunctionResult';
+import { KernelArguments } from './KernelArguments';
 
 export class KernelFunctionMetadata<Schema extends JsonSchema = typeof DefaultJsonSchema> {
   name: string = '';
