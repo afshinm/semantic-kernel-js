@@ -54,7 +54,7 @@ export const toChatOptions = (settings?: PromptExecutionSettings, kernel?: Kerne
   });
 
   const functionChoiceBehaviorFunctions = functionChoiceBehaviorConfiguration?.functions ?? [];
-
+  
   if (functionChoiceBehaviorFunctions.length > 0) {
     if (settings.functionChoiceBehavior instanceof AutoFunctionChoiceBehavior) {
       chatOptions.toolMode = ChatToolMode.Auto;

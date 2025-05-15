@@ -52,18 +52,18 @@ export abstract class KernelFunction<
       for (const _settings of settings) {
         const targetServiceId = _settings.serviceId ?? defaultServiceId;
 
-        if (this.metadata.executionSettings?.has(targetServiceId)) {
+        if (this._metadata.executionSettings?.has(targetServiceId)) {
           throw new Error(`Execution settings for service ID ${targetServiceId} already exists.`);
         }
 
         newExecutionSettings.set(targetServiceId, _settings);
       }
 
-      this.metadata.executionSettings = newExecutionSettings;
+      this._metadata.executionSettings = newExecutionSettings;
     } else if (settings instanceof Map) {
-      this.metadata.executionSettings = settings;
+      this._metadata.executionSettings = settings;
     } else {
-      this.metadata.executionSettings = new Map([[settings.serviceId ?? defaultServiceId, settings]]);
+      this._metadata.executionSettings = new Map([[settings.serviceId ?? defaultServiceId, settings]]);
     }
   }
 
@@ -72,10 +72,7 @@ export abstract class KernelFunction<
     args: KernelArguments<Schema, Args>
   ): Promise<FunctionResult<ReturnType, Schema, Args>>;
 
-  protected abstract invokeStreamingCore(
-    kernel: Kernel,
-    args: KernelArguments<Schema, Args>
-  ): AsyncGenerator<ReturnType>;
+  protected abstract invokeStreamingCore<T>(kernel: Kernel, args: KernelArguments<Schema, Args>): AsyncGenerator<T>;
 
   async invoke(
     kernel: Kernel,
@@ -84,8 +81,8 @@ export abstract class KernelFunction<
     return this.invokeCore(kernel, args ?? new KernelArguments());
   }
 
-  async *invokeStreaming(kernel: Kernel, args?: KernelArguments<Schema, Args>): AsyncGenerator<ReturnType> {
-    const enumerable = this.invokeStreamingCore(kernel, args ?? new KernelArguments());
+  async *invokeStreaming<T>(kernel: Kernel, args?: KernelArguments<Schema, Args>): AsyncGenerator<T> {
+    const enumerable = this.invokeStreamingCore<T>(kernel, args ?? new KernelArguments());
 
     for await (const value of enumerable) {
       yield value;
@@ -94,7 +91,8 @@ export abstract class KernelFunction<
 
   asAIFunction(kernel?: Kernel) {
     return AIFunctionFactory.create(
-      (args: Args) => this.invoke(kernel ?? new Kernel(), new KernelArguments(args, this.metadata.executionSettings)),
+      async (args: Args) =>
+        (await this.invoke(kernel ?? new Kernel(), new KernelArguments(args, this.metadata.executionSettings))).value,
       this.metadata
     );
   }
@@ -113,7 +111,7 @@ export const kernelFunction = <
       super(metadata);
     }
 
-    protected override invokeStreamingCore(): AsyncGenerator<ReturnType> {
+    protected override invokeStreamingCore<T>(): AsyncGenerator<T> {
       throw new Error('Method not implemented.');
     }
 

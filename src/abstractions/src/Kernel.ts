@@ -1,9 +1,9 @@
-import { AIFunctionParameterMetadata, DefaultJsonSchema, FromSchema, JsonSchema } from '@semantic-kernel/ai';
+import { DefaultJsonSchema, FromSchema, JsonSchema } from '@semantic-kernel/ai';
 import { MapServiceProvider, ServiceProvider } from '@semantic-kernel/service-provider';
-import { KernelFunction, KernelFunctionFromPrompt, KernelPlugin, PromptType } from './functions';
+import { KernelFunction, KernelFunctionFromPrompt, KernelPlugin } from './functions';
 import { KernelPlugins, MapKernelPlugins } from './functions/KernelPlugins';
 import { PromptExecutionSettings } from './promptExecutionSettings/PromptExecutionSettings';
-import { PromptTemplateFormat } from './promptTemplate';
+import { KernelFunctionFromPromptMetadata } from './promptTemplate';
 import { KernelArguments } from './functions/KernelArguments';
 
 /**
@@ -118,33 +118,18 @@ export class Kernel {
    * @param params.executionSettings The execution settings to pass to the kernel function (optional).
    * @returns The result of the prompt.
    */
-  public async invokePrompt({
-    promptTemplate,
-    name,
-    description,
-    templateFormat,
-    inputVariables,
-    allowDangerouslySetContent,
-    args,
-    executionSettings,
-  }: {
-    promptTemplate: string;
-    name?: string;
-    description?: string;
-    templateFormat?: PromptTemplateFormat;
-    inputVariables?: string[];
-    allowDangerouslySetContent?: boolean;
-    args?: PromptType;
-    executionSettings?: Map<string, PromptExecutionSettings> | PromptExecutionSettings[] | PromptExecutionSettings;
-  }) {
-    const kernelFunctionFromPrompt = KernelFunctionFromPrompt.create({
-      promptTemplate,
-      name,
-      description,
-      templateFormat,
-      inputVariables,
-      allowDangerouslySetContent,
-    });
+  public async invokePrompt(
+    prompt: string,
+    {
+      args,
+      executionSettings,
+      ...props
+    }: Omit<Partial<KernelFunctionFromPromptMetadata>, 'executionSettings'> & {
+      args?: KernelArguments;
+      executionSettings?: Map<string, PromptExecutionSettings> | PromptExecutionSettings[] | PromptExecutionSettings;
+    }
+  ) {
+    const kernelFunctionFromPrompt = KernelFunctionFromPrompt.create(prompt, props);
 
     return this.invoke({ kernelFunction: kernelFunctionFromPrompt, args, executionSettings });
   }
@@ -163,33 +148,18 @@ export class Kernel {
    * @param params.executionSettings The execution settings to pass to the kernel function (optional).
    * @returns The result of the prompt.
    */
-  public invokeStreamingPrompt({
-    promptTemplate,
-    name,
-    description,
-    templateFormat,
-    inputVariables,
-    allowDangerouslySetContent,
-    args,
-    executionSettings,
-  }: {
-    promptTemplate: string;
-    name?: string;
-    description?: string;
-    templateFormat?: PromptTemplateFormat;
-    inputVariables?: string[];
-    allowDangerouslySetContent?: boolean;
-    args?: PromptType;
-    executionSettings?: Map<string, PromptExecutionSettings> | PromptExecutionSettings[] | PromptExecutionSettings;
-  }) {
-    const kernelFunctionFromPrompt = KernelFunctionFromPrompt.create({
-      promptTemplate,
-      name,
-      description,
-      templateFormat,
-      inputVariables,
-      allowDangerouslySetContent,
-    });
+  public invokeStreamingPrompt(
+    prompt: string,
+    {
+      args,
+      executionSettings,
+      ...props
+    }: Omit<Partial<KernelFunctionFromPromptMetadata>, 'executionSettings'> & {
+      args?: KernelArguments;
+      executionSettings?: Map<string, PromptExecutionSettings> | PromptExecutionSettings[] | PromptExecutionSettings;
+    }
+  ) {
+    const kernelFunctionFromPrompt = KernelFunctionFromPrompt.create(prompt, props);
 
     return this.invokeStreaming({ kernelFunction: kernelFunctionFromPrompt, args, executionSettings });
   }

@@ -56,7 +56,7 @@ MapServiceProvider.prototype.trySelectService = function <T extends Service>({
   // search by default service id last
   if (defaultExecutionSettings) {
     return {
-      service: services.values().next() as InstanceType<T>,
+      service: services.values().next().value as InstanceType<T>,
       executionSettings: defaultExecutionSettings,
     };
   }
