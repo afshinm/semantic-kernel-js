@@ -7,7 +7,7 @@ export class AIFunctionArguments<Schema extends JsonSchema = typeof DefaultJsonS
   private _arguments: Args;
 
   public constructor(args?: Args) {
-    this._arguments = args || (undefined as Args);
+    this._arguments = args || ({} as Args);
   }
 
   /**

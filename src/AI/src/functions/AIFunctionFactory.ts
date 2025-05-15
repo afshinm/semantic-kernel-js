@@ -19,7 +19,7 @@ export class AIFunctionFactory {
         // Take the name from the metadata, or the delegate name, or default to an empty string
         this.name = metadata?.name ?? delegate.name ?? '';
         this.description = metadata?.description ?? '';
-        this.jsonSchema = metadata?.schema;
+        this.schema = metadata?.schema;
       }
 
       protected async invokeCore(args: AIFunctionArguments<Schema, Args>): Promise<ReturnType> {

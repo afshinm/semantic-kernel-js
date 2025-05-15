@@ -1,9 +1,10 @@
-import { AIFunctionParameterMetadata } from '@semantic-kernel/ai';
+import { AIFunctionParameterMetadata, DefaultJsonSchema, FromSchema, JsonSchema } from '@semantic-kernel/ai';
 import { MapServiceProvider, ServiceProvider } from '@semantic-kernel/service-provider';
 import { KernelFunction, KernelFunctionFromPrompt, KernelPlugin, PromptType } from './functions';
 import { KernelPlugins, MapKernelPlugins } from './functions/KernelPlugins';
 import { PromptExecutionSettings } from './promptExecutionSettings/PromptExecutionSettings';
 import { PromptTemplateFormat } from './promptTemplate';
+import { KernelArguments } from './functions/KernelArguments';
 
 /**
  * Represents a kernel.
@@ -63,13 +64,17 @@ export class Kernel {
    * @param params.executionSettings The execution settings to pass to the kernel function (optional).
    * @returns The result of the kernel function.
    */
-  public async invoke<PARAMETERS extends AIFunctionParameterMetadata, SCHEMA>({
+  public async invoke<
+    ReturnType = unknown,
+    Schema extends JsonSchema = typeof DefaultJsonSchema,
+    Args = FromSchema<Schema>,
+  >({
     kernelFunction,
     args,
     executionSettings,
   }: {
-    kernelFunction: KernelFunction<PARAMETERS, SCHEMA>;
-    args?: SCHEMA;
+    kernelFunction: KernelFunction<ReturnType, Schema, Args>;
+    args?: KernelArguments<Schema, Args>;
     executionSettings?: Map<string, PromptExecutionSettings> | PromptExecutionSettings[] | PromptExecutionSettings;
   }) {
     if (executionSettings) {
@@ -79,13 +84,17 @@ export class Kernel {
     return kernelFunction.invoke(this, args);
   }
 
-  public invokeStreaming<PARAMETERS extends AIFunctionParameterMetadata, SCHEMA>({
+  public invokeStreaming<
+    ReturnType = unknown,
+    Schema extends JsonSchema = typeof DefaultJsonSchema,
+    Args = FromSchema<Schema>,
+  >({
     kernelFunction,
     args,
     executionSettings,
   }: {
-    kernelFunction: KernelFunction<PARAMETERS, SCHEMA>;
-    args?: SCHEMA;
+    kernelFunction: KernelFunction<ReturnType, Schema, Args>;
+    args?: KernelArguments<Schema, Args>;
     executionSettings?: Map<string, PromptExecutionSettings> | PromptExecutionSettings[] | PromptExecutionSettings;
   }) {
     if (executionSettings) {

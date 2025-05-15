@@ -7,7 +7,7 @@ export abstract class AIFunction<
   Schema extends JsonSchema = typeof DefaultJsonSchema,
   Args = FromSchema<Schema>,
 > extends AITool {
-  public jsonSchema: Schema | undefined;
+  public schema: Schema | undefined;
 
   invoke(args?: AIFunctionArguments<Schema, Args>): Promise<ReturnType> {
     return this.invokeCore(args);

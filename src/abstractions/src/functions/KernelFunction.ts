@@ -1,25 +1,31 @@
-import { AIFunctionFactory, AIFunctionMetadata, AIFunctionParameterMetadata, FromSchema } from '@semantic-kernel/ai';
+import { AIFunctionFactory, DefaultJsonSchema, FromSchema, JsonSchema } from '@semantic-kernel/ai';
 import { defaultServiceId } from '@semantic-kernel/service-provider';
 import { Kernel } from '../Kernel';
 import { PromptExecutionSettings } from '../promptExecutionSettings';
 import { FunctionName } from './FunctionName';
+import { KernelArguments } from './KernelArguments';
+import { FunctionResult } from './FunctionResult';
 
-export class KernelFunctionMetadata<PARAMETERS = AIFunctionParameterMetadata> extends AIFunctionMetadata<PARAMETERS> {
+export class KernelFunctionMetadata<Schema extends JsonSchema = typeof DefaultJsonSchema> {
+  name: string = '';
+  description?: string;
+  schema?: Schema;
   pluginName?: string;
   executionSettings?: Map<string, PromptExecutionSettings>;
 }
 
 export abstract class KernelFunction<
-  PARAMETERS extends AIFunctionParameterMetadata = AIFunctionParameterMetadata,
-  SCHEMA = FromSchema<PARAMETERS>,
+  ReturnType = unknown,
+  Schema extends JsonSchema = typeof DefaultJsonSchema,
+  Args = FromSchema<Schema>,
 > {
-  private _metadata: KernelFunctionMetadata<PARAMETERS>;
+  private _metadata: KernelFunctionMetadata<Schema>;
 
-  constructor(metadata: KernelFunctionMetadata<PARAMETERS>) {
+  constructor(metadata: KernelFunctionMetadata<Schema>) {
     this._metadata = metadata;
   }
 
-  get metadata(): KernelFunctionMetadata<PARAMETERS> {
+  get metadata(): KernelFunctionMetadata<Schema> {
     return {
       ...this._metadata,
       name: FunctionName.fullyQualifiedName({
@@ -29,7 +35,7 @@ export abstract class KernelFunction<
     };
   }
 
-  set metadata(metadata: KernelFunctionMetadata<PARAMETERS>) {
+  set metadata(metadata: KernelFunctionMetadata<Schema>) {
     this._metadata = metadata;
   }
 
@@ -46,31 +52,40 @@ export abstract class KernelFunction<
       for (const _settings of settings) {
         const targetServiceId = _settings.serviceId ?? defaultServiceId;
 
-        if (this._metadata.executionSettings?.has(targetServiceId)) {
+        if (this.metadata.executionSettings?.has(targetServiceId)) {
           throw new Error(`Execution settings for service ID ${targetServiceId} already exists.`);
         }
 
         newExecutionSettings.set(targetServiceId, _settings);
       }
 
-      this._metadata.executionSettings = newExecutionSettings;
+      this.metadata.executionSettings = newExecutionSettings;
     } else if (settings instanceof Map) {
-      this._metadata.executionSettings = settings;
+      this.metadata.executionSettings = settings;
     } else {
-      this._metadata.executionSettings = new Map([[settings.serviceId ?? defaultServiceId, settings]]);
+      this.metadata.executionSettings = new Map([[settings.serviceId ?? defaultServiceId, settings]]);
     }
   }
 
-  protected abstract invokeCore(kernel: Kernel, args?: SCHEMA): Promise<unknown>;
+  protected abstract invokeCore(
+    kernel: Kernel,
+    args: KernelArguments<Schema, Args>
+  ): Promise<FunctionResult<ReturnType, Schema, Args>>;
 
-  protected abstract invokeStreamingCore(kernel: Kernel, args?: SCHEMA): AsyncGenerator<unknown>;
+  protected abstract invokeStreamingCore(
+    kernel: Kernel,
+    args: KernelArguments<Schema, Args>
+  ): AsyncGenerator<ReturnType>;
 
-  async invoke(kernel: Kernel, args?: SCHEMA): Promise<unknown> {
-    return this.invokeCore(kernel, args);
+  async invoke(
+    kernel: Kernel,
+    args?: KernelArguments<Schema, Args>
+  ): Promise<FunctionResult<ReturnType, Schema, Args>> {
+    return this.invokeCore(kernel, args ?? new KernelArguments());
   }
 
-  async *invokeStreaming(kernel: Kernel, args?: SCHEMA): AsyncGenerator<unknown> {
-    const enumerable = this.invokeStreamingCore(kernel, args);
+  async *invokeStreaming(kernel: Kernel, args?: KernelArguments<Schema, Args>): AsyncGenerator<ReturnType> {
+    const enumerable = this.invokeStreamingCore(kernel, args ?? new KernelArguments());
 
     for await (const value of enumerable) {
       yield value;
@@ -78,28 +93,40 @@ export abstract class KernelFunction<
   }
 
   asAIFunction(kernel?: Kernel) {
-    return AIFunctionFactory.create((args: SCHEMA) => this.invoke(kernel ?? new Kernel(), args), this.metadata);
+    return AIFunctionFactory.create(
+      (args: Args) => this.invoke(kernel ?? new Kernel(), new KernelArguments(args, this.metadata.executionSettings)),
+      this.metadata
+    );
   }
 }
 
 export const kernelFunction = <
-  PARAMETERS extends AIFunctionParameterMetadata = AIFunctionParameterMetadata,
-  SCHEMA = FromSchema<PARAMETERS>,
+  ReturnType = unknown,
+  Schema extends JsonSchema = typeof DefaultJsonSchema,
+  Args = FromSchema<Schema>,
 >(
-  fn: (args?: SCHEMA, kernel?: Kernel) => unknown,
-  metadata: KernelFunctionMetadata<PARAMETERS>
-): KernelFunction<PARAMETERS, SCHEMA> => {
-  return new (class extends KernelFunction<PARAMETERS, SCHEMA> {
+  fn: (args: Args, kernel?: Kernel) => ReturnType,
+  metadata: KernelFunctionMetadata<Schema>
+): KernelFunction<ReturnType, Schema, Args> => {
+  return new (class extends KernelFunction<ReturnType, Schema, Args> {
     public constructor() {
       super(metadata);
     }
 
-    protected override invokeStreamingCore(): AsyncGenerator<unknown> {
+    protected override invokeStreamingCore(): AsyncGenerator<ReturnType> {
       throw new Error('Method not implemented.');
     }
 
-    override async invokeCore(kernel: Kernel, args?: SCHEMA) {
-      return await fn(args, kernel);
+    override async invokeCore(
+      kernel: Kernel,
+      args: KernelArguments<Schema, Args>
+    ): Promise<FunctionResult<ReturnType, Schema, Args>> {
+      const value = await fn(args.arguments, kernel);
+
+      return {
+        function: this,
+        value,
+      };
     }
   })();
 };
