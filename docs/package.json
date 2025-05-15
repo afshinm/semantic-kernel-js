@@ -11,7 +11,7 @@
   "author": "Afshin Mehrabani",
   "license": "MIT",
   "dependencies": {
-    "next": "^15.0.3",
+    "next": "^15.3.2",
     "nextra": "^3.2.4",
     "nextra-theme-docs": "^3.2.4",
     "react": "^18.3.1",
