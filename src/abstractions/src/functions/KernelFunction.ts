@@ -26,13 +26,7 @@ export abstract class KernelFunction<
   }
 
   get metadata(): KernelFunctionMetadata<Schema> {
-    return {
-      ...this._metadata,
-      name: FunctionName.fullyQualifiedName({
-        functionName: this._metadata.name,
-        pluginName: this._metadata.pluginName,
-      }),
-    };
+    return this._metadata;
   }
 
   set metadata(metadata: KernelFunctionMetadata<Schema>) {
@@ -93,7 +87,13 @@ export abstract class KernelFunction<
     return AIFunctionFactory.create(
       async (args: Args) =>
         (await this.invoke(kernel, new KernelArguments(args, this.metadata.executionSettings))).value,
-      this.metadata
+      {
+        ...this.metadata,
+        name: FunctionName.fullyQualifiedName({
+          functionName: this.metadata.name,
+          pluginName: this.metadata.pluginName,
+        }),
+      }
     );
   }
 }

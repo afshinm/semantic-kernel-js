@@ -26,12 +26,10 @@ describe('kernelFunctionFromPrompt', () => {
   it('should render a prompt with a string template', async () => {
     // Arrange
     const mockKernel = getMockKernel();
-    const promptTemplate = 'testPrompt';
+    const prompt = 'testPrompt';
 
     // Act
-    const result = (await KernelFunctionFromPrompt.create({
-      promptTemplate,
-    }).invoke(mockKernel)) as {
+    const result = (await KernelFunctionFromPrompt.create(prompt, {}).invoke(mockKernel)) as {
       chatCompletion: ChatCompletion;
       renderedPrompt: string;
     };
@@ -44,11 +42,10 @@ describe('kernelFunctionFromPrompt', () => {
   it('should throw an error if the template format is not supported', async () => {
     // Arrange
     const mockKernel = getMockKernel();
-    const promptTemplate = 'testPrompt';
+    const prompt = 'testPrompt';
 
     // Act
-    const result = KernelFunctionFromPrompt.create({
-      promptTemplate,
+    const result = KernelFunctionFromPrompt.create(prompt, {
       templateFormat: 'unsupported' as PromptTemplateFormat,
     });
 
@@ -58,12 +55,10 @@ describe('kernelFunctionFromPrompt', () => {
 
   it('should throw an error if no AIService is found', async () => {
     // Arrange
-    const promptTemplate = 'testPrompt';
+    const prompt = 'testPrompt';
 
     // Act
-    const result = KernelFunctionFromPrompt.create({
-      promptTemplate,
-    });
+    const result = KernelFunctionFromPrompt.create(prompt, {});
 
     // Assert
     await expect(result.invoke(new Kernel())).rejects.toThrow('Service not found in kernel');
