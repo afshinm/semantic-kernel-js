@@ -1,5 +1,5 @@
-import { DefaultJsonSchema, FromSchema, JsonSchema } from '@semantic-kernel/ai';
-import { KernelFunction } from './KernelFunction';
+import { type DefaultJsonSchema, type FromSchema, type JsonSchema } from '@semantic-kernel/ai';
+import { type KernelFunction } from '.';
 
 export type FunctionResult<
   ReturnType = unknown,

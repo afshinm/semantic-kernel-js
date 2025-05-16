@@ -1,5 +1,4 @@
-import { KernelFunction, KernelFunctionMetadata } from './KernelFunction';
-import { KernelPlugin, MapKernelPlugin } from './KernelPlugin';
+import type { KernelFunction, KernelFunctionMetadata, KernelPlugin, MapKernelPlugin } from '.';
 
 export type KernelPlugins = {
   addPlugin: (plugin: KernelPlugin) => KernelPlugins;

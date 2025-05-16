@@ -1,9 +1,14 @@
 import { ChatClient } from '@semantic-kernel/ai';
-import { Kernel } from '../Kernel';
-import { PromptExecutionSettings, toChatOptions } from '../promptExecutionSettings';
-import { KernelFunctionFromPromptMetadata, PassThroughPromptTemplate, PromptTemplate } from '../promptTemplate';
+import { type Kernel } from '../Kernel';
+import { type PromptExecutionSettings } from '../promptExecutionSettings/PromptExecutionSettings';
+import { toChatOptions } from '../promptExecutionSettings/PromptExecutionSettingsMapper';
+import {
+  type KernelFunctionFromPromptMetadata,
+  PassThroughPromptTemplate,
+  type PromptTemplate,
+} from '../promptTemplate';
 import '../serviceProviderExtension';
-import { KernelArguments } from './KernelArguments';
+import { type KernelArguments } from './KernelArguments';
 import { KernelFunction } from './KernelFunction';
 
 export class KernelFunctionFromPrompt extends KernelFunction {
@@ -43,7 +48,7 @@ export class KernelFunctionFromPrompt extends KernelFunction {
     }
 
     if (service instanceof ChatClient) {
-      const chatCompletionResult = await service.complete(renderedPrompt, toChatOptions(executionSettings, kernel));
+      const chatCompletionResult = await service.complete(renderedPrompt, toChatOptions(kernel, executionSettings));
 
       return {
         chatCompletion: chatCompletionResult,
@@ -62,7 +67,7 @@ export class KernelFunctionFromPrompt extends KernelFunction {
     }
 
     if (service instanceof ChatClient) {
-      const chatCompletionUpdates = service.completeStreaming(renderedPrompt, toChatOptions(executionSettings, kernel));
+      const chatCompletionUpdates = service.completeStreaming(renderedPrompt, toChatOptions(kernel, executionSettings));
 
       for await (const chatCompletionUpdate of chatCompletionUpdates) {
         yield chatCompletionUpdate as T;

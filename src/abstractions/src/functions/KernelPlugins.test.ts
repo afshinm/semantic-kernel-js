@@ -1,6 +1,6 @@
-import { type JsonSchema } from '../../../AI/src/jsonSchema';
-import { KernelFunction, kernelFunction } from './KernelFunction';
-import { KernelPlugin } from './KernelPlugin';
+import { type JsonSchema } from '@semantic-kernel/ai';
+import { type KernelFunction, kernelFunction } from './KernelFunction';
+import { type KernelPlugin } from './KernelPlugin';
 import { MapKernelPlugins } from './KernelPlugins';
 
 const getMockFunction = (functionName?: string, functionDescription?: string, schema?: JsonSchema) => {
@@ -47,8 +47,13 @@ describe('kernelPlugins', () => {
       // Act
       mockKernelPlugins.addPlugin(
         getMockPlugin([
-          getMockFunction('testFunction1', 'testDescription1', { type: 'string' }),
-          getMockFunction('testFunction2', 'testDescription2', { type: 'number' }),
+          kernelFunction(() => 'testResult', {
+            name: 'testFunction',
+            description: 'testDescription',
+            schema: { type: 'string' } as const,
+          }),
+          getMockFunction('testFunction1', 'testDescription1', { type: 'string' } as const),
+          getMockFunction('testFunction2', 'testDescription2', { type: 'number' } as const),
         ])
       );
 

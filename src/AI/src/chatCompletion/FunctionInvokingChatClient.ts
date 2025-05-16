@@ -1,8 +1,7 @@
 import { ChatClient, ChatCompletion, DelegatingChatClient, FunctionInvocationContext } from '.';
-import { AIContent, ChatMessage, FunctionCallContent, FunctionResultContent } from '../contents';
-import { AIFunction } from '../functions';
-import { AIFunctionArguments } from '../functions/AIFunctionArguments';
 import { UsageDetails } from '../UsageDetails';
+import { AIContent, ChatMessage, FunctionCallContent, FunctionResultContent } from '../contents';
+import { AIFunction, AIFunctionArguments } from '../functions';
 import { ChatOptions } from './ChatOptions';
 import { RequiredChatToolMode } from './RequiredChatToolMode';
 import { StreamingChatCompletionUpdate } from './StreamingChatCompletionUpdate';

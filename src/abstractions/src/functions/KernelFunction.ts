@@ -1,9 +1,9 @@
-import { AIFunctionFactory, DefaultJsonSchema, FromSchema, JsonSchema } from '@semantic-kernel/ai';
+import { AIFunctionFactory, type DefaultJsonSchema, type FromSchema, type JsonSchema } from '@semantic-kernel/ai';
 import { defaultServiceId } from '@semantic-kernel/service-provider';
-import { Kernel } from '../Kernel';
-import { PromptExecutionSettings } from '../promptExecutionSettings';
+import { type Kernel } from '../Kernel';
+import { type PromptExecutionSettings } from '../promptExecutionSettings';
 import { FunctionName } from './FunctionName';
-import { FunctionResult } from './FunctionResult';
+import { type FunctionResult } from './FunctionResult';
 import { KernelArguments } from './KernelArguments';
 
 export class KernelFunctionMetadata<Schema extends JsonSchema = typeof DefaultJsonSchema> {
@@ -89,10 +89,10 @@ export abstract class KernelFunction<
     }
   }
 
-  asAIFunction(kernel?: Kernel) {
+  asAIFunction(kernel: Kernel) {
     return AIFunctionFactory.create(
       async (args: Args) =>
-        (await this.invoke(kernel ?? new Kernel(), new KernelArguments(args, this.metadata.executionSettings))).value,
+        (await this.invoke(kernel, new KernelArguments(args, this.metadata.executionSettings))).value,
       this.metadata
     );
   }

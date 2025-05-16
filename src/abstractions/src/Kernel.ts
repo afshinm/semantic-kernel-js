@@ -1,9 +1,14 @@
-import { DefaultJsonSchema, FromSchema, JsonSchema } from '@semantic-kernel/ai';
-import { MapServiceProvider, ServiceProvider } from '@semantic-kernel/service-provider';
-import { KernelFunction, KernelFunctionFromPrompt, KernelPlugin } from './functions';
-import { KernelArguments } from './functions/KernelArguments';
-import { KernelPlugins, MapKernelPlugins } from './functions/KernelPlugins';
-import { PromptExecutionSettings } from './promptExecutionSettings/PromptExecutionSettings';
+import { type DefaultJsonSchema, type FromSchema, type JsonSchema } from '@semantic-kernel/ai';
+import { MapServiceProvider, type ServiceProvider } from '@semantic-kernel/service-provider';
+import {
+  type KernelArguments,
+  type KernelFunction,
+  KernelFunctionFromPrompt,
+  type KernelPlugin,
+  type KernelPlugins,
+  MapKernelPlugins,
+} from './functions';
+import { type PromptExecutionSettings } from './promptExecutionSettings';
 import { KernelFunctionFromPromptMetadata } from './promptTemplate';
 
 /**
