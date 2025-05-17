@@ -1,6 +1,5 @@
-import { KernelFunction } from '../functions';
-import { FunctionChoice } from './FunctionChoice';
-import { FunctionChoiceBehaviorOptions } from './FunctionChoiceBehaviorOptions';
+import { type FunctionChoice, type FunctionChoiceBehaviorOptions } from '.';
+import { type KernelFunction } from '../functions';
 
 export interface FunctionChoiceBehaviorConfiguration {
   choice: FunctionChoice;

@@ -1,4 +1,4 @@
-import { KernelFunction } from './KernelFunction';
+import { type KernelFunction } from './KernelFunction';
 
 type BaseKernelPlugin = {
   name: string;

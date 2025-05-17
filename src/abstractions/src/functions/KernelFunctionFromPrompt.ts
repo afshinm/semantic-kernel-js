@@ -1,24 +1,18 @@
-import { ChatClient, FromSchema } from '@semantic-kernel/ai';
-import { Kernel } from '../Kernel';
-import { PromptExecutionSettings, toChatOptions } from '../promptExecutionSettings';
+import { ChatClient } from '@semantic-kernel/ai';
+import { type Kernel } from '../Kernel';
+import { type PromptExecutionSettings } from '../promptExecutionSettings/PromptExecutionSettings';
+import { toChatOptions } from '../promptExecutionSettings/PromptExecutionSettingsMapper';
 import {
-  KernelFunctionFromPromptMetadata,
+  type KernelFunctionFromPromptMetadata,
   PassThroughPromptTemplate,
-  PromptTemplate,
-  PromptTemplateFormat,
+  type PromptTemplate,
 } from '../promptTemplate';
 import '../serviceProviderExtension';
+import { type KernelArguments } from './KernelArguments';
 import { KernelFunction } from './KernelFunction';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const schema = {
-  type: 'object',
-} as const;
-
-export type PromptType = FromSchema<typeof schema>;
-
-export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, PromptType> {
-  private constructor(kernelFunctionFromPromptMetadata: KernelFunctionFromPromptMetadata<typeof schema>) {
+export class KernelFunctionFromPrompt extends KernelFunction {
+  private constructor(kernelFunctionFromPromptMetadata: KernelFunctionFromPromptMetadata) {
     super(kernelFunctionFromPromptMetadata);
   }
 
@@ -33,29 +27,20 @@ export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, Prom
    * @param params.allowDangerouslySetContent Whether to allow dangerously set content (optional).
    * @returns A new kernel function from a prompt.
    */
-  static create({
-    name,
-    description,
-    templateFormat,
-    ...props
-  }: {
-    promptTemplate: string;
-    name?: string;
-    description?: string;
-    templateFormat?: PromptTemplateFormat;
-    inputVariables?: string[];
-    allowDangerouslySetContent?: boolean;
-  }) {
+  static create(
+    prompt: string,
+    { name, description, templateFormat, ...props }: Partial<KernelFunctionFromPromptMetadata>
+  ) {
     return new KernelFunctionFromPrompt({
+      prompt,
       name: name ?? KernelFunctionFromPrompt.createRandomFunctionName(),
       description: description ?? 'Generic function, unknown purpose',
       templateFormat: templateFormat ?? 'passthrough',
-      template: props.promptTemplate,
       ...props,
     });
   }
 
-  override async invokeCore(kernel: Kernel, args?: PromptType) {
+  override async invokeCore(kernel: Kernel, args: KernelArguments) {
     const { renderedPrompt, service, executionSettings } = await this.renderPrompt(kernel, args);
 
     if (!service) {
@@ -63,7 +48,7 @@ export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, Prom
     }
 
     if (service instanceof ChatClient) {
-      const chatCompletionResult = await service.complete(renderedPrompt, toChatOptions(executionSettings, kernel));
+      const chatCompletionResult = await service.complete(renderedPrompt, toChatOptions(kernel, executionSettings));
 
       return {
         chatCompletion: chatCompletionResult,
@@ -74,7 +59,7 @@ export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, Prom
     throw new Error(`Unsupported service type: ${service}`);
   }
 
-  override async *invokeStreamingCore(kernel: Kernel, args?: PromptType) {
+  override async *invokeStreamingCore<T>(kernel: Kernel, args: KernelArguments): AsyncGenerator<T> {
     const { renderedPrompt, service, executionSettings } = await this.renderPrompt(kernel, args);
 
     if (!service) {
@@ -82,10 +67,10 @@ export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, Prom
     }
 
     if (service instanceof ChatClient) {
-      const chatCompletionUpdates = service.completeStreaming(renderedPrompt, toChatOptions(executionSettings, kernel));
+      const chatCompletionUpdates = service.completeStreaming(renderedPrompt, toChatOptions(kernel, executionSettings));
 
       for await (const chatCompletionUpdate of chatCompletionUpdates) {
-        yield chatCompletionUpdate;
+        yield chatCompletionUpdate as T;
       }
     }
 
@@ -96,15 +81,15 @@ export class KernelFunctionFromPrompt extends KernelFunction<typeof schema, Prom
     const metadata = this.metadata as KernelFunctionFromPromptMetadata;
     switch (metadata.templateFormat) {
       case 'passthrough':
-        return new PassThroughPromptTemplate(metadata.template);
+        return new PassThroughPromptTemplate(metadata.prompt);
       default:
         throw new Error(`${metadata.templateFormat} template rendering not implemented`);
     }
   };
 
   private async renderPrompt(
-    kernel?: Kernel,
-    args?: PromptType
+    kernel: Kernel,
+    args: KernelArguments
   ): Promise<{
     renderedPrompt: string;
     executionSettings?: PromptExecutionSettings;

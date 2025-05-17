@@ -1,9 +1,9 @@
 import { PromptTemplate } from './PromptTemplate';
 
 export class PassThroughPromptTemplate implements PromptTemplate {
-  constructor(private readonly template: string) {}
+  constructor(private readonly prompt: string) {}
 
   render() {
-    return this.template;
+    return this.prompt;
   }
 }

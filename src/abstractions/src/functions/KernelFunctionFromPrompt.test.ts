@@ -1,54 +1,52 @@
-import { ChatCompletionService } from '../AI';
-import { kernel } from '../Kernel';
-import { ChatMessageContent, TextContent } from '../contents';
+import { ChatClient, ChatCompletion, ChatMessage, StreamingChatCompletionUpdate } from '@semantic-kernel/ai';
+import { Kernel } from '../Kernel';
+import { PromptTemplateFormat } from '../promptTemplate';
 import { KernelFunctionFromPrompt } from './KernelFunctionFromPrompt';
 
-const getMockChatCompletionService = () => {
-  return {
-    serviceType: 'ChatCompletion',
-    attributes: {},
-    getChatMessageContents: async ({ prompt }) => {
-      const messageContents: ChatMessageContent[] = [];
+class MockChatClient extends ChatClient {
+  metadata = {};
 
-      messageContents.push(
-        new ChatMessageContent<'assistant'>({
-          role: 'assistant',
-          items: [new TextContent({ text: `** ${prompt} **` })],
-        })
-      );
+  override complete(chatMessage: string): Promise<ChatCompletion> {
+    return Promise.resolve(
+      new ChatCompletion({ message: new ChatMessage({ content: `** ${chatMessage} **`, role: 'assistant' }) })
+    );
+  }
 
-      return messageContents;
-    },
-  } as ChatCompletionService;
-};
+  override completeStreaming(): AsyncGenerator<StreamingChatCompletionUpdate> {
+    throw new Error('Method not implemented.');
+  }
+  override getService(): object | undefined {
+    throw new Error('Method not implemented.');
+  }
+}
 
-const getMockKernel = () => kernel().addService(getMockChatCompletionService());
+const getMockKernel = () => new Kernel().addService(new MockChatClient());
 
 describe('kernelFunctionFromPrompt', () => {
   it('should render a prompt with a string template', async () => {
     // Arrange
     const mockKernel = getMockKernel();
-    const promptTemplate = 'testPrompt';
+    const prompt = 'testPrompt';
 
     // Act
-    const result = await KernelFunctionFromPrompt.create({
-      promptTemplate,
-    }).invoke(mockKernel);
+    const result = (await KernelFunctionFromPrompt.create(prompt, {}).invoke(mockKernel)) as {
+      chatCompletion: ChatCompletion;
+      renderedPrompt: string;
+    };
 
     // Assert
-    expect(((result.value as ChatMessageContent).items as TextContent[])[0].text).toEqual('** testPrompt **');
+    expect(result.chatCompletion.choices[0].text).toEqual('** testPrompt **');
     expect(result.renderedPrompt).toEqual('testPrompt');
   });
 
   it('should throw an error if the template format is not supported', async () => {
     // Arrange
     const mockKernel = getMockKernel();
-    const promptTemplate = 'testPrompt';
+    const prompt = 'testPrompt';
 
     // Act
-    const result = KernelFunctionFromPrompt.create({
-      promptTemplate,
-      templateFormat: 'unsupported' as 'passthrough',
+    const result = KernelFunctionFromPrompt.create(prompt, {
+      templateFormat: 'unsupported' as PromptTemplateFormat,
     });
 
     // Assert
@@ -57,14 +55,12 @@ describe('kernelFunctionFromPrompt', () => {
 
   it('should throw an error if no AIService is found', async () => {
     // Arrange
-    const promptTemplate = 'testPrompt';
+    const prompt = 'testPrompt';
 
     // Act
-    const result = KernelFunctionFromPrompt.create({
-      promptTemplate,
-    });
+    const result = KernelFunctionFromPrompt.create(prompt, {});
 
     // Assert
-    await expect(result.invoke(kernel())).rejects.toThrow('AIService not found in kernel');
+    await expect(result.invoke(new Kernel())).rejects.toThrow('Service not found in kernel');
   });
 });

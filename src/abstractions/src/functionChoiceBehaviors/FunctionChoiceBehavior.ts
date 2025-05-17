@@ -1,6 +1,6 @@
-import { KernelFunction } from '../functions';
+import { type KernelFunction } from '..';
 import { AutoFunctionChoiceBehavior } from './AutoFunctionChoiceBehavior';
-import { FunctionChoiceBehaviorOptions } from './FunctionChoiceBehaviorOptions';
+import { type FunctionChoiceBehaviorOptions } from './FunctionChoiceBehaviorOptions';
 import { NoneFunctionChoiceBehavior } from './NoneFunctionChoiceBehavior';
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class

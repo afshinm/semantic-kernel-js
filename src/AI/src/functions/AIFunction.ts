@@ -1,17 +1,17 @@
 import { AITool } from '../AITool';
-import { FromSchema } from '../jsonSchema';
-import { AIFunctionMetadata } from './AIFunctionMetadata';
-import { AIFunctionParameterMetadata } from './AIFunctionParameterMetadata';
+import { DefaultJsonSchema, FromSchema, JsonSchema } from '../jsonSchema';
+import { AIFunctionArguments } from './AIFunctionArguments';
 
 export abstract class AIFunction<
-  PARAMETERS extends AIFunctionParameterMetadata = AIFunctionParameterMetadata,
-  SCHEMA = FromSchema<PARAMETERS>,
+  ReturnType = unknown,
+  Schema extends JsonSchema = typeof DefaultJsonSchema,
+  Args = FromSchema<Schema>,
 > extends AITool {
-  abstract get metadata(): AIFunctionMetadata<PARAMETERS>;
+  public schema: Schema | undefined;
 
-  invoke(args?: SCHEMA) {
+  invoke(args?: AIFunctionArguments<Schema, Args>): Promise<ReturnType> {
     return this.invokeCore(args);
   }
 
-  protected abstract invokeCore(args?: SCHEMA): Promise<unknown>;
+  protected abstract invokeCore(args?: AIFunctionArguments<Schema, Args>): Promise<ReturnType>;
 }

@@ -1,11 +1,9 @@
-import { AIFunctionParameterMetadata } from '@semantic-kernel/ai';
-import { KernelFunction, KernelFunctionMetadata } from './KernelFunction';
-import { KernelPlugin, MapKernelPlugin } from './KernelPlugin';
+import type { KernelFunction, KernelFunctionMetadata, KernelPlugin, MapKernelPlugin } from '.';
 
 export type KernelPlugins = {
   addPlugin: (plugin: KernelPlugin) => KernelPlugins;
   getPlugins: () => Iterable<MapKernelPlugin>;
-  getFunctionsMetadata: () => KernelFunctionMetadata<AIFunctionParameterMetadata>[];
+  getFunctionsMetadata: () => KernelFunctionMetadata[];
   getFunction: (functionName: string, pluginName?: string) => KernelFunction | undefined;
 };
 

@@ -95,12 +95,12 @@ export const toOpenAIChatOptions = (
 };
 
 const toOpenAIChatTool = (aiFunction: AIFunction): OpenAI.Chat.Completions.ChatCompletionTool => {
-  const strict = aiFunction.metadata.additionalProperties?.get('strict') === true;
+  const strict = aiFunction.additionalProperties?.get('strict') === true;
 
   const functionDefinition = {
-    name: aiFunction.metadata.name,
-    description: aiFunction.metadata.description,
-    parameters: aiFunction.metadata.parameters as OpenAI.FunctionParameters,
+    name: aiFunction.name,
+    description: aiFunction.description,
+    parameters: aiFunction.schema,
     strict,
   };
 

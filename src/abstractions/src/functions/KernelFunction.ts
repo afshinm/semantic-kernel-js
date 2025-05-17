@@ -1,35 +1,35 @@
-import { AIFunctionFactory, AIFunctionMetadata, AIFunctionParameterMetadata, FromSchema } from '@semantic-kernel/ai';
+import { AIFunctionFactory, type DefaultJsonSchema, type FromSchema, type JsonSchema } from '@semantic-kernel/ai';
 import { defaultServiceId } from '@semantic-kernel/service-provider';
-import { Kernel } from '../Kernel';
-import { PromptExecutionSettings } from '../promptExecutionSettings';
+import { type Kernel } from '../Kernel';
+import { type PromptExecutionSettings } from '../promptExecutionSettings';
 import { FunctionName } from './FunctionName';
+import { type FunctionResult } from './FunctionResult';
+import { KernelArguments } from './KernelArguments';
 
-export class KernelFunctionMetadata<PARAMETERS = AIFunctionParameterMetadata> extends AIFunctionMetadata<PARAMETERS> {
+export class KernelFunctionMetadata<Schema extends JsonSchema = typeof DefaultJsonSchema> {
+  name: string = '';
+  description?: string;
+  schema?: Schema;
   pluginName?: string;
   executionSettings?: Map<string, PromptExecutionSettings>;
 }
 
 export abstract class KernelFunction<
-  PARAMETERS extends AIFunctionParameterMetadata = AIFunctionParameterMetadata,
-  SCHEMA = FromSchema<PARAMETERS>,
+  ReturnType = unknown,
+  Schema extends JsonSchema = typeof DefaultJsonSchema,
+  Args = FromSchema<Schema>,
 > {
-  private _metadata: KernelFunctionMetadata<PARAMETERS>;
+  private _metadata: KernelFunctionMetadata<Schema>;
 
-  constructor(metadata: KernelFunctionMetadata<PARAMETERS>) {
+  constructor(metadata: KernelFunctionMetadata<Schema>) {
     this._metadata = metadata;
   }
 
-  get metadata(): KernelFunctionMetadata<PARAMETERS> {
-    return {
-      ...this._metadata,
-      name: FunctionName.fullyQualifiedName({
-        functionName: this._metadata.name,
-        pluginName: this._metadata.pluginName,
-      }),
-    };
+  get metadata(): KernelFunctionMetadata<Schema> {
+    return this._metadata;
   }
 
-  set metadata(metadata: KernelFunctionMetadata<PARAMETERS>) {
+  set metadata(metadata: KernelFunctionMetadata<Schema>) {
     this._metadata = metadata;
   }
 
@@ -61,45 +61,70 @@ export abstract class KernelFunction<
     }
   }
 
-  protected abstract invokeCore(kernel: Kernel, args?: SCHEMA): Promise<unknown>;
+  protected abstract invokeCore(
+    kernel: Kernel,
+    args: KernelArguments<Schema, Args>
+  ): Promise<FunctionResult<ReturnType, Schema, Args>>;
 
-  protected abstract invokeStreamingCore(kernel: Kernel, args?: SCHEMA): AsyncGenerator<unknown>;
+  protected abstract invokeStreamingCore<T>(kernel: Kernel, args: KernelArguments<Schema, Args>): AsyncGenerator<T>;
 
-  async invoke(kernel: Kernel, args?: SCHEMA): Promise<unknown> {
-    return this.invokeCore(kernel, args);
+  async invoke(
+    kernel: Kernel,
+    args?: KernelArguments<Schema, Args>
+  ): Promise<FunctionResult<ReturnType, Schema, Args>> {
+    return this.invokeCore(kernel, args ?? new KernelArguments());
   }
 
-  async *invokeStreaming(kernel: Kernel, args?: SCHEMA): AsyncGenerator<unknown> {
-    const enumerable = this.invokeStreamingCore(kernel, args);
+  async *invokeStreaming<T>(kernel: Kernel, args?: KernelArguments<Schema, Args>): AsyncGenerator<T> {
+    const enumerable = this.invokeStreamingCore<T>(kernel, args ?? new KernelArguments());
 
     for await (const value of enumerable) {
       yield value;
     }
   }
 
-  asAIFunction(kernel?: Kernel) {
-    return AIFunctionFactory.create((args: SCHEMA) => this.invoke(kernel ?? new Kernel(), args), this.metadata);
+  asAIFunction(kernel: Kernel) {
+    return AIFunctionFactory.create(
+      async (args: Args) =>
+        (await this.invoke(kernel, new KernelArguments(args, this.metadata.executionSettings))).value,
+      {
+        ...this.metadata,
+        name: FunctionName.fullyQualifiedName({
+          functionName: this.metadata.name,
+          pluginName: this.metadata.pluginName,
+        }),
+      }
+    );
   }
 }
 
 export const kernelFunction = <
-  PARAMETERS extends AIFunctionParameterMetadata = AIFunctionParameterMetadata,
-  SCHEMA = FromSchema<PARAMETERS>,
+  ReturnType = unknown,
+  Schema extends JsonSchema = typeof DefaultJsonSchema,
+  Args = FromSchema<Schema>,
 >(
-  fn: (args?: SCHEMA, kernel?: Kernel) => unknown,
-  metadata: KernelFunctionMetadata<PARAMETERS>
-): KernelFunction<PARAMETERS, SCHEMA> => {
-  return new (class extends KernelFunction<PARAMETERS, SCHEMA> {
+  fn: (args: Args, kernel?: Kernel) => ReturnType,
+  metadata: KernelFunctionMetadata<Schema>
+): KernelFunction<ReturnType, Schema, Args> => {
+  return new (class extends KernelFunction<ReturnType, Schema, Args> {
     public constructor() {
       super(metadata);
     }
 
-    protected override invokeStreamingCore(): AsyncGenerator<unknown> {
+    protected override invokeStreamingCore<T>(): AsyncGenerator<T> {
       throw new Error('Method not implemented.');
     }
 
-    override async invokeCore(kernel: Kernel, args?: SCHEMA) {
-      return await fn(args, kernel);
+    override async invokeCore(
+      kernel: Kernel,
+      args: KernelArguments<Schema, Args>
+    ): Promise<FunctionResult<ReturnType, Schema, Args>> {
+      const value = await fn(args.arguments, kernel);
+
+      return {
+        function: this,
+        value,
+      };
     }
   })();
 };

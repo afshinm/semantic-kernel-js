@@ -1,9 +1,9 @@
 import { ChatMessage } from '@semantic-kernel/ai';
-import { Kernel } from '../Kernel';
+import { type Kernel } from '../Kernel';
 import { FunctionName } from '../functions/FunctionName';
-import { KernelFunction } from '../functions/KernelFunction';
-import { FunctionChoiceBehaviorConfiguration } from './FunctionChoiceBehaviorConfiguration';
-import { FunctionChoiceBehaviorOptions } from './FunctionChoiceBehaviorOptions';
+import { type KernelFunction } from '../functions/KernelFunction';
+import { type FunctionChoiceBehaviorConfiguration } from './FunctionChoiceBehaviorConfiguration';
+import { type FunctionChoiceBehaviorOptions } from './FunctionChoiceBehaviorOptions';
 
 export abstract class FunctionChoiceBehaviorBase {
   protected _functions: Array<KernelFunction> | undefined;

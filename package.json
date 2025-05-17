@@ -38,7 +38,6 @@
   "homepage": "https://github.com/afshinm/semantic-kernel-js#readme",
   "devDependencies": {
     "@eslint/js": "^9.9.0",
-    "@trivago/prettier-plugin-sort-imports": "^4.3.0",
     "@types/eslint__js": "^8.42.3",
     "@types/jest": "^29.5.12",
     "@types/node": "^22.5.0",

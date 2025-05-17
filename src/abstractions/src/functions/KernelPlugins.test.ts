@@ -1,6 +1,6 @@
-import { type JsonSchema } from '../../../AI/src/jsonSchema';
-import { KernelFunction, kernelFunction } from './KernelFunction';
-import { KernelPlugin } from './KernelPlugin';
+import { type JsonSchema } from '@semantic-kernel/ai';
+import { type KernelFunction, kernelFunction } from './KernelFunction';
+import { type KernelPlugin } from './KernelPlugin';
 import { MapKernelPlugins } from './KernelPlugins';
 
 const getMockFunction = (functionName?: string, functionDescription?: string, schema?: JsonSchema) => {
@@ -37,45 +37,38 @@ describe('kernelPlugins', () => {
       // Assert
       expect(plugins).toHaveLength(0);
     });
-  });
 
-  describe('getFunctionsMetadata', () => {
-    it('should return all functions metadata', () => {
+    it('should return all plugins', () => {
       // Arrange
       const mockKernelPlugins = getMockKernelPlugins();
-
-      // Act
-      mockKernelPlugins.addPlugin(
-        getMockPlugin([
-          getMockFunction('testFunction1', 'testDescription1', { type: 'string' }),
-          getMockFunction('testFunction2', 'testDescription2', { type: 'number' }),
-        ])
+      const mockPlugin1 = getMockPlugin(
+        [getMockFunction('testFunction1'), getMockFunction('testFunction2')],
+        'testPlugin1',
+        'testDescription1'
+      );
+      const mockPlugin2 = getMockPlugin(
+        [getMockFunction('testFunction1'), getMockFunction('testFunction2')],
+        'testPlugin2',
+        'testDescription2'
       );
 
+      mockKernelPlugins.addPlugin(mockPlugin1);
+      mockKernelPlugins.addPlugin(mockPlugin2);
+
+      // Act
+      const plugins = [...mockKernelPlugins.getPlugins()];
+
       // Assert
-      expect(mockKernelPlugins.getFunctionsMetadata()).toEqual([
-        {
-          name: 'testFunction1',
-          description: 'testDescription1',
-          pluginName: 'testPlugin',
-          schema: {
-            type: 'string',
-          },
-        },
-        {
-          name: 'testFunction2',
-          description: 'testDescription2',
-          pluginName: 'testPlugin',
-          schema: {
-            type: 'number',
-          },
-        },
-      ]);
+      expect(plugins).toHaveLength(2);
+      expect(plugins[0].name).toBe('testPlugin1');
+      expect(plugins[0].description).toBe('testDescription1');
+      expect(plugins[1].name).toBe('testPlugin2');
+      expect(plugins[1].description).toBe('testDescription2');
     });
   });
 
   describe('addPlugin', () => {
-    it('should add a plugin', () => {
+    it('should add a plugin with multiple functions', () => {
       // Arrange
       const mockKernelPlugins = getMockKernelPlugins();
 
@@ -86,6 +79,7 @@ describe('kernelPlugins', () => {
       const plugins = [...mockKernelPlugins.getPlugins()];
       expect(plugins).toHaveLength(1);
       expect([...plugins][0].name).toEqual('testPlugin');
+      expect([...plugins][0].functions.size).toBe(2);
     });
 
     it('should add a plugin with correct functions', () => {
@@ -160,36 +154,6 @@ describe('kernelPlugins', () => {
         ['testFunction1', 'testPlugin'],
         ['testFunction2', 'testPlugin'],
       ]);
-    });
-  });
-
-  describe('getPlugins', () => {
-    it('should return all plugins', () => {
-      // Arrange
-      const mockKernelPlugins = getMockKernelPlugins();
-      const mockPlugin1 = getMockPlugin(
-        [getMockFunction('testFunction1'), getMockFunction('testFunction2')],
-        'testPlugin1',
-        'testDescription1'
-      );
-      const mockPlugin2 = getMockPlugin(
-        [getMockFunction('testFunction1'), getMockFunction('testFunction2')],
-        'testPlugin2',
-        'testDescription2'
-      );
-
-      mockKernelPlugins.addPlugin(mockPlugin1);
-      mockKernelPlugins.addPlugin(mockPlugin2);
-
-      // Act
-      const plugins = [...mockKernelPlugins.getPlugins()];
-
-      // Assert
-      expect(plugins).toHaveLength(2);
-      expect(plugins[0].name).toBe('testPlugin1');
-      expect(plugins[0].description).toBe('testDescription1');
-      expect(plugins[1].name).toBe('testPlugin2');
-      expect(plugins[1].description).toBe('testDescription2');
     });
   });
 

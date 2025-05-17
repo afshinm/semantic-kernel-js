@@ -3,7 +3,5 @@
   "singleQuote": true,
   "trailingComma": "es5",
   "printWidth": 120,
-  "plugins": ["prettier-plugin-organize-imports"],
-  "importOrderSeparation": true,
-  "importOrderSortSpecifiers": true
+  "plugins": ["prettier-plugin-organize-imports"]
 }

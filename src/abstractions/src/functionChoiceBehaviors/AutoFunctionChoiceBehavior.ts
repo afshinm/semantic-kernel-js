@@ -1,9 +1,9 @@
-import { Kernel } from '../Kernel';
+import { type Kernel } from '../Kernel';
 import { FunctionName } from '../functions/FunctionName';
 import { KernelFunction } from '../functions/KernelFunction';
 import { FunctionChoiceBehaviorBase } from './FunctionChoiceBehaviorBase';
-import { FunctionChoiceBehaviorConfiguration } from './FunctionChoiceBehaviorConfiguration';
-import { FunctionChoiceBehaviorOptions } from './FunctionChoiceBehaviorOptions';
+import { type FunctionChoiceBehaviorConfiguration } from './FunctionChoiceBehaviorConfiguration';
+import { type FunctionChoiceBehaviorOptions } from './FunctionChoiceBehaviorOptions';
 
 export class AutoFunctionChoiceBehavior extends FunctionChoiceBehaviorBase {
   private readonly autoInvoke: boolean;

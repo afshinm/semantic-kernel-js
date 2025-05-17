@@ -1,9 +1,8 @@
-import { Kernel } from '../Kernel';
-import { FunctionName } from '../functions/FunctionName';
-import { KernelFunction } from '../functions/KernelFunction';
+import { type Kernel } from '../Kernel';
+import { FunctionName, type KernelFunction } from '../functions';
 import { FunctionChoiceBehaviorBase } from './FunctionChoiceBehaviorBase';
-import { FunctionChoiceBehaviorConfiguration } from './FunctionChoiceBehaviorConfiguration';
-import { FunctionChoiceBehaviorOptions } from './FunctionChoiceBehaviorOptions';
+import { type FunctionChoiceBehaviorConfiguration } from './FunctionChoiceBehaviorConfiguration';
+import { type FunctionChoiceBehaviorOptions } from './FunctionChoiceBehaviorOptions';
 
 export class NoneFunctionChoiceBehavior extends FunctionChoiceBehaviorBase {
   private readonly functions: Array<string> | undefined;

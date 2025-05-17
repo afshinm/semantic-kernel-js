@@ -1,27 +1,29 @@
-import { FromSchema } from '../jsonSchema';
+import { DefaultJsonSchema, FromSchema, JsonSchema } from '../jsonSchema';
 import { AIFunction } from './AIFunction';
-import { AIFunctionMetadata } from './AIFunctionMetadata';
-import { AIFunctionParameterMetadata } from './AIFunctionParameterMetadata';
+import { AIFunctionArguments } from './AIFunctionArguments';
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class AIFunctionFactory {
-  static create<PARAMETERS extends AIFunctionParameterMetadata, SCHEMA = FromSchema<PARAMETERS>>(
-    delegate: (args: SCHEMA) => unknown | Promise<unknown>,
-    metadata?: AIFunctionMetadata<PARAMETERS>
-  ): AIFunction<PARAMETERS, SCHEMA> {
-    return new (class extends AIFunction<PARAMETERS, SCHEMA> {
-      metadata = {
-        // Take the name from the metadata, or the delegate name, or default to an empty string
-        name: metadata?.name ?? delegate.name ?? '',
-        ...metadata,
-      };
-
+  static create<ReturnType, Schema extends JsonSchema = typeof DefaultJsonSchema, Args = FromSchema<Schema>>(
+    delegate: (args: Args) => ReturnType | Promise<ReturnType>,
+    metadata?: {
+      name?: string;
+      description?: string;
+      schema?: Schema;
+    }
+  ): AIFunction<ReturnType, Schema, Args> {
+    return new (class extends AIFunction<ReturnType, Schema, Args> {
       public constructor() {
         super();
+
+        // Take the name from the metadata, or the delegate name, or default to an empty string
+        this.name = metadata?.name ?? delegate.name ?? '';
+        this.description = metadata?.description ?? '';
+        this.schema = metadata?.schema;
       }
 
-      protected async invokeCore(args: SCHEMA): Promise<unknown> {
-        return delegate(args);
+      protected async invokeCore(args: AIFunctionArguments<Schema, Args>): Promise<ReturnType> {
+        return delegate(args.arguments);
       }
     })();
   }
