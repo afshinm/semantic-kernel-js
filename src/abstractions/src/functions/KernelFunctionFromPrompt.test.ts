@@ -1,4 +1,4 @@
-import { ChatClient, ChatCompletion, ChatMessage, StreamingChatCompletionUpdate } from '@semantic-kernel/ai';
+import { ChatClient, ChatMessage, ChatResponse, ChatResponseUpdate } from '@semantic-kernel/ai';
 import { Kernel } from '../Kernel';
 import { PromptTemplateFormat } from '../promptTemplate';
 import { KernelFunctionFromPrompt } from './KernelFunctionFromPrompt';
@@ -6,13 +6,13 @@ import { KernelFunctionFromPrompt } from './KernelFunctionFromPrompt';
 class MockChatClient extends ChatClient {
   metadata = {};
 
-  override complete(chatMessage: string): Promise<ChatCompletion> {
+  override complete(chatMessage: string): Promise<ChatResponse> {
     return Promise.resolve(
-      new ChatCompletion({ message: new ChatMessage({ content: `** ${chatMessage} **`, role: 'assistant' }) })
+      new ChatResponse({ message: new ChatMessage({ content: `** ${chatMessage} **`, role: 'assistant' }) })
     );
   }
 
-  override completeStreaming(): AsyncGenerator<StreamingChatCompletionUpdate> {
+  override completeStreaming(): AsyncGenerator<ChatResponseUpdate> {
     throw new Error('Method not implemented.');
   }
   override getService(): object | undefined {
@@ -30,12 +30,12 @@ describe('kernelFunctionFromPrompt', () => {
 
     // Act
     const result = (await KernelFunctionFromPrompt.create(prompt, {}).invoke(mockKernel)) as {
-      chatCompletion: ChatCompletion;
+      value: ChatResponse;
       renderedPrompt: string;
     };
 
     // Assert
-    expect(result.chatCompletion.choices[0].text).toEqual('** testPrompt **');
+    expect(result.value.choices[0].text).toEqual('** testPrompt **');
     expect(result.renderedPrompt).toEqual('testPrompt');
   });
 
