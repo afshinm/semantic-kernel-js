@@ -1,8 +1,8 @@
 import { ChatMessage } from '../contents';
 import { ChatClientBuilder } from './ChatClientBuilder';
 import { ChatClientMetadata } from './ChatClientMetadata';
-import { ChatResponse } from './ChatResponse';
 import { ChatOptions } from './ChatOptions';
+import { ChatResponse } from './ChatResponse';
 import { ChatResponseUpdate } from './ChatResponseUpdate';
 
 export abstract class ChatClient {

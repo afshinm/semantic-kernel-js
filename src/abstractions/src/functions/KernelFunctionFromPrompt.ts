@@ -8,9 +8,9 @@ import {
   type PromptTemplate,
 } from '../promptTemplate';
 import '../serviceProviderExtension';
+import { FunctionResult } from './FunctionResult';
 import { type KernelArguments } from './KernelArguments';
 import { KernelFunction } from './KernelFunction';
-import { FunctionResult } from './FunctionResult';
 
 export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
   private constructor(kernelFunctionFromPromptMetadata: KernelFunctionFromPromptMetadata) {

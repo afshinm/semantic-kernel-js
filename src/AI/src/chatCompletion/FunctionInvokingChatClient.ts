@@ -3,8 +3,8 @@ import { UsageDetails } from '../UsageDetails';
 import { AIContent, ChatMessage, FunctionCallContent, FunctionResultContent } from '../contents';
 import { AIFunction, AIFunctionArguments } from '../functions';
 import { ChatOptions } from './ChatOptions';
-import { RequiredChatToolMode } from './RequiredChatToolMode';
 import { ChatResponseUpdate } from './ChatResponseUpdate';
+import { RequiredChatToolMode } from './RequiredChatToolMode';
 
 enum ContinueMode {
   /**
