@@ -6,7 +6,7 @@ import { ChatFinishReason } from './ChatFinishReason';
 /**
  * Represents the result of a chat completion request.
  */
-export class ChatCompletion {
+export class ChatResponse {
   public choices: ChatMessage[] = [];
 
   constructor({ choices, message }: { choices?: ChatMessage[]; message?: ChatMessage }) {
@@ -27,6 +27,10 @@ export class ChatCompletion {
     }
 
     return this.choices[0];
+  }
+
+  get text() {
+    return this.choices?.join('') || '';
   }
 
   /**

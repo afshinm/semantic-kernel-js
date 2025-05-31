@@ -1,4 +1,4 @@
-import { ChatClient } from '@semantic-kernel/ai';
+import { ChatClient, ChatResponse, ChatResponseUpdate } from '@semantic-kernel/ai';
 import { type Kernel } from '../Kernel';
 import { type PromptExecutionSettings } from '../promptExecutionSettings/PromptExecutionSettings';
 import { toChatOptions } from '../promptExecutionSettings/PromptExecutionSettingsMapper';
@@ -8,10 +8,11 @@ import {
   type PromptTemplate,
 } from '../promptTemplate';
 import '../serviceProviderExtension';
+import { FunctionResult } from './FunctionResult';
 import { type KernelArguments } from './KernelArguments';
 import { KernelFunction } from './KernelFunction';
 
-export class KernelFunctionFromPrompt extends KernelFunction {
+export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
   private constructor(kernelFunctionFromPromptMetadata: KernelFunctionFromPromptMetadata) {
     super(kernelFunctionFromPromptMetadata);
   }
@@ -40,7 +41,7 @@ export class KernelFunctionFromPrompt extends KernelFunction {
     });
   }
 
-  override async invokeCore(kernel: Kernel, args: KernelArguments) {
+  override async invokeCore(kernel: Kernel, args: KernelArguments): Promise<FunctionResult<ChatResponse>> {
     const { renderedPrompt, service, executionSettings } = await this.renderPrompt(kernel, args);
 
     if (!service) {
@@ -51,7 +52,8 @@ export class KernelFunctionFromPrompt extends KernelFunction {
       const chatCompletionResult = await service.complete(renderedPrompt, toChatOptions(kernel, executionSettings));
 
       return {
-        chatCompletion: chatCompletionResult,
+        function: this,
+        value: chatCompletionResult,
         renderedPrompt: renderedPrompt,
       };
     }
@@ -59,7 +61,10 @@ export class KernelFunctionFromPrompt extends KernelFunction {
     throw new Error(`Unsupported service type: ${service}`);
   }
 
-  override async *invokeStreamingCore<T>(kernel: Kernel, args: KernelArguments): AsyncGenerator<T> {
+  override async *invokeStreamingCore<T = ChatResponseUpdate>(
+    kernel: Kernel,
+    args: KernelArguments
+  ): AsyncGenerator<T> {
     const { renderedPrompt, service, executionSettings } = await this.renderPrompt(kernel, args);
 
     if (!service) {

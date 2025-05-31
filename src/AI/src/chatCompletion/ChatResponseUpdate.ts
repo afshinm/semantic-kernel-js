@@ -6,7 +6,7 @@ import { ChatRole } from './ChatRole';
 /**
  * Represents a single streaming response chunk from a ChatClient.
  */
-export class StreamingChatCompletionUpdate {
+export class ChatResponseUpdate {
   /**
    * The completion update content items.
    */
@@ -22,19 +22,8 @@ export class StreamingChatCompletionUpdate {
    */
   role?: ChatRole;
 
-  get text() {
-    return this.contents.find((content) => content instanceof TextContent)?.text;
-  }
-
-  set text(value: string | undefined) {
-    if (!value) return;
-
-    const textContent = this.contents.find((content) => content instanceof TextContent);
-    if (textContent) {
-      textContent.text = value;
-    } else {
-      this.contents.push(new TextContent(value));
-    }
+  get text(): string {
+    return this.contents.filter((content) => content instanceof TextContent)?.join('') || '';
   }
 
   rawRepresentation: unknown;
@@ -67,6 +56,6 @@ export class StreamingChatCompletionUpdate {
   modelId?: string;
 
   toString(): string {
-    return this.contents.join('');
+    return this.text;
   }
 }

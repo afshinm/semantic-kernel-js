@@ -2,15 +2,15 @@ import {
   AIContent,
   AIFunction,
   AutoChatToolMode,
-  ChatCompletion,
   ChatFinishReason,
   ChatMessage,
   ChatOptions,
+  ChatResponse,
+  ChatResponseUpdate,
   ChatRole,
   FunctionCallContent,
   FunctionResultContent,
   RequiredChatToolMode,
-  StreamingChatCompletionUpdate,
   TextContent,
   UsageContent,
   UsageDetails,
@@ -242,7 +242,7 @@ export const fromOpenAIChatCompletion = ({
 }: {
   openAICompletion: OpenAI.Chat.Completions.ChatCompletion;
   options?: ChatOptions;
-}): ChatCompletion => {
+}): ChatResponse => {
   const choice = openAICompletion.choices[0];
   const content = choice.message.content;
   const role = choice.message.role;
@@ -270,7 +270,7 @@ export const fromOpenAIChatCompletion = ({
     }
   }
 
-  const completion = new ChatCompletion({
+  const completion = new ChatResponse({
     message: returnMessage,
   });
   completion.rawRepresentation = openAICompletion;
@@ -317,7 +317,7 @@ export const fromOpenAIStreamingChatCompletion = async function* (
     modelId ??= chatCompletionUpdate.model;
     fingerprint ??= chatCompletionUpdate.system_fingerprint;
 
-    const completionUpdate = new StreamingChatCompletionUpdate();
+    const completionUpdate = new ChatResponseUpdate();
     completionUpdate.completionId = chatCompletionUpdate.id;
     completionUpdate.createdAt = chatCompletionUpdate.created;
     completionUpdate.finishReason = finishReason;
@@ -386,7 +386,7 @@ export const fromOpenAIStreamingChatCompletion = async function* (
 
   // Now that we've received all updates, combine any for function calls into a single item to yield.
   if (functionCallInfos) {
-    const completionUpdate = new StreamingChatCompletionUpdate();
+    const completionUpdate = new ChatResponseUpdate();
     completionUpdate.completionId = completionId;
     completionUpdate.createdAt = createdAt;
     completionUpdate.finishReason = finishReason;
