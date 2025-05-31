@@ -1,19 +1,13 @@
-import {
-  ChatClient,
-  ChatClientMetadata,
-  ChatCompletion,
-  ChatMessage,
-  StreamingChatCompletionUpdate,
-} from 'semantic-kernel';
+import { ChatClient, ChatClientMetadata, ChatMessage, ChatResponse, ChatResponseUpdate } from 'semantic-kernel';
 
 export class MockChatClient extends ChatClient {
-  override complete(chatMessage: string): Promise<ChatCompletion> {
+  override complete(chatMessage: string): Promise<ChatResponse> {
     return Promise.resolve(
-      new ChatCompletion({ message: new ChatMessage({ content: `** ${chatMessage} **`, role: 'assistant' }) })
+      new ChatResponse({ message: new ChatMessage({ content: `** ${chatMessage} **`, role: 'assistant' }) })
     );
   }
 
-  override completeStreaming(): AsyncGenerator<StreamingChatCompletionUpdate> {
+  override completeStreaming(): AsyncGenerator<ChatResponseUpdate> {
     throw new Error('Method not implemented.');
   }
   override get metadata(): ChatClientMetadata {

@@ -6,7 +6,7 @@ export type FunctionResult<
   Schema extends JsonSchema = typeof DefaultJsonSchema,
   Args = FromSchema<Schema>,
 > = {
-  function?: KernelFunction<ReturnType, Schema, Args>;
+  function: KernelFunction<ReturnType, Schema, Args>;
   value?: ReturnType;
   renderedPrompt?: string;
 };

@@ -1,10 +1,10 @@
-import { ChatClient, ChatCompletion, DelegatingChatClient, FunctionInvocationContext } from '.';
+import { ChatClient, ChatResponse, DelegatingChatClient, FunctionInvocationContext } from '.';
 import { UsageDetails } from '../UsageDetails';
 import { AIContent, ChatMessage, FunctionCallContent, FunctionResultContent } from '../contents';
 import { AIFunction, AIFunctionArguments } from '../functions';
 import { ChatOptions } from './ChatOptions';
 import { RequiredChatToolMode } from './RequiredChatToolMode';
-import { StreamingChatCompletionUpdate } from './StreamingChatCompletionUpdate';
+import { ChatResponseUpdate } from './ChatResponseUpdate';
 
 enum ContinueMode {
   /**
@@ -118,9 +118,9 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
     super(innerClient);
   }
 
-  override async complete(chatMessages: string | ChatMessage[], options?: ChatOptions): Promise<ChatCompletion> {
+  override async complete(chatMessages: string | ChatMessage[], options?: ChatOptions): Promise<ChatResponse> {
     chatMessages = ChatMessage.create(chatMessages);
-    let response: ChatCompletion | undefined = undefined;
+    let response: ChatResponse | undefined = undefined;
     let messagesToRemove: Set<ChatMessage> | undefined = undefined;
     let contentsToRemove: Set<AIContent> | undefined = undefined;
     let totalUsage: UsageDetails | undefined = undefined;
@@ -217,7 +217,7 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
   override async *completeStreaming(
     chatMessages: string | ChatMessage[],
     options?: ChatOptions
-  ): AsyncGenerator<StreamingChatCompletionUpdate> {
+  ): AsyncGenerator<ChatResponseUpdate> {
     chatMessages = ChatMessage.create(chatMessages);
     let messagesToRemove: Set<ChatMessage> | undefined = undefined;
     let functionCallContents: FunctionCallContent[] = [];
