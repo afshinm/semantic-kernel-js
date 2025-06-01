@@ -1,4 +1,4 @@
-import { ChatClient, ChatResponse, ChatResponseUpdate } from '@semantic-kernel/ai';
+import { ChatClient, ChatResponse } from '@semantic-kernel/ai';
 import { type Kernel } from '../Kernel';
 import { type PromptExecutionSettings } from '../promptExecutionSettings/PromptExecutionSettings';
 import { toChatOptions } from '../promptExecutionSettings/PromptExecutionSettingsMapper';
@@ -61,10 +61,7 @@ export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
     throw new Error(`Unsupported service type: ${service}`);
   }
 
-  override async *invokeStreamingCore<T = ChatResponseUpdate>(
-    kernel: Kernel,
-    args: KernelArguments
-  ): AsyncGenerator<T> {
+  override async *invokeStreamingCore<T>(kernel: Kernel, args: KernelArguments): AsyncGenerator<T> {
     const { renderedPrompt, service, executionSettings } = await this.renderPrompt(kernel, args);
 
     if (!service) {
@@ -77,6 +74,8 @@ export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
       for await (const chatCompletionUpdate of chatCompletionUpdates) {
         yield chatCompletionUpdate as T;
       }
+
+      return;
     }
 
     throw new Error(`Unsupported service type: ${service}`);

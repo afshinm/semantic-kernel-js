@@ -1,4 +1,4 @@
-import { type DefaultJsonSchema, type FromSchema, type JsonSchema } from '@semantic-kernel/ai';
+import { ChatResponseUpdate, type DefaultJsonSchema, type FromSchema, type JsonSchema } from '@semantic-kernel/ai';
 import { MapServiceProvider, type ServiceProvider } from '@semantic-kernel/service-provider';
 import {
   type KernelArguments,
@@ -86,10 +86,12 @@ export class Kernel {
       kernelFunction.executionSettings = executionSettings;
     }
 
-    return kernelFunction.invoke(this, args);
+    const functionResult = await kernelFunction.invoke(this, args);
+    return functionResult.value;
   }
 
   public invokeStreaming<
+    T,
     ReturnType = unknown,
     Schema extends JsonSchema = typeof DefaultJsonSchema,
     Args = FromSchema<Schema>,
@@ -106,7 +108,7 @@ export class Kernel {
       kernelFunction.executionSettings = executionSettings;
     }
 
-    return kernelFunction.invokeStreaming(this, args);
+    return kernelFunction.invokeStreaming<T>(this, args);
   }
 
   /**
@@ -166,6 +168,10 @@ export class Kernel {
   ) {
     const kernelFunctionFromPrompt = KernelFunctionFromPrompt.create(prompt, props);
 
-    return this.invokeStreaming({ kernelFunction: kernelFunctionFromPrompt, args, executionSettings });
+    return this.invokeStreaming<ChatResponseUpdate>({
+      kernelFunction: kernelFunctionFromPrompt,
+      args,
+      executionSettings,
+    });
   }
 }
