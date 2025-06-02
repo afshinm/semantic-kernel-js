@@ -1,5 +1,6 @@
 import { type Kernel } from '../Kernel';
-import { FunctionName, type KernelFunction } from '../functions';
+import { FunctionName } from '../functions/FunctionName';
+import { type KernelFunction } from '../functions/KernelFunction';
 import { FunctionChoiceBehaviorBase } from './FunctionChoiceBehaviorBase';
 import { type FunctionChoiceBehaviorConfiguration } from './FunctionChoiceBehaviorConfiguration';
 import { type FunctionChoiceBehaviorOptions } from './FunctionChoiceBehaviorOptions';
