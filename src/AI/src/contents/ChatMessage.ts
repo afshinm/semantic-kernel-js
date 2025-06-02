@@ -1,6 +1,7 @@
 import { AdditionalProperties } from '../AdditionalProperties';
 import { ChatRole } from '../chatCompletion';
 import { AIContent } from './AIContent';
+import { concatText } from './AIContentHelper';
 import { TextContent } from './TextContent';
 
 export class ChatMessage {
@@ -20,20 +21,8 @@ export class ChatMessage {
     this.role = role;
   }
 
-  get text(): string | undefined {
-    if (this.contents.length && this.contents[0] instanceof TextContent) {
-      return this.contents[0].text;
-    }
-  }
-
-  set text(value: string | undefined) {
-    if (!value) return;
-
-    if (this.contents.length && this.contents[0] instanceof TextContent) {
-      this.contents[0].text = value;
-    } else {
-      this.contents.push(new TextContent(value));
-    }
+  get text(): string {
+    return concatText(this.contents);
   }
 
   static create(chatMessages: string | ChatMessage[]): ChatMessage[] {
@@ -42,5 +31,9 @@ export class ChatMessage {
     }
 
     return chatMessages;
+  }
+
+  toString(): string {
+    return this.text;
   }
 }

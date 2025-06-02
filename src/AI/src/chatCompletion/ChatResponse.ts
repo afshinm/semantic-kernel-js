@@ -1,6 +1,7 @@
 import { AdditionalProperties } from '../AdditionalProperties';
 import { UsageDetails } from '../UsageDetails';
 import { ChatMessage } from '../contents';
+import { concatText } from '../contents/AIContentHelper';
 import { ChatFinishReason } from './ChatFinishReason';
 
 /**
@@ -23,14 +24,18 @@ export class ChatResponse {
 
   get message() {
     if (!this.choices || !this.choices.length) {
-      throw new Error(`The ChatCompletion instance does not contain any ChatMessage choices.`);
+      throw new Error(`The ChatResponse instance does not contain any ChatMessage choices.`);
     }
 
     return this.choices[0];
   }
 
   get text() {
-    return this.choices?.join('') || '';
+    return concatText(this.choices);
+  }
+
+  toString(): string {
+    return this.text;
   }
 
   /**
