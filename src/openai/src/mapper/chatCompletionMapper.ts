@@ -10,6 +10,7 @@ import {
   ChatRole,
   FunctionCallContent,
   FunctionResultContent,
+  NoneChatToolMode,
   RequiredChatToolMode,
   TextContent,
   UsageContent,
@@ -79,6 +80,8 @@ export const toOpenAIChatOptions = (
 
     if (chatOptions.toolMode instanceof AutoChatToolMode) {
       chatCompletionCreateParams.tool_choice = 'auto';
+    } else if (chatOptions.toolMode instanceof NoneChatToolMode) {
+      chatCompletionCreateParams.tool_choice = 'none';
     } else if (chatOptions.toolMode instanceof RequiredChatToolMode) {
       chatCompletionCreateParams.tool_choice = chatOptions.toolMode.requiredFunctionName
         ? {

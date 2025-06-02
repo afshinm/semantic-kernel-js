@@ -1,6 +1,7 @@
 import { ChatOptions, ChatResponseFormat, ChatResponseFormatJson, ChatToolMode } from '@semantic-kernel/ai';
-import { type Kernel } from '../Kernel';
 import { AutoFunctionChoiceBehavior } from '../functionChoiceBehaviors/AutoFunctionChoiceBehavior';
+import { NoneFunctionChoiceBehavior } from '../functionChoiceBehaviors/NoneFunctionChoiceBehavior';
+import { type Kernel } from '../Kernel';
 import { PromptExecutionSettings } from './PromptExecutionSettings';
 
 export const toChatOptions = (kernel: Kernel, settings?: PromptExecutionSettings): ChatOptions | undefined => {
@@ -58,8 +59,10 @@ export const toChatOptions = (kernel: Kernel, settings?: PromptExecutionSettings
   if (functionChoiceBehaviorFunctions.length > 0) {
     if (settings.functionChoiceBehavior instanceof AutoFunctionChoiceBehavior) {
       chatOptions.toolMode = ChatToolMode.Auto;
+    } else if (settings.functionChoiceBehavior instanceof NoneFunctionChoiceBehavior) {
+      chatOptions.toolMode = ChatToolMode.None;
     } else {
-      // TODO: handle the FunctionChoiceBehaviorNone / FunctionChoiceBehaviorManual modes
+      // TODO: handle the RequiredFunctionChoiceBehavior mode
       chatOptions.toolMode = ChatToolMode.RequireAny;
     }
 

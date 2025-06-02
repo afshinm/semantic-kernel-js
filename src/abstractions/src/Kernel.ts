@@ -61,13 +61,12 @@ export class Kernel {
   }
 
   /**
-   * Invokes a kernel function.
+   * Invokes a KernelFunction.
    * @param params The parameters for the kernel function.
    * @param params.kernelFunction The kernel function to invoke.
-   * @param params.kernelArguments The KernelArguments to pass to the kernel function (optional).
-   * @param params.arguments The arguments to pass to the kernel function (optional).
+   * @param params.args The arguments to pass to the kernel function (optional).
    * @param params.executionSettings The execution settings to pass to the kernel function (optional).
-   * @returns The result of the kernel function.
+   * @returns The result of the KernelFunction.
    */
   public async invoke<
     ReturnType = unknown,
@@ -113,17 +112,9 @@ export class Kernel {
 
   /**
    * Invokes a prompt.
+   * @param prompt Prompt to invoke.
    * @param params The parameters for the prompt.
-   * @param params.promptTemplate The template for the prompt.
-   * @param params.name The name of the kernel function (optional).
-   * @param params.description The description of the kernel function (optional).
-   * @param params.templateFormat The format of the template (optional).
-   * @param params.inputVariables The input variables for the prompt (optional).
-   * @param params.allowDangerouslySetContent Whether to allow dangerously set content (optional).
-   * @param params.kernelArguments The KernelArguments to pass to the kernel function (optional).
-   * @param params.arguments The arguments to pass to the kernel function (optional).
-   * @param params.executionSettings The execution settings to pass to the kernel function (optional).
-   * @returns The result of the prompt.
+   * @returns The result of the prompt invocation.
    */
   public async invokePrompt(
     prompt: string,
@@ -143,17 +134,9 @@ export class Kernel {
 
   /**
    * Invokes a streaming prompt.
+   * @param prompt Prompt to invoke.
    * @param params The parameters for the prompt.
-   * @param params.promptTemplate The template for the prompt.
-   * @param params.name The name of the kernel function (optional).
-   * @param params.description The description of the kernel function (optional).
-   * @param params.templateFormat The format of the template (optional).
-   * @param params.inputVariables The input variables for the prompt (optional).
-   * @param params.allowDangerouslySetContent Whether to allow dangerously set content (optional).
-   * @param params.kernelArguments The KernelArguments to pass to the kernel function (optional).
-   * @param params.arguments The arguments to pass to the kernel function (optional).
-   * @param params.executionSettings The execution settings to pass to the kernel function (optional).
-   * @returns The result of the prompt.
+   * @returns A stream of {@link ChatResponseUpdate} objects.
    */
   public invokeStreamingPrompt(
     prompt: string,
