@@ -1,5 +1,6 @@
 import { AdditionalProperties } from '../AdditionalProperties';
-import { AIContent, TextContent } from '../contents';
+import { AIContent } from '../contents';
+import { concatText } from '../contents/AIContentHelper';
 import { ChatFinishReason } from './ChatFinishReason';
 import { ChatRole } from './ChatRole';
 
@@ -23,7 +24,7 @@ export class ChatResponseUpdate {
   role?: ChatRole;
 
   get text(): string {
-    return this.contents.filter((content) => content instanceof TextContent)?.join('') || '';
+    return concatText(this.contents);
   }
 
   rawRepresentation: unknown;
