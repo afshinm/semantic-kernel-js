@@ -19,24 +19,34 @@ npm install --save semantic-kernel @semantic-kernel/openai
 ### Initialize the Kernel
 
 ```typescript
-import { OpenAIChatCompletionService } from '@semantic-kernel/openai';
-import { FunctionChoiceBehavior, kernel, kernelFunction } from 'semantic-kernel';
+import { OpenAIChatClient } from '@semantic-kernel/openai';
+import {
+  FunctionChoiceBehavior,
+  functionInvocation,
+  Kernel,
+  KernelArguments,
+  kernelFunction,
+} from 'semantic-kernel';
 
-const sk = kernel().addService(
-  new OpenAIChatCompletionService({
-    model: 'gpt-3.5-turbo',
-    apiKey:
-      'YOUR_OPENAI_API_KEY',
-  })
-);
+const openAIChatClient = new OpenAIChatClient({
+  apiKey: 'YOUR_OPENAI_API_KEY',
+  modelId: 'gpt-3.5-turbo',
+})
+  .asBuilder()
+  // Enable FunctionInvocation
+  .use(functionInvocation)
+  .build();
+
+// Add OpenAIChatClient to the Kernel
+const kernel = new Kernel().addService(openAIChatClient);
 ```
 
 ### Add your plugins
 
 ```typescript
-const temperature = kernelFunction(({ loc }) => (loc === 'Dublin' ? 10 : 24), {
+const temperature = kernelFunction(({ loc }) => (loc === 'Dublin' ? '10' : '24'), {
   name: 'temperature',
-  description: 'Returns the temperature for the given location',
+  description: 'Returns the temperature in a given city',
   schema: {
     type: 'object',
     properties: {
@@ -45,64 +55,48 @@ const temperature = kernelFunction(({ loc }) => (loc === 'Dublin' ? 10 : 24), {
   },
 });
 
-sk.addPlugin({
+kernel.addPlugin({
   name: 'weather',
   description: 'Weather plugin',
   functions: [temperature],
 });
+
+const currentLocation = kernelFunction(() => Math.random() > 0.5 ? 'Austin' : 'Dublin', {
+  name: 'currentLocation',
+  description: 'Returns the current location',
+});
+
+kernel.addPlugin({
+  name: 'location',
+  description: 'Location plugin',
+  functions: [currentLocation],
+});
 ```
 
-### Invoke prompt
+### Invoke a prompt
 
 ```typescript
-const result = await sk.invokePrompt({
-  promptTemplate: 'Return the current temperature in Dublin',
-  executionSettings: {
-      functionChoiceBehavior: FunctionChoiceBehavior.Auto(),
-  },
+const res = await kernel.invokePrompt('Return the current temperature in my exact location. Do not ask me for my location.', {
+   executionSettings: {
+     functionChoiceBehavior: FunctionChoiceBehavior.Auto(),
+   },
 });
+
+console.log("Result: " + res);
+```
+
+Or streaming response:
+
+```typescript
+const res = kernel.invokeStreamingPrompt('Return the current temperature in my exact location. Do not ask me for my location.', {
+   executionSettings: {
+     functionChoiceBehavior: FunctionChoiceBehavior.Auto(),
+   },
+});
+
+for await (const message of res) {
+  console.log(message);
+}
 ```
 
 </Steps>
-
-Here is the full example:
-
-```typescript
-import { OpenAIChatCompletionService } from '@semantic-kernel/openai';
-import { FunctionChoiceBehavior, kernel, kernelFunction } from 'semantic-kernel';
-
-const sk = kernel().addService(
-  new OpenAIChatCompletionService({
-    model: 'gpt-3.5-turbo',
-    apiKey:
-      'YOUR_OPENAI_API_KEY',
-  })
-);
-
-const temperature = kernelFunction(({ loc }) => (loc === 'Dublin' ? 10 : 24), {
-  name: 'temperature',
-  description: 'Returns the temperature for the given location',
-  schema: {
-    type: 'object',
-    properties: {
-      loc: { type: 'string', description: 'The location to return the temperature for' },
-    },
-  },
-});
-
-sk.addPlugin({
-  name: 'weather',
-  description: 'Weather plugin',
-  functions: [temperature],
-});
-
-const result = await sk.invokePrompt({
-  promptTemplate: 'Return the current temperature in Dublin',
-  executionSettings: {
-      functionChoiceBehavior: FunctionChoiceBehavior.Auto(),
-  },
-});
-
-// Prints the output after executing the plugin and the given prompt
-console.log(result);
-```
