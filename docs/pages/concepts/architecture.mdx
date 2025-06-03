@@ -1,0 +1,56 @@
+import { Table, Td, Th, Tr } from 'nextra/components'
+import { Callout } from 'nextra/components'
+
+# Semantic Kernel JS Architecture
+
+The Semantic Kernel JS architecture is designed to be modular and extensible, allowing developers to build AI applications that can integrate various services and plugins seamlessly. 
+
+The architecture consists of several key components:
+
+![Semantic Kernel JS Architecture](/SemanticKernelJS.jpg)
+
+## Diagram Components:
+
+### 1) Your Application
+
+A JavaScript application that utilizes AI capabilities.
+
+It sits at the top layer and interacts with both the semantic-kernel and LLM service clients directly.
+
+### 2) semantic-kernel
+A core library that acts as an orchestration layer between your application and AI services.
+
+Facilitates tasks such as prompt management, function chaining, and AI interaction logic.
+
+### 3) LLM Clients and AI Services
+
+Includes integrations for:
+
+- OpenAI
+- Azure AI Inference
+- Ollama
+- Other AI service providers
+
+These services provide the underlying AI capabilities such as text generation, embeddings, and more.
+
+### 4) @semantic-kernel/abstractions
+A package containing common abstractions used by semantic-kernel to define and manage AI-related components.
+
+<Callout type="info">
+The `@semantic-kernel/abstractions` package provides a set of interfaces and classes that allow for interaction with various AI services and it can be used
+separately from the main `semantic-kernel` library!
+</Callout>
+
+### 5) @semantic-kernel/AI
+A package responsible for interfacing directly with the AI service providers (OpenAI, Azure, Ollama, etc.).
+
+Implements the concrete logic to communicate with external LLM APIs.
+
+
+
+## 🔄 Flow Summary:
+
+- Your application interacts with both `semantic-kernel` and the AI services.
+- The semantic-kernel provides orchestration and abstraction.
+- It communicates with the appropriate LLM clients via the `@semantic-kernel/AI` package.
+- Underlying abstractions are handled through `@semantic-kernel/abstractions`.
