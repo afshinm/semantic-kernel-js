@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "next",
-    "build:apiDoc": "cd .. && npm install && typedoc",
+    "build:apiDoc": "cd .. && npm install && npm run build && typedoc",
     "build": "npm run build:apiDoc && next build",
     "start": "next start"
   },
