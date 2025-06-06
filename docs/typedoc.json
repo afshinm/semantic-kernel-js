@@ -1,0 +1,9 @@
+{
+  "entryPoints": ["../src/semantic-kernel", "../src/openai", "../src/react"],
+  "basePath": "..",
+  "name": "Semantic Kernel JavaScript",
+  "entryPointStrategy": "packages",
+  "includeVersion": false,
+  "out": "./public/api",
+  "hideGenerator": true
+}
