@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "next",
-    "build:apiDoc": "typedoc",
+    "build:apiDoc": "typedoc ..",
     "build": "npm run build:apiDoc && next build",
     "start": "next start"
   },

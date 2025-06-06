@@ -5,5 +5,6 @@
   "entryPointStrategy": "packages",
   "includeVersion": false,
   "out": "./public/api",
+  "tsconfig": "../src/abstractions/tsconfig.json",
   "hideGenerator": true
 }
