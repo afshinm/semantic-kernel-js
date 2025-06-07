@@ -36,16 +36,17 @@ These services provide the underlying AI capabilities such as text generation, e
 ### 4) @semantic-kernel/abstractions
 A package containing common abstractions used by semantic-kernel to define and manage AI-related components.
 
-<Callout type="info">
-The `@semantic-kernel/abstractions` package provides a set of interfaces and classes that allow for interaction with various AI services and it can be used
-separately from the main `semantic-kernel` library!
-</Callout>
 
 ### 5) @semantic-kernel/AI
 A package responsible for interfacing directly with the AI service providers (OpenAI, Azure, Ollama, etc.).
 
 Implements the concrete logic to communicate with external LLM APIs.
 
+<Callout type="info">
+The `@semantic-kernel/ai` package provides a set of interfaces and classes that allow for interaction with various AI services. This package is the JavaScript equivalent of the .NET [`Microsoft.Extensions.AI`](https://learn.microsoft.com/en-us/dotnet/ai/microsoft-extensions-ai) package,
+
+This package can be used separately from the main `semantic-kernel` library!
+</Callout>
 
 
 ## 🔄 Flow Summary:
