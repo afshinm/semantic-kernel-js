@@ -1,5 +1,5 @@
 export default {
+  index: 'Overview',
   kernel: 'Kernel',
-  "ai-services": 'AI Services',
   "plugins": 'Plugins',
 }
