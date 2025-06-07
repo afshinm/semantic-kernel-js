@@ -1,5 +1,5 @@
 export default {
+  index: 'Overview',
   kernel: 'Kernel',
-  architecture: 'Architecture',
   "plugins": 'Plugins',
 }
