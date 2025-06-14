@@ -1,5 +1,5 @@
 import { AdditionalProperties } from '../AdditionalProperties';
-import { AIContent } from '../contents';
+import { AIContent } from '../contents/AIContent';
 import { concatText } from '../contents/AIContentHelper';
 import { ChatFinishReason } from './ChatFinishReason';
 import { ChatRole } from './ChatRole';
@@ -58,5 +58,17 @@ export class ChatResponseUpdate {
 
   toString(): string {
     return this.text;
+  }
+
+  /**
+   * Creates a new instance of ChatResponseUpdate from a JSON string.
+   * @param data The JSON string representing the ChatResponseUpdate.
+   * @returns A new instance of ChatResponseUpdate populated with the data from the JSON string.
+   */
+  static fromJSON(data: string): ChatResponseUpdate {
+    const parsedData = JSON.parse(data) as Partial<ChatResponseUpdate>;
+    const newObj = Object.assign(new ChatResponseUpdate(), parsedData);
+    newObj.contents = (parsedData.contents ?? []).map(AIContent.fromJSON);
+    return newObj;
   }
 }
