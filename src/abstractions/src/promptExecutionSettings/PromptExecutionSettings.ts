@@ -13,9 +13,6 @@ export type ServiceId = string;
 
 /**
  * Provides execution settings for an AI request.
- * Implementors of {@link TextGenerationService} or {@link ChatCompletionService} can extend this
- * if the service they are calling supports additional properties. For an example, please reference
- * the {@link OpenAIPromptExecutionSettings} implementation.
  */
 export interface PromptExecutionSettings {
   /**

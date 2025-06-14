@@ -5,12 +5,7 @@ const nextjsConfigs = {
     return [
       {
         source: '/getting-started',
-        destination: '/getting-started/quick-start-guide',
-        permanent: true,
-      },
-      {
-        source: '/azure',
-        destination: '/getting-started/using-azure',
+        destination: '/getting-started/quickstart',
         permanent: true,
       }
     ]

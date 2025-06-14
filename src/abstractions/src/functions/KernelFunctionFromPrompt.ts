@@ -19,13 +19,8 @@ export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
 
   /**
    * Creates a new kernel function from a prompt.
+   * @param prompt The prompt to create the kernel function from.
    * @param params The parameters to create the kernel function from a prompt.
-   * @param params.template The template for the prompt.
-   * @param params.name The name of the kernel function (optional).
-   * @param params.description The description of the kernel function (optional).
-   * @param params.templateFormat The format of the template (optional).
-   * @param params.inputVariables The input variables for the prompt (optional).
-   * @param params.allowDangerouslySetContent Whether to allow dangerously set content (optional).
    * @returns A new kernel function from a prompt.
    */
   static create(

@@ -1,1 +1,1 @@
-export { FromSchema } from 'json-schema-to-ts';
+export { type FromSchema } from 'json-schema-to-ts';
