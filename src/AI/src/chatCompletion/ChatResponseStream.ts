@@ -8,13 +8,13 @@ const LINE_BREAK = '\n';
 export class ChatResponseStream {
   private readonly stream: ReadableStream<Uint8Array>;
 
-  constructor(generatorOrStream: AsyncGenerator | ReadableStream) {
+  constructor(generatorOrStream: AsyncGenerator<ChatResponseUpdate> | ReadableStream) {
     const encoder = new TextEncoder();
 
     if (generatorOrStream instanceof ReadableStream) {
       this.stream = generatorOrStream;
     } else {
-      this.stream = new ReadableStream({
+      this.stream = new ReadableStream<Uint8Array>({
         async start(controller) {
           for await (const chunk of generatorOrStream) {
             const chunkData = encoder.encode(JSON.stringify(chunk) + LINE_BREAK);
@@ -43,7 +43,7 @@ export class ChatResponseStream {
   /**
    * Reads the stream and yields {@link ChatResponseUpdate} objects.
    */
-  async *read(): AsyncGenerator<ChatResponseUpdate, void, unknown> {
+  async *read(): AsyncGenerator<ChatResponseUpdate> {
     const decoder = new TextDecoder();
 
     if (this.stream) {
@@ -55,13 +55,15 @@ export class ChatResponseStream {
         const lines = chunk.split(LINE_BREAK).filter((line) => line.trim() !== '');
 
         for (const line of lines) {
-          if (line) {
-            yield ChatResponseUpdate.fromJSON(line);
-          }
+          yield ChatResponseUpdate.fromJSON(line);
         }
 
         done = readerDone;
       }
     }
+  }
+
+  [Symbol.asyncIterator](): AsyncGenerator<ChatResponseUpdate> {
+    return this.read();
   }
 }
