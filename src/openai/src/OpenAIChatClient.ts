@@ -21,10 +21,6 @@ export class OpenAIChatClient extends ChatClient {
   constructor({ apiKey, openAIClient, modelId }: { apiKey?: string; openAIClient?: OpenAI; modelId: string }) {
     super();
 
-    if (!openAIClient && !apiKey) {
-      throw new Error('Either an OpenAI instance or an API key is required');
-    }
-
     if (!openAIClient) {
       this._openAIClient = new OpenAI({ apiKey });
     } else {

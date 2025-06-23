@@ -1,7 +1,6 @@
-import { Chat } from './Chat';
-import React from 'react';
+import Chat from './Chat';
 
-function App() {
+export default function Home() {
   return (
     <main className="container" style={{height: "100%"}}>
       <nav>
@@ -21,5 +20,3 @@ function App() {
     </main>
   );
 }
-
-export default App;

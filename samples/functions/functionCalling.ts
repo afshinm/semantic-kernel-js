@@ -1,19 +1,22 @@
-import { AutoInvokeKernelFunctions, OpenAIPromptExecutionSettings, openAIChatCompletionService } from '@semantic-kernel/openai';
-import { kernel, kernelFunction } from 'semantic-kernel';
+import { OpenAIChatClient } from '@semantic-kernel/openai';
+import { FunctionChoiceBehavior, functionInvocation, Kernel, kernelFunction } from 'semantic-kernel';
 
+const openAIChatClient = new OpenAIChatClient({
+  apiKey: 'YOUR_OPENAI_API_KEY',
+  modelId: 'gpt-3.5-turbo',
+})
+  .asBuilder()
+  // Enable FunctionInvocation
+  .use(functionInvocation)
+  .build();
 
-const sk = kernel().addService(
-  openAIChatCompletionService({
-    model: 'gpt-3.5-turbo',
-    apiKey: '<YOUR_API_KEY>',
-  })
-);
+const kernel = new Kernel().addService(openAIChatClient);
 
 const encrypt = kernelFunction(({ msg }) => `** ${msg} **`, {
   description: 'Creates an encrypted message',
   name: 'encrypt',
   pluginName: 'encryptor',
-  parameters: {
+  schema: {
     type: 'object',
     properties: {
       msg: { type: 'string', description: 'The raw message to encrypt' },
@@ -21,22 +24,21 @@ const encrypt = kernelFunction(({ msg }) => `** ${msg} **`, {
   },
 });
 
-sk.plugins.addPlugin({
+kernel.plugins.addPlugin({
   name: 'encryptor',
   description: 'Encryptor plugin',
-  functions: {
-    encrypt,
-  },
+  functions: [encrypt],
 });
 
-
 (async () => {
-  const res = await sk.invokePrompt({
-    promptTemplate: 'Encrypt this raw input message "Hello World" then return the encrypted message',
-    executionSettings: {
-      toolCallBehavior: AutoInvokeKernelFunctions,
-    } as OpenAIPromptExecutionSettings,
-  });
+  const res = await kernel.invokePrompt(
+    'Encrypt this raw input message "Hello World" then return the encrypted message',
+    {
+      executionSettings: {
+        functionChoiceBehavior: FunctionChoiceBehavior.Auto(),
+      },
+    }
+  );
 
   console.log(JSON.stringify(res));
 })();
