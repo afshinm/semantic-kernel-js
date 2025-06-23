@@ -1,6 +1,6 @@
 import { ChatResponseUpdate } from './ChatResponseUpdate';
 
-const LINE_BREAK = '\n';
+const DELIMITER = '\n';
 
 /**
  * Represents a stream of chat responses.
@@ -17,7 +17,7 @@ export class ChatResponseStream {
       this.stream = new ReadableStream<Uint8Array>({
         async start(controller) {
           for await (const chunk of generatorOrStream) {
-            const chunkData = encoder.encode(JSON.stringify(chunk) + LINE_BREAK);
+            const chunkData = encoder.encode(JSON.stringify(chunk) + DELIMITER);
             controller.enqueue(chunkData);
           }
           controller.close();
@@ -34,8 +34,9 @@ export class ChatResponseStream {
   asResponse(init?: ResponseInit): Response {
     return new Response(this.stream, {
       status: init?.status ?? 200,
-      headers: init?.headers ?? {
+      headers: {
         'Content-Type': 'text/plain; charset=utf-8',
+        ...(init?.headers ?? {}),
       },
     });
   }
@@ -45,20 +46,28 @@ export class ChatResponseStream {
    */
   async *read(): AsyncGenerator<ChatResponseUpdate> {
     const decoder = new TextDecoder();
+    const reader = this.stream.getReader();
+    let buffer = '';
 
-    if (this.stream) {
-      const reader = this.stream.getReader();
-      let done = false;
-      while (!done) {
-        const { value, done: readerDone } = await reader.read();
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split(LINE_BREAK).filter((line) => line.trim() !== '');
+    while (true) {
+      const { value, done } = await reader.read();
+      if (value) {
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split(DELIMITER);
+        buffer = lines.pop() ?? '';
 
         for (const line of lines) {
-          yield ChatResponseUpdate.fromJSON(line);
+          if (line.trim()) {
+            yield ChatResponseUpdate.fromJSON(line);
+          }
         }
+      }
 
-        done = readerDone;
+      if (done) {
+        if (buffer.trim()) {
+          yield ChatResponseUpdate.fromJSON(buffer); // flush last line
+        }
+        break;
       }
     }
   }
