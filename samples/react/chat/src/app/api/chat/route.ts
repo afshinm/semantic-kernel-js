@@ -1,5 +1,5 @@
 import { OpenAIChatClient } from '@semantic-kernel/openai';
-import { ChatResponseStream, Kernel } from 'semantic-kernel';
+import { Kernel, StreamResponse } from 'semantic-kernel';
 
 export async function POST(req: Request) {
   const { prompt } = await req.json();
@@ -14,5 +14,5 @@ export async function POST(req: Request) {
     })
   );
 
-  return new ChatResponseStream(kernel.invokeStreamingPrompt(prompt, {})).asResponse();
+  return new StreamResponse(kernel.invokeStreamingPrompt(prompt, {})).toResponse();
 }

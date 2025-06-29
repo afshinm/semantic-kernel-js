@@ -4,4 +4,5 @@ export * from './chatCompletion';
 export * from './contents';
 export * from './functions';
 export * from './jsonSchema';
+export * from './StreamResponse';
 export * from './UsageDetails';

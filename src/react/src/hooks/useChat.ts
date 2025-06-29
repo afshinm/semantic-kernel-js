@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ChatMessage, ChatResponseStream, ChatResponseUpdate } from 'semantic-kernel';
+import { ChatMessage, ChatResponseUpdate, StreamResponse } from 'semantic-kernel';
 
 export type UseChatProps = {
   apiEndpoint?: string;
@@ -32,15 +32,15 @@ export function useChat(props?: UseChatProps) {
         throw new Error('Failed to get reader from response body');
       }
 
-      for await (const update of new ChatResponseStream(reader)) {
+      for await (const update of StreamResponse.fromReadableStream(reader)) {
         setMessages((prev) => {
           const last = prev[prev.length - 1];
           if (Array.isArray(last)) {
             // Append update to the last array of updates
-            return [...prev.slice(0, -1), [...last, update]];
+            return [...prev.slice(0, -1), [...last, ChatResponseUpdate.fromJSON(update)]];
           }
           // Start a new array of updates
-          return [...prev, [update]];
+          return [...prev, [ChatResponseUpdate.fromJSON(update)]];
         });
       }
     },
