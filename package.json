@@ -7,7 +7,8 @@
     "prettier": "prettier --write src",
     "clean": "turbo clean",
     "test": "turbo test",
-    "version-packages": "changeset",
+    "changeset-packages": "changeset",
+    "version-packages": "changeset version",
     "publish-packages": "turbo run build test && changeset version && changeset publish"
   },
   "packageManager": "npm@10.5.0",
