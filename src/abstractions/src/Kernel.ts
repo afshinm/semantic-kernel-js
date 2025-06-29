@@ -125,7 +125,7 @@ export class Kernel {
     }: Omit<Partial<KernelFunctionFromPromptMetadata>, 'executionSettings'> & {
       args?: KernelArguments;
       executionSettings?: Map<string, PromptExecutionSettings> | PromptExecutionSettings[] | PromptExecutionSettings;
-    }
+    } = {}
   ) {
     const kernelFunctionFromPrompt = KernelFunctionFromPrompt.create(prompt, props);
 
@@ -147,7 +147,7 @@ export class Kernel {
     }: Omit<Partial<KernelFunctionFromPromptMetadata>, 'executionSettings'> & {
       args?: KernelArguments;
       executionSettings?: Map<string, PromptExecutionSettings> | PromptExecutionSettings[] | PromptExecutionSettings;
-    }
+    } = {}
   ) {
     const kernelFunctionFromPrompt = KernelFunctionFromPrompt.create(prompt, props);
 
