@@ -27,10 +27,7 @@ export class DelegatingChatClient extends ChatClient {
     return this._innerClient.complete(chatMessages, options);
   }
 
-  override completeStreaming(
-    chatMessages: string | ChatMessage[],
-    options?: ChatOptions
-  ) {
+  override completeStreaming(chatMessages: string | ChatMessage[], options?: ChatOptions) {
     return this._innerClient.completeStreaming(chatMessages, options);
   }
 }

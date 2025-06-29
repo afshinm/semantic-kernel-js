@@ -131,7 +131,7 @@ export class StreamResponse<Item> implements AsyncIterable<Item> {
 
 export async function* _iterSSEMessages(
   response: Response,
-  controller?: AbortController,
+  controller?: AbortController
 ): AsyncGenerator<ServerSentEvent> {
   if (!response.body) {
     controller?.abort();
@@ -183,7 +183,7 @@ class SSEDecoder {
       const event = {
         event: this.event,
         data: this.data.join('\n'),
-        raw: this.raw
+        raw: this.raw,
       };
       this.data = [];
       this.event = null;
@@ -207,7 +207,5 @@ class SSEDecoder {
 
 function partition(str: string, delimiter: string): [string, string, string] {
   const index = str.indexOf(delimiter);
-  return index === -1
-    ? [str, '', '']
-    : [str.slice(0, index), delimiter, str.slice(index + delimiter.length)];
+  return index === -1 ? [str, '', ''] : [str.slice(0, index), delimiter, str.slice(index + delimiter.length)];
 }
