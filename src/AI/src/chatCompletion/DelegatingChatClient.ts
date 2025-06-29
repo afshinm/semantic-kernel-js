@@ -1,8 +1,6 @@
 import { ChatClient } from '.';
 import { ChatMessage } from '../contents';
 import { ChatOptions } from './ChatOptions';
-import { ChatResponse } from './ChatResponse';
-import { ChatResponseUpdate } from './ChatResponseUpdate';
 
 export class DelegatingChatClient extends ChatClient {
   protected _innerClient: ChatClient;
@@ -25,14 +23,11 @@ export class DelegatingChatClient extends ChatClient {
     return this._innerClient.getService(serviceType, serviceKey);
   }
 
-  override complete(chatMessages: string | ChatMessage[], options?: ChatOptions): Promise<ChatResponse> {
+  override complete(chatMessages: string | ChatMessage[], options?: ChatOptions) {
     return this._innerClient.complete(chatMessages, options);
   }
 
-  override completeStreaming(
-    chatMessages: string | ChatMessage[],
-    options?: ChatOptions
-  ): AsyncGenerator<ChatResponseUpdate> {
+  override completeStreaming(chatMessages: string | ChatMessage[], options?: ChatOptions) {
     return this._innerClient.completeStreaming(chatMessages, options);
   }
 }

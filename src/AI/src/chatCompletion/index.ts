@@ -8,7 +8,6 @@ export * from './ChatResponse';
 export * from './ChatResponseFormat';
 export * from './ChatResponseFormatJson';
 export * from './ChatResponseFormatText';
-export * from './ChatResponseStream';
 export * from './ChatResponseUpdate';
 export * from './ChatRole';
 export * from './ChatToolMode';

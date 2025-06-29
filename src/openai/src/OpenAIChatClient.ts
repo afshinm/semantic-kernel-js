@@ -1,11 +1,4 @@
-import {
-  ChatClient,
-  ChatClientMetadata,
-  ChatMessage,
-  ChatOptions,
-  ChatResponse,
-  ChatResponseUpdate,
-} from '@semantic-kernel/ai';
+import { ChatClient, ChatClientMetadata, ChatMessage, type ChatOptions } from '@semantic-kernel/ai';
 import OpenAI from 'openai';
 import {
   fromOpenAIChatCompletion,
@@ -56,7 +49,7 @@ export class OpenAIChatClient extends ChatClient {
     return undefined;
   }
 
-  async complete(chatMessages: string | ChatMessage[], options?: ChatOptions): Promise<ChatResponse> {
+  async complete(chatMessages: string | ChatMessage[], options?: ChatOptions) {
     chatMessages = ChatMessage.create(chatMessages);
     const modelId = this.metadata.modelId ?? options?.modelId;
 
@@ -81,10 +74,7 @@ export class OpenAIChatClient extends ChatClient {
     return fromOpenAIChatCompletion({ openAICompletion: response, options });
   }
 
-  override completeStreaming(
-    chatMessages: string | ChatMessage[],
-    options?: ChatOptions
-  ): AsyncGenerator<ChatResponseUpdate> {
+  override completeStreaming(chatMessages: string | ChatMessage[], options?: ChatOptions) {
     chatMessages = ChatMessage.create(chatMessages);
     const modelId = this.metadata.modelId ?? options?.modelId;
 
