@@ -6,7 +6,7 @@
       "outputs": ["dist/**"]
     },
     "clean": {
-      "dependsOn": ["^clean", "clean"]
+      "dependsOn": ["^clean"]
     },
     "test": {
       "dependsOn": ["^build", "build"]
