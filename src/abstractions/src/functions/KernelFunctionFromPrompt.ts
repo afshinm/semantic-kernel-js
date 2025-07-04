@@ -44,7 +44,7 @@ export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
     }
 
     if (service instanceof ChatClient) {
-      const chatCompletionResult = await service.complete(renderedPrompt, toChatOptions(kernel, executionSettings));
+      const chatCompletionResult = await service.getResponse(renderedPrompt, toChatOptions(kernel, executionSettings));
 
       return {
         function: this,
@@ -64,7 +64,10 @@ export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
     }
 
     if (service instanceof ChatClient) {
-      const chatCompletionUpdates = service.completeStreaming(renderedPrompt, toChatOptions(kernel, executionSettings));
+      const chatCompletionUpdates = service.getStreamingResponse(
+        renderedPrompt,
+        toChatOptions(kernel, executionSettings)
+      );
 
       for await (const chatCompletionUpdate of chatCompletionUpdates) {
         yield chatCompletionUpdate as T;

@@ -49,7 +49,7 @@ export class OpenAIChatClient extends ChatClient {
     return undefined;
   }
 
-  async complete(chatMessages: string | ChatMessage[], options?: ChatOptions) {
+  override async getResponse(chatMessages: string | ChatMessage[], options?: ChatOptions) {
     chatMessages = ChatMessage.create(chatMessages);
     const modelId = this.metadata.modelId ?? options?.modelId;
 
@@ -74,7 +74,7 @@ export class OpenAIChatClient extends ChatClient {
     return fromOpenAIChatCompletion({ openAICompletion: response, options });
   }
 
-  override completeStreaming(chatMessages: string | ChatMessage[], options?: ChatOptions) {
+  override getStreamingResponse(chatMessages: string | ChatMessage[], options?: ChatOptions) {
     chatMessages = ChatMessage.create(chatMessages);
     const modelId = this.metadata.modelId ?? options?.modelId;
 
