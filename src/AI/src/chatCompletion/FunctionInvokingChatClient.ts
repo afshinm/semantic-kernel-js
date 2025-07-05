@@ -117,7 +117,7 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
     super(innerClient);
   }
 
-  override async complete(chatMessages: string | ChatMessage[], options?: ChatOptions) {
+  override async getResponse(chatMessages: string | ChatMessage[], options?: ChatOptions) {
     chatMessages = ChatMessage.create(chatMessages);
     let response: ChatResponse | undefined = undefined;
     let messagesToRemove: Set<ChatMessage> | undefined = undefined;
@@ -126,7 +126,7 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
 
     try {
       for (let iteration = 0; ; iteration++) {
-        response = await super.complete(chatMessages, options);
+        response = await super.getResponse(chatMessages, options);
 
         if (response.usage) {
           totalUsage ??= new UsageDetails();
@@ -213,7 +213,7 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
     }
   }
 
-  override async *completeStreaming(chatMessages: string | ChatMessage[], options?: ChatOptions) {
+  override async *getStreamingResponse(chatMessages: string | ChatMessage[], options?: ChatOptions) {
     chatMessages = ChatMessage.create(chatMessages);
     let messagesToRemove: Set<ChatMessage> | undefined = undefined;
     let functionCallContents: FunctionCallContent[] = [];
@@ -224,7 +224,7 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
         choice = undefined;
         functionCallContents = [];
 
-        for await (const update of super.completeStreaming(chatMessages, options)) {
+        for await (const update of super.getStreamingResponse(chatMessages, options)) {
           // Find all the FCCs. We need to track these separately in order to be able to process them later.
           const preFccCount = functionCallContents.length;
           functionCallContents.push(...update.contents.filter((content) => content instanceof FunctionCallContent));

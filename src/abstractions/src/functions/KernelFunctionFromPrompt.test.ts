@@ -6,13 +6,13 @@ import { KernelFunctionFromPrompt } from './KernelFunctionFromPrompt';
 class MockChatClient extends ChatClient {
   metadata = {};
 
-  override complete(chatMessage: string): Promise<ChatResponse> {
+  override getResponse(chatMessage: string): Promise<ChatResponse> {
     return Promise.resolve(
       new ChatResponse({ message: new ChatMessage({ content: `** ${chatMessage} **`, role: 'assistant' }) })
     );
   }
 
-  override completeStreaming(): AsyncGenerator<ChatResponseUpdate> {
+  override getStreamingResponse(): AsyncGenerator<ChatResponseUpdate> {
     throw new Error('Method not implemented.');
   }
   override getService(): object | undefined {
