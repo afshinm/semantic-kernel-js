@@ -6,9 +6,14 @@ import { KernelFunctionFromPrompt } from './KernelFunctionFromPrompt';
 class MockChatClient extends ChatClient {
   metadata = {};
 
-  override getResponse(chatMessage: string): Promise<ChatResponse> {
+  override getResponse(chatMessage: string | ChatMessage[]): Promise<ChatResponse> {
     return Promise.resolve(
-      new ChatResponse({ message: new ChatMessage({ content: `** ${chatMessage} **`, role: 'assistant' }) })
+      new ChatResponse({
+        message: new ChatMessage({
+          content: `** ${typeof chatMessage === 'string' ? chatMessage : chatMessage.join('.')} **`,
+          role: 'assistant',
+        }),
+      })
     );
   }
 
@@ -29,7 +34,7 @@ describe('kernelFunctionFromPrompt', () => {
     const prompt = 'testPrompt';
 
     // Act
-    const result = (await KernelFunctionFromPrompt.create(prompt, {}).invoke(mockKernel)) as {
+    const result = (await KernelFunctionFromPrompt.create(prompt).invoke(mockKernel)) as {
       value: ChatResponse;
       renderedPrompt: string;
     };
@@ -37,6 +42,22 @@ describe('kernelFunctionFromPrompt', () => {
     // Assert
     expect(result.value.choices[0].text).toEqual('** testPrompt **');
     expect(result.renderedPrompt).toEqual('testPrompt');
+  });
+
+  it('should render a prompt with XML template', async () => {
+    // Arrange
+    const mockKernel = getMockKernel();
+    const prompt = `<message role="user">Hello</message><message role="assistant">Hi there!</message>`;
+
+    // Act
+    const result = (await KernelFunctionFromPrompt.create(prompt).invoke(mockKernel)) as {
+      value: ChatResponse;
+      renderedPrompt: string;
+    };
+
+    // Assert
+    expect(result.value.choices[0].text).toEqual('** Hello.Hi there! **');
+    expect(result.renderedPrompt).toEqual(prompt);
   });
 
   it('should throw an error if the template format is not supported', async () => {

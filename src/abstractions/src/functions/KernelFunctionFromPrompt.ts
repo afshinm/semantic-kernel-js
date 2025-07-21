@@ -1,4 +1,5 @@
 import { ChatClient, ChatResponse } from '@semantic-kernel/ai';
+import { ChatPromptParser } from '../internalUtilities';
 import { type Kernel } from '../Kernel';
 import { type PromptExecutionSettings } from '../promptExecutionSettings/PromptExecutionSettings';
 import { toChatOptions } from '../promptExecutionSettings/PromptExecutionSettingsMapper';
@@ -23,10 +24,9 @@ export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
    * @param params The parameters to create the kernel function from a prompt.
    * @returns A new kernel function from a prompt.
    */
-  static create(
-    prompt: string,
-    { name, description, templateFormat, ...props }: Partial<KernelFunctionFromPromptMetadata>
-  ) {
+  static create(prompt: string, props?: Partial<KernelFunctionFromPromptMetadata>) {
+    const { name, description, templateFormat } = props ?? {};
+
     return new KernelFunctionFromPrompt({
       prompt,
       name: name ?? KernelFunctionFromPrompt.createRandomFunctionName(),
@@ -43,8 +43,13 @@ export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
       throw new Error('Service not found in kernel');
     }
 
+    const promptOrChatMessages = ChatPromptParser.tryParse(renderedPrompt) ?? renderedPrompt;
+
     if (service instanceof ChatClient) {
-      const chatCompletionResult = await service.getResponse(renderedPrompt, toChatOptions(kernel, executionSettings));
+      const chatCompletionResult = await service.getResponse(
+        promptOrChatMessages,
+        toChatOptions(kernel, executionSettings)
+      );
 
       return {
         function: this,
@@ -63,9 +68,11 @@ export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
       throw new Error('Service not found in kernel');
     }
 
+    const promptOrChatMessages = ChatPromptParser.tryParse(renderedPrompt) ?? renderedPrompt;
+
     if (service instanceof ChatClient) {
       const chatCompletionUpdates = service.getStreamingResponse(
-        renderedPrompt,
+        promptOrChatMessages,
         toChatOptions(kernel, executionSettings)
       );
 
