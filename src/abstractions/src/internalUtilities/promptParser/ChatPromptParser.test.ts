@@ -13,7 +13,7 @@ describe('ChatPromptParser', () => {
     expect(result).toBeDefined();
     expect(result?.length).toBe(2);
     expect(result?.[0].role).toBe('user');
-    expect((result?.[0].contents)).toHaveLength(1);
+    expect(result?.[0].contents).toHaveLength(1);
     expect((result?.[0].contents[0] as TextContent).text).toBe('Hello');
     expect(result?.[1].role).toBe('assistant');
     expect((result?.[1].contents[0] as TextContent).text).toBe('Hi there!');
@@ -30,7 +30,7 @@ describe('ChatPromptParser', () => {
     expect(result).toBeDefined();
     expect(result?.length).toBe(1);
     expect(result?.[0].role).toBe('user');
-    expect((result?.[0].contents)).toHaveLength(1);
+    expect(result?.[0].contents).toHaveLength(1);
     expect((result?.[0].contents[0] as TextContent).text).toBe('Hello');
   });
 
@@ -45,7 +45,7 @@ describe('ChatPromptParser', () => {
     expect(result).toBeDefined();
     expect(result?.length).toBe(1);
     expect(result?.[0].role).toBe('user');
-    expect((result?.[0].contents)).toHaveLength(1);
+    expect(result?.[0].contents).toHaveLength(1);
     expect((result?.[0].contents[0] as TextContent).text).toBe('Hello');
   });
 
