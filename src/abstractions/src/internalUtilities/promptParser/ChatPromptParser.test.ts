@@ -2,7 +2,7 @@ import { TextContent } from '@semantic-kernel/ai';
 import { ChatPromptParser } from './ChatPromptParser';
 
 describe('ChatPromptParser', () => {
-  it('should parse a valid chat prompt with multiple messages', () => {
+  it('should parse a valid chat prompt with multiple messages with TEXT nodes', () => {
     // Arrange
     const prompt = `<message role="user"><TEXT>Hello</TEXT></message><message role="assistant"><TEXT>Hi there!</TEXT></message>`;
 
@@ -14,8 +14,52 @@ describe('ChatPromptParser', () => {
     expect(result?.length).toBe(2);
     expect(result?.[0].role).toBe('user');
     expect(result?.[0].contents).toHaveLength(1);
+    expect(result?.[0].contents[0]).toBeInstanceOf(TextContent);
     expect((result?.[0].contents[0] as TextContent).text).toBe('Hello');
     expect(result?.[1].role).toBe('assistant');
+    expect(result?.[1].contents[0]).toBeInstanceOf(TextContent);
+    expect((result?.[1].contents[0] as TextContent).text).toBe('Hi there!');
+  });
+
+  it('should parse a valid chat prompt with multiple messages', () => {
+    // Arrange
+    const prompt = `<message role="user">Hello</message><message role="assistant">Hi there!</message>`;
+
+    // Act
+    const result = ChatPromptParser.tryParse(prompt);
+
+    // Assert
+    expect(result).toBeDefined();
+    expect(result?.length).toBe(2);
+    expect(result?.[0].role).toBe('user');
+    expect(result?.[0].contents).toHaveLength(1);
+    expect(result?.[0].contents[0]).toBeInstanceOf(TextContent);
+    expect((result?.[0].contents[0] as TextContent).text).toBe('Hello');
+    expect(result?.[1].role).toBe('assistant');
+    expect(result?.[1].contents).toHaveLength(1);
+    expect(result?.[1].contents[0]).toBeInstanceOf(TextContent);
+    expect((result?.[1].contents[0] as TextContent).text).toBe('Hi there!');
+  });
+
+  it('should parse a valid chat prompt with nested messages', () => {
+    // Arrange
+    const prompt = `<message role="user"><TEXT>Hello</TEXT><TEXT>World</TEXT><TEXT>!!!</TEXT></message><message role="assistant"><TEXT>Hi there!</TEXT></message>`;
+
+    // Act
+    const result = ChatPromptParser.tryParse(prompt);
+
+    // Assert
+    expect(result).toBeDefined();
+    expect(result?.length).toBe(2);
+    expect(result?.[0].role).toBe('user');
+    expect(result?.[0].contents).toHaveLength(3);
+    expect(result?.[0].contents[0]).toBeInstanceOf(TextContent);
+    expect((result?.[0].contents[0] as TextContent).text).toBe('Hello');
+    expect((result?.[0].contents[1] as TextContent).text).toBe('World');
+    expect((result?.[0].contents[2] as TextContent).text).toBe('!!!');
+    expect(result?.[1].role).toBe('assistant');
+    expect(result?.[1].contents).toHaveLength(1);
+    expect(result?.[1].contents[0]).toBeInstanceOf(TextContent);
     expect((result?.[1].contents[0] as TextContent).text).toBe('Hi there!');
   });
 
