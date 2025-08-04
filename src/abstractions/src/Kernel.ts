@@ -4,12 +4,12 @@ import {
   type KernelArguments,
   type KernelFunction,
   KernelFunctionFromPrompt,
+  type KernelFunctionFromPromptMetadata,
   type KernelPlugin,
   type KernelPlugins,
   MapKernelPlugins,
 } from './functions';
 import { type PromptExecutionSettings } from './promptExecutionSettings';
-import { KernelFunctionFromPromptMetadata } from './promptTemplate';
 
 /**
  * Represents a kernel.

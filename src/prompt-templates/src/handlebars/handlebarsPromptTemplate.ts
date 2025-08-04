@@ -1,13 +1,13 @@
 import { PromptTemplate } from '@semantic-kernel/abstractions';
 import Handlebars from 'handlebars';
 
-export const handlebarsPromptTemplate = (template: string): PromptTemplate => {
-  return {
-    render: async (_, props) => {
-      const compiledTemplate = Handlebars.compile(template);
-      // TODO: add Kernel plugins as helpers
+export class HandlebarsPromptTemplate implements PromptTemplate {
+  constructor(private readonly prompt: string) {}
 
-      return compiledTemplate(props);
-    },
-  };
-};
+  async render(kernel, args) {
+    const compiledTemplate = Handlebars.compile(this.prompt);
+    // TODO: add Kernel plugins as helpers
+
+    return compiledTemplate(args);
+  }
+}

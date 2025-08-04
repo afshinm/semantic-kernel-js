@@ -1,9 +1,10 @@
 import { PromptTemplate } from './PromptTemplate';
+import { PromptTemplateConfig } from './PromptTemplateConfig';
 
 export class PassThroughPromptTemplate implements PromptTemplate {
-  constructor(private readonly prompt: string) {}
+  constructor(private readonly promptConfig: PromptTemplateConfig) {}
 
   render() {
-    return this.prompt;
+    return this.promptConfig.prompt;
   }
 }

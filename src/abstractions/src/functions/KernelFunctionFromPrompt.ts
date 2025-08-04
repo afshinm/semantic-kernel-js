@@ -1,21 +1,38 @@
-import { ChatClient, ChatResponse } from '@semantic-kernel/ai';
+import { ChatClient, type ChatResponse } from '@semantic-kernel/ai';
 import { ChatPromptParser } from '../internalUtilities';
 import { type Kernel } from '../Kernel';
 import { type PromptExecutionSettings } from '../promptExecutionSettings/PromptExecutionSettings';
 import { toChatOptions } from '../promptExecutionSettings/PromptExecutionSettingsMapper';
 import {
-  type KernelFunctionFromPromptMetadata,
   PassThroughPromptTemplate,
   type PromptTemplate,
+  PromptTemplateConfig,
+  type PromptTemplateFormat,
 } from '../promptTemplate';
 import '../serviceProviderExtension';
-import { FunctionResult } from './FunctionResult';
+import { type FunctionResult } from './FunctionResult';
 import { type KernelArguments } from './KernelArguments';
-import { KernelFunction } from './KernelFunction';
+import { KernelFunction, type KernelFunctionMetadata } from './KernelFunction';
+
+export type KernelFunctionFromPromptMetadata = KernelFunctionMetadata & {
+  prompt: string;
+  templateFormat: PromptTemplateFormat;
+  inputVariables?: string[];
+  allowDangerouslySetContent?: boolean;
+};
 
 export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
-  private constructor(kernelFunctionFromPromptMetadata: KernelFunctionFromPromptMetadata) {
-    super(kernelFunctionFromPromptMetadata);
+  private _promptConfig: PromptTemplateConfig;
+
+  private constructor(metadata: KernelFunctionFromPromptMetadata) {
+    super(metadata);
+
+    this._promptConfig = new PromptTemplateConfig({
+      prompt: metadata.prompt,
+      name: metadata.name,
+      description: metadata.description,
+      templateFormat: metadata.templateFormat,
+    });
   }
 
   /**
@@ -90,7 +107,7 @@ export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
     const metadata = this.metadata as KernelFunctionFromPromptMetadata;
     switch (metadata.templateFormat) {
       case 'passthrough':
-        return new PassThroughPromptTemplate(metadata.prompt);
+        return new PassThroughPromptTemplate(this._promptConfig);
       default:
         throw new Error(`${metadata.templateFormat} template rendering not implemented`);
     }
