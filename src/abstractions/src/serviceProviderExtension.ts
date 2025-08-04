@@ -9,7 +9,7 @@ MapServiceProvider.prototype.trySelectService = function <T extends Service>({
   serviceType: T;
   kernelFunction?: KernelFunction;
 }) {
-  const executionSettings = kernelFunction?.metadata?.executionSettings;
+  const executionSettings = kernelFunction?.executionSettings;
   const services = this.getServices(serviceType);
 
   if (!services.size) {
