@@ -10,6 +10,11 @@ export class PromptTemplateConfig {
   // TODO: replace this with the SemanticKernelPromptTemplate type
   templateFormat: PromptTemplateFormat = 'passthrough';
   inputVariables: InputVariable[] = [];
+  /**
+   * Gets or sets a value indicating whether to allow potentially dangerous content to be inserted into the prompt from functions.
+   */
+  allowDangerouslySetContent: boolean;
+
   private _executionSettings: Record<ServiceId, PromptExecutionSettings> = {};
 
   constructor({
@@ -18,18 +23,21 @@ export class PromptTemplateConfig {
     inputVariables = [],
     name,
     description,
+    allowDangerouslySetContent,
   }: {
     prompt: string;
     templateFormat: PromptTemplateFormat;
     inputVariables?: InputVariable[];
     name?: string;
     description?: string;
+    allowDangerouslySetContent?: boolean;
   }) {
     this.prompt = prompt;
     this.name = name;
     this.description = description;
     this.templateFormat = templateFormat;
     this.inputVariables = inputVariables ?? [];
+    this.allowDangerouslySetContent = allowDangerouslySetContent ?? false;
   }
 
   set executionSettings(value: Record<string, PromptExecutionSettings>) {

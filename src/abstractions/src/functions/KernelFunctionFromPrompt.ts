@@ -12,45 +12,61 @@ import {
 import '../serviceProviderExtension';
 import { type FunctionResult } from './FunctionResult';
 import { type KernelArguments } from './KernelArguments';
-import { KernelFunction, type KernelFunctionMetadata } from './KernelFunction';
+import { KernelFunction } from './KernelFunction';
 
-export type KernelFunctionFromPromptMetadata = KernelFunctionMetadata & {
-  prompt: string;
-  templateFormat: PromptTemplateFormat;
-  inputVariables?: string[];
-  allowDangerouslySetContent?: boolean;
-};
+// export type KernelFunctionFromPromptMetadata = KernelFunctionMetadata & {
+//   prompt: string;
+//   templateFormat: PromptTemplateFormat;
+//   inputVariables?: string[];
+//   allowDangerouslySetContent?: boolean;
+// };
 
 export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
-  private _promptConfig: PromptTemplateConfig;
+  private promptTemplate: PromptTemplate;
 
-  private constructor(metadata: KernelFunctionFromPromptMetadata) {
-    super(metadata);
-
-    this._promptConfig = new PromptTemplateConfig({
-      prompt: metadata.prompt,
-      name: metadata.name,
-      description: metadata.description,
-      templateFormat: metadata.templateFormat,
-    });
-  }
-
-  /**
-   * Creates a new kernel function from a prompt.
-   * @param prompt The prompt to create the kernel function from.
-   * @param params The parameters to create the kernel function from a prompt.
-   * @returns A new kernel function from a prompt.
-   */
-  static create(prompt: string, props?: Partial<KernelFunctionFromPromptMetadata>) {
-    const { name, description, templateFormat } = props ?? {};
-
-    return new KernelFunctionFromPrompt({
-      prompt,
+  constructor({
+    name,
+    pluginName,
+    description,
+    prompt,
+    templateFormat,
+    promptTemplate,
+    promptTemplateConfig,
+  }: {
+    name?: string;
+    pluginName?: string;
+    description?: string;
+    prompt?: string;
+    templateFormat?: PromptTemplateFormat;
+    promptTemplate?: PromptTemplate;
+    promptTemplateConfig?: PromptTemplateConfig;
+  }) {
+    super({
       name: name ?? KernelFunctionFromPrompt.createRandomFunctionName(),
+      pluginName,
       description: description ?? 'Generic function, unknown purpose',
-      templateFormat: templateFormat ?? 'passthrough',
-      ...props,
     });
+
+    if (!prompt && !promptTemplate && !promptTemplateConfig) {
+      throw new Error('Either prompt, promptTemplate, or promptTemplateConfig must be provided');
+    }
+
+    templateFormat = templateFormat ?? 'passthrough';
+
+    if (!promptTemplate) {
+      if (!promptTemplateConfig) {
+        promptTemplateConfig = new PromptTemplateConfig({
+          prompt: prompt as string,
+          name,
+          description,
+          templateFormat,
+        });
+      }
+
+      promptTemplate = this.getPromptTemplate(promptTemplateConfig);
+    }
+
+    this.promptTemplate = promptTemplate;
   }
 
   override async invokeCore(kernel: Kernel, args: KernelArguments): Promise<FunctionResult<ChatResponse>> {
@@ -103,13 +119,12 @@ export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
     throw new Error(`Unsupported service type: ${service}`);
   }
 
-  private getPromptTemplate = (): PromptTemplate => {
-    const metadata = this.metadata as KernelFunctionFromPromptMetadata;
-    switch (metadata.templateFormat) {
+  private getPromptTemplate = (promptTemplateConfig: PromptTemplateConfig): PromptTemplate => {
+    switch (promptTemplateConfig.templateFormat) {
       case 'passthrough':
-        return new PassThroughPromptTemplate(this._promptConfig);
+        return new PassThroughPromptTemplate(promptTemplateConfig);
       default:
-        throw new Error(`${metadata.templateFormat} template rendering not implemented`);
+        throw new Error(`${promptTemplateConfig.templateFormat} template rendering not implemented`);
     }
   };
 
@@ -135,8 +150,7 @@ export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
       throw new Error('Service not found in kernel');
     }
 
-    const promptTemplate = this.getPromptTemplate();
-    const renderedPrompt = await promptTemplate.render(kernel, args);
+    const renderedPrompt = await this.promptTemplate.render(kernel, args);
 
     return {
       renderedPrompt,
