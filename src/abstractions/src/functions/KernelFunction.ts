@@ -6,12 +6,12 @@ import { FunctionName } from './FunctionName';
 import { type FunctionResult } from './FunctionResult';
 import { KernelArguments } from './KernelArguments';
 
-export class KernelFunctionMetadata<Schema extends JsonSchema = typeof DefaultJsonSchema> {
-  name: string = '';
+export type KernelFunctionMetadata<Schema extends JsonSchema = typeof DefaultJsonSchema> = {
+  name: string;
   description?: string;
   schema?: Schema;
   pluginName?: string;
-}
+};
 
 export abstract class KernelFunction<
   ReturnType = unknown,
