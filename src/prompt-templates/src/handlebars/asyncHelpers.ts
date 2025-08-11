@@ -1,4 +1,4 @@
-import { KernelArguments } from "@semantic-kernel/abstractions";
+import { KernelArguments } from '@semantic-kernel/abstractions';
 
 type AsyncHelper = (...args: unknown[]) => Promise<unknown> | unknown;
 
@@ -12,7 +12,7 @@ let asyncCounter = 0;
  */
 export function registerAsyncHelper(handlebars: typeof Handlebars, name: string, fn: AsyncHelper) {
   handlebars.registerHelper(name, (context) => {
-    if (typeof(context) !== 'object' || !context.hash) {
+    if (typeof context !== 'object' || !context.hash) {
       throw new Error(`Invalid context for async helper "${name}": ${JSON.stringify(context)}`);
     }
     const placeholder = `__ASYNC_HELPER_${name}_${asyncCounter++}__`;
@@ -21,7 +21,7 @@ export function registerAsyncHelper(handlebars: typeof Handlebars, name: string,
     asyncValueRegistry.set(
       placeholder,
       (async () => {
-        const res = await fn(context.hash) as string;
+        const res = (await fn(context.hash)) as string;
         return handlebars.Utils.escapeExpression(res ?? '');
       })()
     );

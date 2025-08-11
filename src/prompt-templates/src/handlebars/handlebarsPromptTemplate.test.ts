@@ -31,7 +31,7 @@ describe('HandlebarsPromptTemplate', () => {
     });
 
     const promptTemplateConfig = new PromptTemplateConfig({
-      prompt: 'Hey, {{greeting name="John"}}',
+      prompt: 'Hey, {{TestPlugin-greeting name="John"}}',
       templateFormat: 'handlebars',
     });
 
@@ -78,7 +78,7 @@ describe('HandlebarsPromptTemplate', () => {
     });
 
     const promptTemplateConfig = new PromptTemplateConfig({
-      prompt: 'Hey, Your info: {{userInfo firstName="John" lastName="Doe" age=30}}',
+      prompt: 'Hey, Your info: {{TestPlugin-userInfo firstName="John" lastName="Doe" age=30}}',
       templateFormat: 'handlebars',
     });
 

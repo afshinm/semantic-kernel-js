@@ -1,1 +1,1 @@
-export * from "./handlebars";
+export * from './handlebars';
