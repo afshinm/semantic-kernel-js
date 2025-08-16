@@ -228,4 +228,22 @@ describe('HandlebarsPromptTemplate', () => {
     // Assert
     expect(result).toBe('Hello, <John>. Your job is &lt;b&gt;Developer&lt;/b&gt;!');
   });
+
+  it('should not escape HTML tags in the template', async () => {
+    // Arrange
+    const kernel = new Kernel();
+    const args = new KernelArguments({ name: 'John' });
+    const promptTemplateConfig = new PromptTemplateConfig({
+      prompt: 'Hello, <b>{{name}}</b>!',
+      templateFormat: 'handlebars',
+    });
+
+    const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+    // Act
+    const result = await template.render(kernel, args);
+
+    // Assert
+    expect(result).toBe('Hello, <b>John</b>!');
+  });
 });

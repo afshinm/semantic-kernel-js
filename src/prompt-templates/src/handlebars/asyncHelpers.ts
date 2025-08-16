@@ -1,4 +1,4 @@
-import { KernelArguments } from '@semantic-kernel/abstractions';
+import { KernelArguments, PromptTemplateConfig } from '@semantic-kernel/abstractions';
 
 type AsyncHelper = (...args: unknown[]) => Promise<unknown> | unknown;
 
@@ -37,12 +37,12 @@ export function registerAsyncHelper(handlebars: typeof Handlebars, name: string,
  */
 export async function renderWithAsyncHelpers(
   handlebars: typeof Handlebars,
-  templateSrc: string,
+  promptConfig: PromptTemplateConfig,
   context: KernelArguments
 ): Promise<string> {
   asyncValueRegistry.clear();
 
-  const compiled = handlebars.compile(templateSrc, {
+  const compiled = handlebars.compile(promptConfig.prompt, {
     noEscape: true, // We handle escaping in the async helper
   });
   let output = compiled(context.arguments);

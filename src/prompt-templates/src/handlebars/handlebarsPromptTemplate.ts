@@ -65,7 +65,7 @@ export class HandlebarsPromptTemplate implements PromptTemplate {
       }
     }
 
-    const template = renderWithAsyncHelpers(this.handlebars, this.promptConfig.prompt, this.getVariables(args));
+    const template = renderWithAsyncHelpers(this.handlebars, this.promptConfig, this.getVariables(args));
 
     return template;
   }
