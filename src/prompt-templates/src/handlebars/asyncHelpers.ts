@@ -42,7 +42,9 @@ export async function renderWithAsyncHelpers(
 ): Promise<string> {
   asyncValueRegistry.clear();
 
-  const compiled = handlebars.compile(templateSrc);
+  const compiled = handlebars.compile(templateSrc, {
+    noEscape: true, // We handle escaping in the async helper
+  });
   let output = compiled(context.arguments);
 
   // Wait for all async values

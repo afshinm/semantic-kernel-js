@@ -1,4 +1,10 @@
-import { Kernel, KernelArguments, kernelFunction, PromptTemplateConfig } from '@semantic-kernel/abstractions';
+import {
+  InputVariable,
+  Kernel,
+  KernelArguments,
+  kernelFunction,
+  PromptTemplateConfig,
+} from '@semantic-kernel/abstractions';
 import { HandlebarsPromptTemplate } from './handlebarsPromptTemplate';
 
 describe('HandlebarsPromptTemplate', () => {
@@ -106,5 +112,120 @@ describe('HandlebarsPromptTemplate', () => {
 
     // Assert
     expect(result).toBe('Hello, John!');
+  });
+
+  it('should render the template with async helpers', async () => {
+    // Arrange
+    const kernel = new Kernel();
+
+    const asyncGreeting = kernelFunction(
+      async ({ name }) => {
+        return new Promise((resolve) => {
+          setTimeout(() => resolve(`Async Greetings, ${name}!`), 100);
+        });
+      },
+      {
+        name: 'asyncGreeting',
+        schema: {
+          type: 'object',
+          properties: {
+            name: {
+              type: 'string',
+            },
+          },
+          required: ['name'],
+        } as const,
+      }
+    );
+
+    kernel.addPlugin({
+      name: 'TestPlugin',
+      description: 'A test plugin',
+      functions: [asyncGreeting],
+    });
+
+    const promptTemplateConfig = new PromptTemplateConfig({
+      prompt: 'Hey, {{TestPlugin-asyncGreeting name="John"}}',
+      templateFormat: 'handlebars',
+    });
+
+    // Act
+    const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+    const result = await template.render(kernel, new KernelArguments());
+
+    // Assert
+    expect(result).toBe('Hey, Async Greetings, John!');
+  });
+
+  it('should handle missing arguments gracefully', async () => {
+    // Arrange
+    const kernel = new Kernel();
+    const promptTemplateConfig = new PromptTemplateConfig({
+      prompt: 'Hello, {{name}}!',
+      templateFormat: 'handlebars',
+    });
+
+    const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+    // Act
+    const result = await template.render(kernel, new KernelArguments());
+
+    // Assert
+    expect(result).toBe('Hello, !'); // Should handle missing name gracefully
+  });
+
+  it('should encode HTML tags in arguments', async () => {
+    // Arrange
+    const kernel = new Kernel();
+    const args = new KernelArguments({ name: '<John>' });
+    const promptTemplateConfig = new PromptTemplateConfig({
+      prompt: 'Hello, {{name}}!',
+      templateFormat: 'handlebars',
+    });
+
+    const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+    // Act
+    const result = await template.render(kernel, args);
+
+    // Assert
+    expect(result).toBe('Hello, &lt;John&gt;!');
+  });
+
+  it('should not encode HTML tags for non-string arguments', async () => {
+    // Arrange
+    const kernel = new Kernel();
+    const args = new KernelArguments({ age: 30 });
+    const promptTemplateConfig = new PromptTemplateConfig({
+      prompt: 'Your age is {{age}}.',
+      templateFormat: 'handlebars',
+    });
+
+    const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+    // Act
+    const result = await template.render(kernel, args);
+
+    // Assert
+    expect(result).toBe('Your age is 30.');
+  });
+
+  it('should not encode HTML tags when InputVariable has encodeTags set to false', async () => {
+    // Arrange
+    const kernel = new Kernel();
+    const args = new KernelArguments({ name: '<John>', job: '<b>Developer</b>' });
+    const promptTemplateConfig = new PromptTemplateConfig({
+      prompt: 'Hello, {{name}}. Your job is {{job}}!',
+      templateFormat: 'handlebars',
+      inputVariables: [new InputVariable({ name: 'name', allowDangerouslySetContent: true })],
+    });
+
+    const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+    // Act
+    const result = await template.render(kernel, args);
+
+    // Assert
+    expect(result).toBe('Hello, <John>. Your job is &lt;b&gt;Developer&lt;/b&gt;!');
   });
 });
