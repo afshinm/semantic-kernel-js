@@ -37,4 +37,23 @@ export const registerKernelSystemHelpers = (handlebars: typeof Handlebars, varia
     // Concatenate all arguments into a single string
     return args.slice(0, -1).join('');
   });
+
+  handlebars.registerHelper('array', function (...args: unknown[]) {
+    // Create an array from the arguments
+    return args.slice(0, -1);
+  });
+
+  handlebars.registerHelper('json', function (value: unknown) {
+    // Convert the value to a JSON string
+    return JSON.stringify(value);
+  });
+
+  handlebars.registerHelper('range', function (start: number, end: number) {
+    // Create an array of numbers from start to end (inclusive)
+    const result: number[] = [];
+    for (let i = start; i <= end; i++) {
+      result.push(i);
+    }
+    return result;
+  });
 };

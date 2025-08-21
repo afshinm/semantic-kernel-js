@@ -440,13 +440,90 @@ describe('HandlebarsPromptTemplate', () => {
       const template = new HandlebarsPromptTemplate(promptTemplateConfig);
 
       // Act
-      const result = await template.render(kernel, new KernelArguments({
-        name: 'John',
-        age: 30,
-      }));
+      const result = await template.render(
+        kernel,
+        new KernelArguments({
+          name: 'John',
+          age: 30,
+        })
+      );
 
       // Assert
       expect(result).toBe('Hello, John, you are 30 years old!');
+    });
+  });
+
+  describe('array helper', () => {
+    it('should create an array from multiple arguments', async () => {
+      // Arrange
+      const kernel = new Kernel();
+      const promptTemplateConfig = new PromptTemplateConfig({
+        prompt: '{{#each (array "apple" "banana" "cherry")}}<item>{{this}}</item>{{/each}}',
+        templateFormat: 'handlebars',
+      });
+
+      const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+      // Act
+      const result = await template.render(kernel, new KernelArguments());
+
+      // Assert
+      expect(result).toBe('<item>apple</item><item>banana</item><item>cherry</item>');
+    });
+  });
+
+  describe('json helper', () => {
+    it('should convert an object to JSON string', async () => {
+      // Arrange
+      const kernel = new Kernel();
+      const promptTemplateConfig = new PromptTemplateConfig({
+        prompt: '{{json person}}',
+        templateFormat: 'handlebars',
+      });
+
+      const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+      // Act
+      const result = await template.render(kernel, new KernelArguments({ person: { name: 'John', age: 30 } }));
+
+      // Assert
+      expect(result).toBe('{"name":"John","age":30}');
+    });
+
+    it('should set and get variables using json helper', async () => {
+      // Arrange
+      const kernel = new Kernel();
+      const promptTemplateConfig = new PromptTemplateConfig({
+        prompt: '{{set "age" 20}}Age is {{json age}}!',
+        templateFormat: 'handlebars',
+      });
+
+      const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+      // Act
+      const result = await template.render(kernel, new KernelArguments());
+
+      // Assert
+      expect(result).toBe('Age is 20!');
+    });
+  });
+
+  describe('range helper', () => {
+    it('should create a range of numbers', async () => {
+      // Arrange
+      const kernel = new Kernel();
+      const promptTemplateConfig = new PromptTemplateConfig({
+        prompt: '{{#each (range 1 5)}}<number>{{this}}</number>{{/each}}',
+        templateFormat: 'handlebars',
+      });
+
+      const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+      // Act
+      const result = await template.render(kernel, new KernelArguments());
+
+      // Assert
+      expect(result).toBe('<number>1</number><number>2</number><number>3</number><number>4</number><number>5</number>');
     });
   });
 });
