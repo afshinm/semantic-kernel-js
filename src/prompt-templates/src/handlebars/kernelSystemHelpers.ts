@@ -56,4 +56,9 @@ export const registerKernelSystemHelpers = (handlebars: typeof Handlebars, varia
     }
     return result;
   });
+
+  handlebars.registerHelper('or', function (...args: unknown[]) {
+    // Return the first truthy value or the last argument if none are truthy
+    return args.slice(0, -1).find((v) => v);
+  });
 };

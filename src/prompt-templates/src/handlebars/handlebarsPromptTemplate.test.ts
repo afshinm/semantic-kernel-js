@@ -526,4 +526,30 @@ describe('HandlebarsPromptTemplate', () => {
       expect(result).toBe('<number>1</number><number>2</number><number>3</number><number>4</number><number>5</number>');
     });
   });
+
+  describe('or helper', () => {
+    test.each([
+      [{ value1: '', value2: 'default' }, 'default'],
+      [{ value1: false, value2: 'default' }, 'default'],
+      [{ value1: true, value2: true }, 'true'],
+      [{ value1: false, value2: true }, 'true'],
+      [{ value1: null, value2: true }, 'true'],
+      [{ value1: null, value2: undefined }, ''],
+    ])('should return the default value if all are falsy', async (values, expected) => {
+      // Arrange
+      const kernel = new Kernel();
+      const promptTemplateConfig = new PromptTemplateConfig({
+        prompt: '{{or value1 value2}}',
+        templateFormat: 'handlebars',
+      });
+
+      const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+      // Act
+      const result = await template.render(kernel, new KernelArguments(values));
+
+      // Assert
+      expect(result).toBe(expected);
+    });
+  });
 });
