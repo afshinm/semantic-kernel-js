@@ -41,7 +41,7 @@ export class MapKernelPlugins implements KernelPlugins {
           pluginName: plugin.name,
         };
         // TODO: is this necessary?
-        mapPlugin.functions.set(pluginFunction.metadata.name, pluginFunction);
+        mapPlugin.functions.set(pluginFunction.metadata.name, pluginFunction as KernelFunction);
       }
     }
 
