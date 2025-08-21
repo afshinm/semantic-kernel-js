@@ -246,4 +246,80 @@ describe('HandlebarsPromptTemplate', () => {
     // Assert
     expect(result).toBe('Hello, <b>John</b>!');
   });
+
+  it('should read the default value from InputVariable', async () => {
+    // Arrange
+    const kernel = new Kernel();
+    const promptTemplateConfig = new PromptTemplateConfig({
+      prompt: 'Hello, {{name}}!',
+      templateFormat: 'handlebars',
+      inputVariables: [new InputVariable({ name: 'name', defaultValue: 'Default Name' })],
+    });
+
+    const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+    // Act
+    const result = await template.render(kernel, new KernelArguments());
+
+    // Assert
+    expect(result).toBe('Hello, Default Name!');
+  });
+
+  it('should set variables using the set helper', async () => {
+    // Arrange
+    const kernel = new Kernel();
+    const promptTemplateConfig = new PromptTemplateConfig({
+      prompt: '{{set "name" "John"}}Hello, {{name}}!',
+      templateFormat: 'handlebars',
+    });
+
+    const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+    // Act
+    const result = await template.render(kernel, new KernelArguments());
+
+    // Assert
+    expect(result).toBe('Hello, John!');
+  });
+
+  it('should set variables and pass to the plugin function', async () => {
+    // Arrange
+    const kernel = new Kernel();
+
+    const greeting = kernelFunction(
+      ({ name }) => {
+        return `Greetings, ${name}!`;
+      },
+      {
+        name: 'greeting',
+        schema: {
+          type: 'object',
+          properties: {
+            name: {
+              type: 'string',
+            },
+          },
+          required: ['name'],
+        } as const,
+      }
+    );
+
+    kernel.addPlugin({
+      name: 'TestPlugin',
+      description: 'A test plugin',
+      functions: [greeting],
+    });
+
+    const promptTemplateConfig = new PromptTemplateConfig({
+      prompt: '{{set "name" "John"}}Hey, {{TestPlugin-greeting name=name}}',
+      templateFormat: 'handlebars',
+    });
+
+    // Act
+    const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+    const result = await template.render(kernel, new KernelArguments());
+
+    // Assert
+    expect(result).toBe('Hey, Greetings, John!');
+  });
 });

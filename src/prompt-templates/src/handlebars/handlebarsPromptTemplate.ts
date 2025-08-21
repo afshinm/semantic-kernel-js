@@ -8,6 +8,7 @@ import {
 import Handlebars from 'handlebars';
 import { htmlEscape } from '../htmlEscape';
 import { registerAsyncHelper, renderWithAsyncHelpers } from './asyncHelpers';
+import { registerKernelSystemHelpers } from './kernelSystemHelpers';
 
 export type HandlebarsPromptTemplateOptions = {
   /**
@@ -23,11 +24,6 @@ export type HandlebarsPromptTemplateOptions = {
   ) => void;
 
   /**
-   * Flag indicating whether to enable HTML decoding of the rendered template.
-   */
-  enableHtmlDecoder?: boolean;
-
-  /**
    * Prefix separator for helper names.
    */
   prefixSeparator?: string;
@@ -35,18 +31,28 @@ export type HandlebarsPromptTemplateOptions = {
 
 export class HandlebarsPromptTemplate implements PromptTemplate {
   private readonly handlebars: typeof Handlebars;
+  private readonly handlebarsTemplate: Handlebars.TemplateDelegate;
 
   constructor(
     private readonly promptConfig: PromptTemplateConfig,
     private readonly options: HandlebarsPromptTemplateOptions = {
-      enableHtmlDecoder: true,
       prefixSeparator: '-',
     }
   ) {
     this.handlebars = Handlebars.create();
+    this.handlebarsTemplate = this.handlebars.compile(promptConfig.prompt, {
+      noEscape: true, // We handle escaping in the async helper
+    });
   }
 
   async render(kernel: Kernel, args: KernelArguments) {
+    registerKernelSystemHelpers(this.handlebars, kernel, args);
+
+    // First pass: compile the template with placeholders
+    // This is a hacky solution to ensure the helpers that modify the KernelArguments are executed
+    // before the template is compiled.
+    this.handlebarsTemplate(args.arguments);
+
     // Register all functions from the kernel plugins as Handlebars helpers
     for (const plugin of kernel.plugins.getPlugins()) {
       for (const [functionName, pluginFunction] of plugin.functions.entries()) {
@@ -65,13 +71,13 @@ export class HandlebarsPromptTemplate implements PromptTemplate {
       }
     }
 
-    const template = renderWithAsyncHelpers(this.handlebars, this.promptConfig, this.getVariables(args));
-
-    return template;
+    return await renderWithAsyncHelpers(this.handlebarsTemplate, this.getVariables(args));
   }
 
-  getVariables(args?: KernelArguments): KernelArguments {
-    const result: Record<string, unknown> = {};
+  getVariables(args: KernelArguments): KernelArguments {
+    const result: Record<string, unknown> = {
+      ...(args.arguments ?? {}),
+    };
 
     for (const inputVariable of this.promptConfig.inputVariables) {
       if (inputVariable.default !== undefined && inputVariable.default !== null) {
@@ -79,28 +85,27 @@ export class HandlebarsPromptTemplate implements PromptTemplate {
       }
     }
 
-    if (args) {
-      for (const [key, value] of Object.entries(args.arguments ?? {})) {
-        if (value !== null) {
-          let processedValue = value;
+    for (const [key, value] of Object.entries(args.arguments ?? {})) {
+      if (value) {
+        let processedValue: unknown = value;
 
-          if (this.shouldEncodeTags(this.promptConfig, key, value)) {
-            processedValue = htmlEscape(value);
-          }
-
-          result[key] = processedValue;
+        if (this.shouldEncodeTags(this.promptConfig, key, value)) {
+          processedValue = htmlEscape(value);
         }
+
+        result[key] = processedValue;
       }
     }
 
-    return new KernelArguments(result);
+    args.arguments = result;
+    return args;
   }
 
   private shouldEncodeTags(
     promptTemplateConfig: PromptTemplateConfig,
     propertyName: string,
     propertyValue: unknown
-  ): boolean {
+  ): propertyValue is string {
     if (propertyValue === null || typeof propertyValue !== 'string' || this.promptConfig.allowDangerouslySetContent) {
       return false;
     }
