@@ -1,19 +1,48 @@
 import { KernelArguments } from '@semantic-kernel/abstractions';
 
 export const registerKernelSystemHelpers = (handlebars: typeof Handlebars, variables: KernelArguments): void => {
-  handlebars.registerHelper('set', function (name: string, value: unknown) {
-    // Positional arguments: set(name, value)
-    if (typeof name === 'string' && value) {
+  handlebars.registerHelper('set', function (...args: unknown[]) {
+    // Accept both positional and hash arguments for set(name, value) or set name="foo" value="bar"
+    let name: string | undefined;
+    let value: unknown;
+
+    // Check for hash params
+    const options = args[args.length - 1] as Handlebars.HelperOptions;
+    if (options && options.hash && typeof options.hash === 'object' && typeof options.hash.name === 'string') {
+      name = options.hash.name;
+      value = options.hash.value;
+    }
+
+    // Fallback to positional arguments if not found in hash
+    if (!name && typeof args[0] === 'string') {
+      name = args[0];
+      value = args[1];
+    }
+
+    if (typeof name === 'string') {
       variables.arguments = { ...(variables.arguments ?? {}), [name]: value };
     }
     return '';
   });
 
-  handlebars.registerHelper('get', function (name: string) {
-    // Positional arguments: get(name)
-    if (typeof name === 'string') {
-      return variables.arguments[name] ?? '';
+  handlebars.registerHelper('get', function (...args: unknown[]) {
+    // Support both positional (get(name)) and hash param (get name="foo")
+    let varName: string | undefined;
+
+    // Check for hash params
+    const options = args[args.length - 1] as Handlebars.HelperOptions;
+    if (options && options.hash && typeof options.hash === 'object' && typeof options.hash.name === 'string') {
+      varName = options.hash.name;
     }
+
+    if (!varName && typeof args[0] === 'string') {
+      varName = args[0];
+    }
+
+    if (varName) {
+      return variables.arguments?.[varName];
+    }
+
     return '';
   });
 

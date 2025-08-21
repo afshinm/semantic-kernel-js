@@ -283,6 +283,22 @@ describe('HandlebarsPromptTemplate', () => {
       expect(result).toBe('Hello, John!');
     });
 
+    it('should set variable using hash params', async () => {
+      // Arrange
+      const kernel = new Kernel();
+      const promptTemplateConfig = new PromptTemplateConfig({
+        prompt: '{{set name="name" value="John"}}Hello, {{get "name"}}!',
+        templateFormat: 'handlebars',
+      });
+
+      const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+      // Act
+
+      const result = await template.render(kernel, new KernelArguments());
+      // Assert
+      expect(result).toBe('Hello, John!');
+    });
+
     it('should set variables and pass to the plugin function', async () => {
       // Arrange
       const kernel = new Kernel();
@@ -348,6 +364,23 @@ describe('HandlebarsPromptTemplate', () => {
       const kernel = new Kernel();
       const promptTemplateConfig = new PromptTemplateConfig({
         prompt: '{{set "name" "John"}}Hello, {{get "name"}}!',
+        templateFormat: 'handlebars',
+      });
+
+      const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+      // Act
+      const result = await template.render(kernel, new KernelArguments());
+
+      // Assert
+      expect(result).toBe('Hello, John!');
+    });
+
+    it('should get variables using hash params', async () => {
+      // Arrange
+      const kernel = new Kernel();
+      const promptTemplateConfig = new PromptTemplateConfig({
+        prompt: '{{set name="name" value="John"}}Hello, {{get name="name"}}!',
         templateFormat: 'handlebars',
       });
 
