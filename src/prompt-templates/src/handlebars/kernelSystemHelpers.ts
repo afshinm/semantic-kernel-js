@@ -32,4 +32,9 @@ export const registerKernelSystemHelpers = (handlebars: typeof Handlebars, varia
 
     return `${start}${args.fn()}${end}`;
   });
+
+  handlebars.registerHelper('concat', function (...args: unknown[]) {
+    // Concatenate all arguments into a single string
+    return args.slice(0, -1).join('');
+  });
 };

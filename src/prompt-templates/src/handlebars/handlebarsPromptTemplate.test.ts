@@ -410,4 +410,43 @@ describe('HandlebarsPromptTemplate', () => {
       await expect(template.render(kernel, new KernelArguments())).rejects.toThrow('Message must have a "role"');
     });
   });
+
+  describe('concat helper', () => {
+    it('should concatenate multiple strings', async () => {
+      // Arrange
+      const kernel = new Kernel();
+      const promptTemplateConfig = new PromptTemplateConfig({
+        prompt: '{{concat "Hello, " name "!"}}',
+        templateFormat: 'handlebars',
+      });
+
+      const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+      // Act
+      const result = await template.render(kernel, new KernelArguments({ name: 'John' }));
+
+      // Assert
+      expect(result).toBe('Hello, John!');
+    });
+
+    it('should concatenate multiple arguments', async () => {
+      // Arrange
+      const kernel = new Kernel();
+      const promptTemplateConfig = new PromptTemplateConfig({
+        prompt: '{{concat "Hello, " name ", you are " age " years old!"}}',
+        templateFormat: 'handlebars',
+      });
+
+      const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+      // Act
+      const result = await template.render(kernel, new KernelArguments({
+        name: 'John',
+        age: 30,
+      }));
+
+      // Assert
+      expect(result).toBe('Hello, John, you are 30 years old!');
+    });
+  });
 });
