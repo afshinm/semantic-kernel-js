@@ -265,61 +265,149 @@ describe('HandlebarsPromptTemplate', () => {
     expect(result).toBe('Hello, Default Name!');
   });
 
-  it('should set variables using the set helper', async () => {
-    // Arrange
-    const kernel = new Kernel();
-    const promptTemplateConfig = new PromptTemplateConfig({
-      prompt: '{{set "name" "John"}}Hello, {{name}}!',
-      templateFormat: 'handlebars',
+  describe('set helper', () => {
+    it('should set variables using the set helper', async () => {
+      // Arrange
+      const kernel = new Kernel();
+      const promptTemplateConfig = new PromptTemplateConfig({
+        prompt: '{{set "name" "John"}}Hello, {{name}}!',
+        templateFormat: 'handlebars',
+      });
+
+      const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+      // Act
+      const result = await template.render(kernel, new KernelArguments());
+
+      // Assert
+      expect(result).toBe('Hello, John!');
     });
 
-    const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+    it('should set variables and pass to the plugin function', async () => {
+      // Arrange
+      const kernel = new Kernel();
 
-    // Act
-    const result = await template.render(kernel, new KernelArguments());
+      const greeting = kernelFunction(
+        ({ name }) => {
+          return `Greetings, ${name}!`;
+        },
+        {
+          name: 'greeting',
+          schema: {
+            type: 'object',
+            properties: {
+              name: {
+                type: 'string',
+              },
+            },
+            required: ['name'],
+          } as const,
+        }
+      );
 
-    // Assert
-    expect(result).toBe('Hello, John!');
+      kernel.addPlugin({
+        name: 'TestPlugin',
+        description: 'A test plugin',
+        functions: [greeting],
+      });
+
+      const promptTemplateConfig = new PromptTemplateConfig({
+        prompt: '{{set "name" "John"}}Hey, {{TestPlugin-greeting name=name}}',
+        templateFormat: 'handlebars',
+      });
+
+      // Act
+      const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+      const result = await template.render(kernel, new KernelArguments());
+
+      // Assert
+      expect(result).toBe('Hey, Greetings, John!');
+    });
   });
 
-  it('should set variables and pass to the plugin function', async () => {
-    // Arrange
-    const kernel = new Kernel();
+  describe('get helper', () => {
+    it('should get variables using the get helper', async () => {
+      // Arrange
+      const kernel = new Kernel();
+      const promptTemplateConfig = new PromptTemplateConfig({
+        prompt: 'Hello, {{get "name"}}!',
+        templateFormat: 'handlebars',
+      });
 
-    const greeting = kernelFunction(
-      ({ name }) => {
-        return `Greetings, ${name}!`;
-      },
-      {
-        name: 'greeting',
-        schema: {
-          type: 'object',
-          properties: {
-            name: {
-              type: 'string',
-            },
-          },
-          required: ['name'],
-        } as const,
-      }
-    );
+      const template = new HandlebarsPromptTemplate(promptTemplateConfig);
 
-    kernel.addPlugin({
-      name: 'TestPlugin',
-      description: 'A test plugin',
-      functions: [greeting],
+      // Act
+      const result = await template.render(kernel, new KernelArguments({ name: 'John' }));
+
+      // Assert
+      expect(result).toBe('Hello, John!');
     });
 
-    const promptTemplateConfig = new PromptTemplateConfig({
-      prompt: '{{set "name" "John"}}Hey, {{TestPlugin-greeting name=name}}',
-      templateFormat: 'handlebars',
+    it('should get variables using the get helper after set', async () => {
+      // Arrange
+      const kernel = new Kernel();
+      const promptTemplateConfig = new PromptTemplateConfig({
+        prompt: '{{set "name" "John"}}Hello, {{get "name"}}!',
+        templateFormat: 'handlebars',
+      });
+
+      const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+      // Act
+      const result = await template.render(kernel, new KernelArguments());
+
+      // Assert
+      expect(result).toBe('Hello, John!');
+    });
+  });
+
+  describe('message helper', () => {
+    it('should create a message tag with role', async () => {
+      // Arrange
+      const kernel = new Kernel();
+      const promptTemplateConfig = new PromptTemplateConfig({
+        prompt: '{{#message role="user"}}Hello{{/message}}',
+        templateFormat: 'handlebars',
+      });
+
+      const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+      // Act
+      const result = await template.render(kernel, new KernelArguments());
+
+      // Assert
+      expect(result).toBe('<message role="user">Hello</message>');
     });
 
-    // Act
-    const template = new HandlebarsPromptTemplate(promptTemplateConfig);
-    const result = await template.render(kernel, new KernelArguments());
+    it('should create a message tag with multiple attributes', async () => {
+      // Arrange
+      const kernel = new Kernel();
+      const promptTemplateConfig = new PromptTemplateConfig({
+        prompt: '{{#message role="user" author="John"}}content{{/message}}',
+        templateFormat: 'handlebars',
+      });
 
-    // Assert
-    expect(result).toBe('Hey, Greetings, John!');
+      const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+      // Act
+      const result = await template.render(kernel, new KernelArguments());
+
+      // Assert
+      expect(result).toBe('<message author="John" role="user">content</message>');
+    });
+
+    it('should throw an error if role is missing', async () => {
+      // Arrange
+      const kernel = new Kernel();
+      const promptTemplateConfig = new PromptTemplateConfig({
+        prompt: '{{message author="John"}}',
+        templateFormat: 'handlebars',
+      });
+
+      const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+      // Act & Assert
+      await expect(template.render(kernel, new KernelArguments())).rejects.toThrow('Message must have a "role"');
+    });
   });
 });

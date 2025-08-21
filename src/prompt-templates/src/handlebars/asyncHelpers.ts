@@ -1,6 +1,6 @@
 import { KernelArguments } from '@semantic-kernel/abstractions';
 
-type AsyncHelper = (...args: unknown[]) => Promise<unknown> | unknown;
+type AsyncHelper = (args: { [key: string]: unknown }) => Promise<unknown> | unknown;
 
 const asyncValueRegistry = new Map<string, Promise<unknown>>();
 let asyncCounter = 0;

@@ -46,7 +46,7 @@ export class HandlebarsPromptTemplate implements PromptTemplate {
   }
 
   async render(kernel: Kernel, args: KernelArguments) {
-    registerKernelSystemHelpers(this.handlebars, kernel, args);
+    registerKernelSystemHelpers(this.handlebars, args);
 
     // First pass: compile the template with placeholders
     // This is a hacky solution to ensure the helpers that modify the KernelArguments are executed
@@ -64,8 +64,7 @@ export class HandlebarsPromptTemplate implements PromptTemplate {
             nameSeparator: this.options.prefixSeparator,
           }),
           async (helperArgs) => {
-            const args = new KernelArguments(helperArgs);
-            return (await pluginFunction.invoke(kernel, args)).value;
+            return (await pluginFunction.invoke(kernel, new KernelArguments(helperArgs))).value;
           }
         );
       }
