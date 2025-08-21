@@ -4,7 +4,7 @@ import { type Kernel } from '../Kernel';
 import { type PromptExecutionSettings } from '../promptExecutionSettings/PromptExecutionSettings';
 import { toChatOptions } from '../promptExecutionSettings/PromptExecutionSettingsMapper';
 import {
-  PassThroughPromptTemplate,
+  HandlebarsPromptTemplate,
   type PromptTemplate,
   PromptTemplateConfig,
   type PromptTemplateFormat,
@@ -13,13 +13,6 @@ import '../serviceProviderExtension';
 import { type FunctionResult } from './FunctionResult';
 import { type KernelArguments } from './KernelArguments';
 import { KernelFunction } from './KernelFunction';
-
-// export type KernelFunctionFromPromptMetadata = KernelFunctionMetadata & {
-//   prompt: string;
-//   templateFormat: PromptTemplateFormat;
-//   inputVariables?: string[];
-//   allowDangerouslySetContent?: boolean;
-// };
 
 export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
   private promptTemplate: PromptTemplate;
@@ -51,7 +44,7 @@ export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
       throw new Error('Either prompt, promptTemplate, or promptTemplateConfig must be provided');
     }
 
-    templateFormat = templateFormat ?? 'passthrough';
+    templateFormat = templateFormat ?? 'handlebars';
 
     if (!promptTemplate) {
       if (!promptTemplateConfig) {
@@ -121,8 +114,8 @@ export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
 
   private getPromptTemplate = (promptTemplateConfig: PromptTemplateConfig): PromptTemplate => {
     switch (promptTemplateConfig.templateFormat) {
-      case 'passthrough':
-        return new PassThroughPromptTemplate(promptTemplateConfig);
+      case 'handlebars':
+        return new HandlebarsPromptTemplate(promptTemplateConfig);
       default:
         throw new Error(`${promptTemplateConfig.templateFormat} template rendering not implemented`);
     }

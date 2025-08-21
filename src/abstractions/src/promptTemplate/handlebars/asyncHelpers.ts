@@ -1,4 +1,4 @@
-import { KernelArguments } from '@semantic-kernel/abstractions';
+import { KernelArguments } from "../../functions";
 
 type AsyncHelper = (args: { [key: string]: unknown }) => Promise<unknown> | unknown;
 

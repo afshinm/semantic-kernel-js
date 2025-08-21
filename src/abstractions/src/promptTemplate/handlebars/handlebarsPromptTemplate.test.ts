@@ -1,11 +1,8 @@
-import {
-  ChatPromptParser,
-  InputVariable,
-  Kernel,
-  KernelArguments,
-  kernelFunction,
-  PromptTemplateConfig,
-} from '@semantic-kernel/abstractions';
+import { KernelArguments, kernelFunction } from '../../functions';
+import { ChatPromptParser } from '../../internalUtilities';
+import { Kernel } from '../../Kernel';
+import { InputVariable } from '../InputVariable';
+import { PromptTemplateConfig } from '../PromptTemplateConfig';
 import { HandlebarsPromptTemplate } from './handlebarsPromptTemplate';
 
 describe('HandlebarsPromptTemplate', () => {

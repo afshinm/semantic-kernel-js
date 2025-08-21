@@ -1,14 +1,14 @@
 import { defaultServiceId, PromptExecutionSettings, ServiceId } from '../promptExecutionSettings';
 import { InputVariable } from './InputVariable';
 
-export type PromptTemplateFormat = 'handlebars' | 'passthrough';
+export type PromptTemplateFormat = 'handlebars';
 
 export class PromptTemplateConfig {
   prompt: string = '';
   name?: string;
   description?: string;
   // TODO: replace this with the SemanticKernelPromptTemplate type
-  templateFormat: PromptTemplateFormat = 'passthrough';
+  templateFormat: PromptTemplateFormat = 'handlebars';
   inputVariables: InputVariable[] = [];
   /**
    * Gets or sets a value indicating whether to allow potentially dangerous content to be inserted into the prompt from functions.

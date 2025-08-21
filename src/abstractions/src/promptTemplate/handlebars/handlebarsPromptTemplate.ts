@@ -1,12 +1,9 @@
-import {
-  FunctionName,
-  Kernel,
-  KernelArguments,
-  PromptTemplate,
-  PromptTemplateConfig,
-} from '@semantic-kernel/abstractions';
 import Handlebars from 'handlebars';
+import { FunctionName, KernelArguments } from '../../functions';
+import { type Kernel } from '../../Kernel';
 import { htmlEscape } from '../htmlEscape';
+import { PromptTemplate } from '../PromptTemplate';
+import { type PromptTemplateConfig } from '../PromptTemplateConfig';
 import { registerAsyncHelper, renderWithAsyncHelpers } from './asyncHelpers';
 import { registerKernelSystemHelpers } from './kernelSystemHelpers';
 

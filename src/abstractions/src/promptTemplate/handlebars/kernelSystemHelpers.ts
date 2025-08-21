@@ -1,4 +1,5 @@
-import { ChatPromptParser, KernelArguments } from '@semantic-kernel/abstractions';
+import { type KernelArguments } from '../../functions';
+import { ChatPromptParser } from '../../internalUtilities';
 
 export const registerKernelSystemHelpers = (handlebars: typeof Handlebars, variables: KernelArguments): void => {
   handlebars.registerHelper('set', function (...args: unknown[]) {
