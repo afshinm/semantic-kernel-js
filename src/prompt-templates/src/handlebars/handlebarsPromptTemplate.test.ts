@@ -552,4 +552,63 @@ describe('HandlebarsPromptTemplate', () => {
       expect(result).toBe(expected);
     });
   });
+
+  describe('add helper', () => {
+    it('should add two floating point numbers', async () => {
+      // Arrange
+      const promptTemplateConfig = new PromptTemplateConfig({
+        prompt: '{{add 2.5 3.5}}',
+        templateFormat: 'handlebars',
+      });
+
+      const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+      // Act
+      const result = await template.render(new Kernel(), new KernelArguments());
+
+      // Assert
+      expect(result).toBe('6');
+    });
+  });
+
+  describe('subtract helper', () => {
+    it('should subtract two numbers', async () => {
+      // Arrange
+      const promptTemplateConfig = new PromptTemplateConfig({
+        prompt: '{{subtract 10 3}}',
+        templateFormat: 'handlebars',
+      });
+
+      const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+      // Act
+      const result = await template.render(new Kernel(), new KernelArguments());
+
+      // Assert
+      expect(result).toBe('7');
+    });
+  });
+
+  describe('equals helper', () => {
+    test.each([
+      [1, 1, true],
+      [1, 2, false],
+      ['test', 'test', true],
+      ['test', 'TEST', false],
+    ])('should return true if two values are equal', async (a, b, expected) => {
+      // Arrange
+      const promptTemplateConfig = new PromptTemplateConfig({
+        prompt: '{{equals a b}}',
+        templateFormat: 'handlebars',
+      });
+
+      const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+      // Act
+      const result = await template.render(new Kernel(), new KernelArguments({ a, b }));
+
+      // Assert
+      expect(result).toBe(expected.toString());
+    });
+  });
 });

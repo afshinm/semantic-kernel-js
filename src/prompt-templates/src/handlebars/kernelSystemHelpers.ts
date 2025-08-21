@@ -61,4 +61,29 @@ export const registerKernelSystemHelpers = (handlebars: typeof Handlebars, varia
     // Return the first truthy value or the last argument if none are truthy
     return args.slice(0, -1).find((v) => v);
   });
+
+  handlebars.registerHelper('add', function (...args: unknown[]) {
+    // Sum all numeric arguments
+    return args.slice(0, -1).reduce((sum: number, value) => {
+      const num = Number(value);
+      return isNaN(num) ? sum : sum + num;
+    }, 0);
+  });
+
+  handlebars.registerHelper('subtract', function (...args: unknown[]) {
+    // Subtract all numeric arguments from the first one
+    if (args.length < 2) {
+      throw new Error('subtract helper requires at least two arguments');
+    }
+    const first = Number(args[0]);
+    return args.slice(1, -1).reduce((result: number, value) => {
+      const num = Number(value);
+      return isNaN(num) ? result : result - num;
+    }, first);
+  });
+
+  handlebars.registerHelper('equals', function (a: unknown, b: unknown) {
+    // Check if two values are equal
+    return a === b;
+  });
 };
