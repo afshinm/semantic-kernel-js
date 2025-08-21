@@ -59,7 +59,7 @@ export const registerKernelSystemHelpers = (handlebars: typeof Handlebars, varia
 
     const end = `</${ChatPromptParser.MessageTagName}>`;
 
-    return `${start}${args.fn()}${end}`;
+    return `${start}${args.fn(variables.arguments)}${end}`;
   });
 
   handlebars.registerHelper('concat', function (...args: unknown[]) {

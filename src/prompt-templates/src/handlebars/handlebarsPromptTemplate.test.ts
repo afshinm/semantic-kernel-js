@@ -1,4 +1,5 @@
 import {
+  ChatPromptParser,
   InputVariable,
   Kernel,
   KernelArguments,
@@ -441,6 +442,66 @@ describe('HandlebarsPromptTemplate', () => {
 
       // Act & Assert
       await expect(template.render(kernel, new KernelArguments())).rejects.toThrow('Message must have a "role"');
+    });
+
+    it('should encode HTML tags in message content', async () => {
+      // Arrange
+      const kernel = new Kernel();
+      const promptTemplateConfig = new PromptTemplateConfig({
+        prompt:
+          '{{#message role="user"}}{{unsafe_input}}{{/message}}{{#message role="system"}}{{safe_input}}{{/message}}',
+        templateFormat: 'handlebars',
+        inputVariables: [
+          new InputVariable({
+            name: 'unsafe_input',
+            allowDangerouslySetContent: false,
+          }),
+          new InputVariable({
+            name: 'safe_input',
+            allowDangerouslySetContent: true,
+          }),
+        ],
+      });
+
+      const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+      // Act
+      const result = await template.render(
+        kernel,
+        new KernelArguments({
+          safe_input: '<b>World</b>',
+          unsafe_input: '<script>alert("Hello World")</script>',
+        })
+      );
+
+      // Assert
+      expect(result).toBe(
+        '<message role="user">&lt;script&gt;alert(&quot;Hello World&quot;)&lt;/script&gt;</message>' +
+          '<message role="system"><b>World</b></message>'
+      );
+    });
+
+    it('should append message and parse it correctly', async () => {
+      // Arrange
+      const kernel = new Kernel();
+      const promptTemplateConfig = new PromptTemplateConfig({
+        prompt: '{{#message role="user"}}Hello{{/message}}{{#message role="assistant"}}Hi!{{/message}}',
+        templateFormat: 'handlebars',
+      });
+
+      const template = new HandlebarsPromptTemplate(promptTemplateConfig);
+
+      // Act
+      const result = await template.render(kernel, new KernelArguments());
+      const chatHistory = ChatPromptParser.tryParse(result); // This will throw if the parsing fails
+
+      // Assert
+      expect(chatHistory).toBeDefined();
+      expect(chatHistory?.length).toBe(2);
+      expect(chatHistory?.[0].role).toBe('user');
+      expect(chatHistory?.[0].text).toBe('Hello');
+      expect(chatHistory?.[1].role).toBe('assistant');
+      expect(chatHistory?.[1].text).toBe('Hi!');
     });
   });
 
