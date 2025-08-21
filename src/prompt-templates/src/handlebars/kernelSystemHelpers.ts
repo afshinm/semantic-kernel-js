@@ -1,4 +1,4 @@
-import { KernelArguments } from '@semantic-kernel/abstractions';
+import { ChatPromptParser, KernelArguments } from '@semantic-kernel/abstractions';
 
 export const registerKernelSystemHelpers = (handlebars: typeof Handlebars, variables: KernelArguments): void => {
   handlebars.registerHelper('set', function (...args: unknown[]) {
@@ -47,17 +47,17 @@ export const registerKernelSystemHelpers = (handlebars: typeof Handlebars, varia
   });
 
   handlebars.registerHelper('message', function (args: { [key: string]: Handlebars.HelperDelegate }) {
-    if (!('role' in args.hash)) {
-      throw new Error('Message must have a "role"');
+    if (!(ChatPromptParser.RoleAttributeName in args.hash)) {
+      throw new Error(`Message must have a "${ChatPromptParser.RoleAttributeName}"`);
     }
 
-    let start = '<message';
+    let start = `<${ChatPromptParser.MessageTagName}`;
     for (const [key, value] of Object.entries(args.hash)) {
       start += ` ${key}="${value}"`;
     }
     start += '>';
 
-    const end = '</message>';
+    const end = `</${ChatPromptParser.MessageTagName}>`;
 
     return `${start}${args.fn()}${end}`;
   });
