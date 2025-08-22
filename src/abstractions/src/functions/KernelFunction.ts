@@ -1,5 +1,5 @@
 import { AIFunctionFactory, type DefaultJsonSchema, type FromSchema, type JsonSchema } from '@semantic-kernel/ai';
-import { defaultServiceId } from '@semantic-kernel/service-provider';
+import { defaultServiceId } from '@semantic-kernel/common';
 import { type Kernel } from '../Kernel';
 import { type PromptExecutionSettings } from '../promptExecutionSettings';
 import { FunctionName } from './FunctionName';

@@ -1,4 +1,4 @@
-import { MapServiceProvider, Service, defaultServiceId } from '@semantic-kernel/service-provider';
+import { MapServiceProvider, Service, defaultServiceId } from '@semantic-kernel/common';
 import { KernelFunction } from './functions';
 import { PromptExecutionSettings } from './promptExecutionSettings';
 

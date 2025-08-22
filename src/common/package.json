@@ -1,6 +1,6 @@
 {
-  "name": "@semantic-kernel/service-provider",
-  "description": "Semantic Kernel Service Provider",
+  "name": "@semantic-kernel/common",
+  "description": "Semantic Kernel Common Library",
   "private": true,
   "version": "0.2.0",
   "main": "./dist/index.js",
@@ -34,5 +34,8 @@
     "tsup": "^8.2.4",
     "typescript": "^5.5.4",
     "typescript-eslint": "^8.2.0"
+  },
+  "dependencies": {
+    "pino": "^9.9.0"
   }
 }

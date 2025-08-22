@@ -1,4 +1,4 @@
-import { EmptyServiceProvider, ServiceProvider } from '@semantic-kernel/service-provider';
+import { EmptyServiceProvider, ServiceProvider } from '../../../common/dist';
 import { ChatClient } from './ChatClient';
 
 export class ChatClientBuilder {

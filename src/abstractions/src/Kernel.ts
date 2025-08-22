@@ -1,5 +1,5 @@
 import { ChatResponseUpdate, type DefaultJsonSchema, type FromSchema, type JsonSchema } from '@semantic-kernel/ai';
-import { MapServiceProvider, type ServiceProvider } from '@semantic-kernel/service-provider';
+import { MapServiceProvider, type ServiceProvider } from '@semantic-kernel/common';
 import {
   type KernelArguments,
   type KernelFunction,

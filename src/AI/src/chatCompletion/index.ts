@@ -14,5 +14,6 @@ export * from './ChatToolMode';
 export * from './DelegatingChatClient';
 export * from './FunctionInvocationContext';
 export * from './FunctionInvokingChatClient';
+export * from './LoggingChatClient';
 export * from './NoneChatToolMode';
 export * from './RequiredChatToolMode';

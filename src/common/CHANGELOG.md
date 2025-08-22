@@ -1,4 +1,4 @@
-# @semantic-kernel/service-provider
+# @semantic-kernel/common
 
 ## 0.2.0
 

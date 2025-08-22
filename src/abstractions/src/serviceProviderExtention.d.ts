@@ -1,6 +1,6 @@
 export {};
 
-declare module '@semantic-kernel/service-provider' {
+declare module '@semantic-kernel/common' {
   export interface ServiceProvider {
     trySelectService<T extends Service>({
       serviceType,
