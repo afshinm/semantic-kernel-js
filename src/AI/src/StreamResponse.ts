@@ -1,3 +1,5 @@
+import { Logger, LoggerFactory } from '@semantic-kernel/common';
+
 export type ServerSentEvent = {
   event: string | null;
   data: string;
@@ -9,6 +11,7 @@ export type ServerSentEvent = {
  * Modified version of the Stream class from the OpenAI API.
  */
 export class StreamResponse<Item> implements AsyncIterable<Item> {
+  private static _logger: Logger = LoggerFactory.getLogger();
   controller: AbortController;
 
   constructor(
@@ -37,9 +40,12 @@ export class StreamResponse<Item> implements AsyncIterable<Item> {
           try {
             const data = JSON.parse(sse.data);
             yield sse.event ? ({ event: sse.event, data } as unknown) : data;
-          } catch (e) {
-            console.error('Failed to parse JSON:', sse.data);
-            throw e;
+          } catch (error) {
+            StreamResponse._logger.error('Failed to parse JSON from SSE data.', {
+              data: sse.data,
+              error,
+            });
+            throw error;
           }
         }
         done = true;

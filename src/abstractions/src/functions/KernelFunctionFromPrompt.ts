@@ -1,4 +1,5 @@
 import { ChatClient, type ChatResponse } from '@semantic-kernel/ai';
+import { Logger, LoggerFactory } from '@semantic-kernel/common';
 import { ChatPromptParser } from '../internalUtilities';
 import { type Kernel } from '../Kernel';
 import { type PromptExecutionSettings } from '../promptExecutionSettings/PromptExecutionSettings';
@@ -15,7 +16,8 @@ import { type KernelArguments } from './KernelArguments';
 import { KernelFunction } from './KernelFunction';
 
 export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
-  private promptTemplate: PromptTemplate;
+  private _promptTemplate: PromptTemplate;
+  private _logger: Logger;
 
   constructor({
     name,
@@ -40,6 +42,8 @@ export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
       description: description ?? 'Generic function, unknown purpose',
     });
 
+    this._logger = LoggerFactory.getLogger();
+
     if (!prompt && !promptTemplate && !promptTemplateConfig) {
       throw new Error('Either prompt, promptTemplate, or promptTemplateConfig must be provided');
     }
@@ -59,7 +63,7 @@ export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
       promptTemplate = this.getPromptTemplate(promptTemplateConfig);
     }
 
-    this.promptTemplate = promptTemplate;
+    this._promptTemplate = promptTemplate;
   }
 
   override async invokeCore(kernel: Kernel, args: KernelArguments): Promise<FunctionResult<ChatResponse>> {
@@ -143,7 +147,9 @@ export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
       throw new Error('Service not found in kernel');
     }
 
-    const renderedPrompt = await this.promptTemplate.render(kernel, args);
+    const renderedPrompt = await this._promptTemplate.render(kernel, args);
+
+    this._logger.trace(`Rendered prompt: ${renderedPrompt}`, { executionSettings });
 
     return {
       renderedPrompt,

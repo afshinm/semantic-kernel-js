@@ -1,3 +1,4 @@
+import { Logger, LoggerFactory } from '@semantic-kernel/common';
 import { type ChatClient, type ChatResponse, DelegatingChatClient, FunctionInvocationContext } from '.';
 import { UsageDetails } from '../UsageDetails';
 import { type AIContent, ChatMessage, FunctionCallContent, FunctionResultContent } from '../contents';
@@ -89,6 +90,7 @@ export class FunctionInvocationResult {
 export class FunctionInvokingChatClient extends DelegatingChatClient {
   private _currentContext?: FunctionInvocationContext;
   private _maximumIterationsPerRequest?: number;
+  private _logger: Logger;
   public keepFunctionCallingMessages: boolean = true;
   public retryOnError: boolean = false;
   public detailedErrors: boolean = false;
@@ -115,6 +117,7 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
 
   public constructor(innerClient: ChatClient) {
     super(innerClient);
+    this._logger = LoggerFactory.getLogger();
   }
 
   override async getResponse(chatMessages: string | ChatMessage[], options?: ChatOptions) {
@@ -420,11 +423,21 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
   protected async invokeFunction(context: FunctionInvocationContext): Promise<unknown | undefined> {
     let result: unknown | undefined = undefined;
 
+    this._logger.debug(`Invoking ${context.function.name}.`);
+    this._logger.trace(`Invoking ${context.function.name}.`, { arguments: context.arguments });
+
+    const startTimer = performance.now();
+
     try {
       this.currentContext = context;
       result = await context.function.invoke(context.arguments);
+
+      const duration = performance.now() - startTimer;
+
+      this._logger.debug(`${context.function.name} invocation completed.`);
+      this._logger.trace(`${context.function.name} invocation completed.`, { result, duration });
     } catch (e) {
-      console.error('Error invoking function', e);
+      this._logger.error(`${context.function.name} invocation failed`, { error: e });
       throw e;
     }
 
