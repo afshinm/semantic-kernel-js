@@ -34,5 +34,8 @@
     "tsup": "^8.2.4",
     "typescript": "^5.5.4",
     "typescript-eslint": "^8.2.0"
+  },
+  "dependencies": {
+    "pino": "^9.9.0"
   }
 }
