@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "@semantic-kernel/ai": "*",
-    "fast-xml-parser": "^5.2.5"
+    "fast-xml-parser": "^5.2.5",
+    "handlebars": "^4.7.8"
   }
 }

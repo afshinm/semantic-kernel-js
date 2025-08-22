@@ -9,6 +9,7 @@ type BaseKernelPlugin = {
  * ArrayKernelPlugin represents a plugin that contains an array of functions.
  *This type is used in {@link KernelPlugins} to represent a plugin.
  */
+
 type ArrayKernelPlugin = BaseKernelPlugin & {
   functions: Array<KernelFunction>;
 };

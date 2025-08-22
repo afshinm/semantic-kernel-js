@@ -4,8 +4,8 @@ import { XMLPromptParser } from './XMLPromptParser';
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class ChatPromptParser {
-  private static readonly MessageTagName = 'message';
-  private static readonly RoleAttributeName = 'role';
+  public static readonly MessageTagName = 'message';
+  public static readonly RoleAttributeName = 'role';
   private static readonly TextTagName = 'TEXT';
 
   static tryParse(prompt: string): ChatMessage[] | undefined {

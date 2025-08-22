@@ -9,7 +9,7 @@ import {
   MapKernelPlugins,
 } from './functions';
 import { type PromptExecutionSettings } from './promptExecutionSettings';
-import { KernelFunctionFromPromptMetadata } from './promptTemplate';
+import { PromptTemplateFormat } from './promptTemplate';
 
 /**
  * Represents a kernel.
@@ -122,12 +122,18 @@ export class Kernel {
       args,
       executionSettings,
       ...props
-    }: Omit<Partial<KernelFunctionFromPromptMetadata>, 'executionSettings'> & {
+    }: {
+      name?: string;
+      pluginName?: string;
       args?: KernelArguments;
+      templateFormat?: PromptTemplateFormat;
       executionSettings?: Map<string, PromptExecutionSettings> | PromptExecutionSettings[] | PromptExecutionSettings;
     } = {}
   ) {
-    const kernelFunctionFromPrompt = KernelFunctionFromPrompt.create(prompt, props);
+    const kernelFunctionFromPrompt = new KernelFunctionFromPrompt({
+      prompt,
+      ...props,
+    });
 
     return this.invoke({ kernelFunction: kernelFunctionFromPrompt, args, executionSettings });
   }
@@ -144,12 +150,18 @@ export class Kernel {
       args,
       executionSettings,
       ...props
-    }: Omit<Partial<KernelFunctionFromPromptMetadata>, 'executionSettings'> & {
+    }: {
+      name?: string;
+      pluginName?: string;
       args?: KernelArguments;
+      templateFormat?: PromptTemplateFormat;
       executionSettings?: Map<string, PromptExecutionSettings> | PromptExecutionSettings[] | PromptExecutionSettings;
     } = {}
   ) {
-    const kernelFunctionFromPrompt = KernelFunctionFromPrompt.create(prompt, props);
+    const kernelFunctionFromPrompt = new KernelFunctionFromPrompt({
+      prompt,
+      ...props,
+    });
 
     return this.invokeStreaming<ChatResponseUpdate>({
       kernelFunction: kernelFunctionFromPrompt,

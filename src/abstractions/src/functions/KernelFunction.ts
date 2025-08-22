@@ -6,13 +6,13 @@ import { FunctionName } from './FunctionName';
 import { type FunctionResult } from './FunctionResult';
 import { KernelArguments } from './KernelArguments';
 
-export class KernelFunctionMetadata<Schema extends JsonSchema = typeof DefaultJsonSchema> {
-  name: string = '';
+export type KernelFunctionMetadata<Schema extends JsonSchema = typeof DefaultJsonSchema> = {
+  name: string;
   description?: string;
   schema?: Schema;
   pluginName?: string;
-  executionSettings?: Map<string, PromptExecutionSettings>;
-}
+  executionSettings?: Map<string, PromptExecutionSettings> | PromptExecutionSettings[] | PromptExecutionSettings;
+};
 
 export abstract class KernelFunction<
   ReturnType = unknown,
@@ -20,9 +20,13 @@ export abstract class KernelFunction<
   Args = FromSchema<Schema>,
 > {
   private _metadata: KernelFunctionMetadata<Schema>;
+  private _executionSettings?: Map<string, PromptExecutionSettings>;
 
   constructor(metadata: KernelFunctionMetadata<Schema>) {
     this._metadata = metadata;
+    if (metadata.executionSettings) {
+      this.executionSettings = metadata.executionSettings;
+    }
   }
 
   get metadata(): KernelFunctionMetadata<Schema> {
@@ -34,7 +38,7 @@ export abstract class KernelFunction<
   }
 
   get executionSettings(): Map<string, PromptExecutionSettings> | undefined {
-    return this.metadata.executionSettings;
+    return this._executionSettings;
   }
 
   set executionSettings(
@@ -46,18 +50,18 @@ export abstract class KernelFunction<
       for (const _settings of settings) {
         const targetServiceId = _settings.serviceId ?? defaultServiceId;
 
-        if (this._metadata.executionSettings?.has(targetServiceId)) {
+        if (this._executionSettings?.has(targetServiceId)) {
           throw new Error(`Execution settings for service ID ${targetServiceId} already exists.`);
         }
 
         newExecutionSettings.set(targetServiceId, _settings);
       }
 
-      this._metadata.executionSettings = newExecutionSettings;
+      this._executionSettings = newExecutionSettings;
     } else if (settings instanceof Map) {
-      this._metadata.executionSettings = settings;
+      this._executionSettings = settings;
     } else {
-      this._metadata.executionSettings = new Map([[settings.serviceId ?? defaultServiceId, settings]]);
+      this._executionSettings = new Map([[settings.serviceId ?? defaultServiceId, settings]]);
     }
   }
 
@@ -85,8 +89,7 @@ export abstract class KernelFunction<
 
   asAIFunction(kernel: Kernel) {
     return AIFunctionFactory.create(
-      async (args: Args) =>
-        (await this.invoke(kernel, new KernelArguments(args, this.metadata.executionSettings))).value,
+      async (args: Args) => (await this.invoke(kernel, new KernelArguments(args, this.executionSettings))).value,
       {
         ...this.metadata,
         name: FunctionName.fullyQualifiedName({
