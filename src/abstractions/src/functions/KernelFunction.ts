@@ -11,6 +11,7 @@ export type KernelFunctionMetadata<Schema extends JsonSchema = typeof DefaultJso
   description?: string;
   schema?: Schema;
   pluginName?: string;
+  executionSettings?: Map<string, PromptExecutionSettings> | PromptExecutionSettings[] | PromptExecutionSettings;
 };
 
 export abstract class KernelFunction<
@@ -23,6 +24,9 @@ export abstract class KernelFunction<
 
   constructor(metadata: KernelFunctionMetadata<Schema>) {
     this._metadata = metadata;
+    if (metadata.executionSettings) {
+      this.executionSettings = metadata.executionSettings;
+    }
   }
 
   get metadata(): KernelFunctionMetadata<Schema> {

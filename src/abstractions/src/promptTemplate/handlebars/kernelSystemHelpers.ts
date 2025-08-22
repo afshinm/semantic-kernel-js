@@ -41,7 +41,7 @@ export const registerKernelSystemHelpers = (handlebars: typeof Handlebars, varia
     }
 
     if (varName) {
-      return variables.arguments?.[varName];
+      return { ...(variables.arguments ?? {}) }[varName];
     }
 
     return '';
