@@ -1,5 +1,5 @@
 import { ChatClient } from '@semantic-kernel/ai';
-import { MapServiceProvider } from '@semantic-kernel/service-provider';
+import { MapServiceProvider } from '@semantic-kernel/common';
 import { kernelFunction } from './functions';
 import { PromptExecutionSettings, ServiceId } from './promptExecutionSettings';
 

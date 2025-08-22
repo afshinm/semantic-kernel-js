@@ -6,6 +6,6 @@ export default defineConfig([
     format: ['cjs', 'esm'],
     dts: true,
     sourcemap: true,
-    noExternal: ['@semantic-kernel/service-provider'],
+    noExternal: ['@semantic-kernel/common'],
   },
 ]);
