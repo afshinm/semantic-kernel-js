@@ -76,15 +76,45 @@ export abstract class KernelFunction<
     kernel: Kernel,
     args?: KernelArguments<Schema, Args>
   ): Promise<FunctionResult<ReturnType, Schema, Args>> {
-    return this.invokeCore(kernel, args ?? new KernelArguments());
+    let functionResult: FunctionResult<ReturnType, Schema, Args> = { function: this };
+
+    const invocationContext = await kernel.onFunctionInvocation({
+      arguments: args,
+      function: this,
+      functionResult,
+      isStreaming: false,
+      functionCallback: async (context) => {
+        context.result = await this.invokeCore(kernel, args ?? new KernelArguments());
+      },
+    });
+
+    functionResult = invocationContext.result;
+
+    return functionResult;
   }
 
   async *invokeStreaming<T>(kernel: Kernel, args?: KernelArguments<Schema, Args>): AsyncGenerator<T> {
-    const enumerable = this.invokeStreamingCore<T>(kernel, args ?? new KernelArguments());
+    args = args ?? new KernelArguments();
 
-    for await (const value of enumerable) {
-      yield value;
-    }
+    const functionResult: FunctionResult<ReturnType, Schema, Args> = { function: this };
+
+    const invocationContext = await kernel.onFunctionInvocation({
+      arguments: args,
+      function: this,
+      functionResult,
+      isStreaming: true,
+      functionCallback: async (context) => {
+        const enumerable = this.invokeStreamingCore(kernel, args);
+        context.result.value = enumerable;
+      },
+    });
+
+    yield* invocationContext.result.value as AsyncGenerator<T>;
+
+    // for await (const value of enumerable) {
+    //   yield value;
+    // }
+    // yield* this.invokeStreamingCore<T>(kernel, args ?? new KernelArguments());
   }
 
   asAIFunction(kernel: Kernel) {
