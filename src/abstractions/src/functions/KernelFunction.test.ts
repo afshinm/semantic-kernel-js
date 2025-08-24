@@ -1,7 +1,6 @@
 import { Kernel } from '../Kernel';
-import { FunctionResult } from './FunctionResult';
 import { KernelArguments } from './KernelArguments';
-import { KernelFunction, kernelFunction } from './KernelFunction';
+import { kernelFunction } from './KernelFunction';
 
 describe('kernelFunction', () => {
   describe('creating', () => {
@@ -222,34 +221,28 @@ describe('kernelFunction', () => {
       // Arrange
       const kernelArguments = new KernelArguments({ value: 'testValue' });
 
-      class StreamingKernelFunction extends KernelFunction {
-        override invokeCore(): Promise<FunctionResult> {
-          throw new Error('Method not implemented.');
-        }
-
-        // Override to simulate streaming
-        override async *invokeStreamingCore<T>(_kernel: Kernel, args: KernelArguments): AsyncGenerator<T> {
-          const val = args.arguments ? (args.arguments as { value: string }).value : '';
+      const fn = kernelFunction(
+        async function* ({ value }) {
+          const val = value ?? '';
           for (const char of val) {
             // simulate some async operation
             await new Promise((resolve) => setTimeout(resolve, 1));
-            yield char as unknown as T;
+            yield char as unknown as typeof value;
           }
-        }
-      }
-
-      const fn = new StreamingKernelFunction({
-        name: 'streamingTestFunction',
-        schema: {
-          type: 'object',
-          properties: {
-            value: {
-              type: 'string',
+        },
+        {
+          name: 'streamingTestFunction',
+          schema: {
+            type: 'object',
+            properties: {
+              value: {
+                type: 'string',
+              },
             },
-          },
-          required: ['value'],
-        } as const,
-      });
+            required: ['value'],
+          } as const,
+        }
+      );
 
       // Act
       const chunks: string[] = [];
@@ -411,34 +404,26 @@ describe('kernelFunction', () => {
         await next(context);
       });
 
-      class StreamingKernelFunction extends KernelFunction {
-        override invokeCore(): Promise<FunctionResult> {
-          throw new Error('Method not implemented.');
-        }
-
-        // Override to simulate streaming
-        override async *invokeStreamingCore<T>(_kernel: Kernel, args: KernelArguments): AsyncGenerator<T> {
-          const val = args.arguments ? (args.arguments as { value: string }).value : '';
-          for (const char of val) {
+      const fn = kernelFunction(
+        async function* ({ value }) {
+          for (const char of value ?? '') {
             // simulate some async operation
             await new Promise((resolve) => setTimeout(resolve, 1));
-            yield char as unknown as T;
+            yield char;
           }
-        }
-      }
-
-      const fn = new StreamingKernelFunction({
-        name: 'streamingTestFunction',
-        schema: {
-          type: 'object',
-          properties: {
-            value: {
-              type: 'string',
+        },
+        {
+          name: 'streamingTestFunction',
+          schema: {
+            type: 'object',
+            properties: {
+              value: {
+                type: 'string',
+              },
             },
           },
-          required: ['value'],
-        } as const,
-      });
+        }
+      );
 
       // Act
       const chunks: string[] = [];

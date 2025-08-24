@@ -5,6 +5,7 @@ import { type PromptExecutionSettings } from '../promptExecutionSettings';
 import { FunctionName } from './FunctionName';
 import { type FunctionResult } from './FunctionResult';
 import { KernelArguments } from './KernelArguments';
+import { isAsyncGenerator } from './utility';
 
 export type KernelFunctionMetadata<Schema extends JsonSchema = typeof DefaultJsonSchema> = {
   name: string;
@@ -110,11 +111,6 @@ export abstract class KernelFunction<
     });
 
     yield* invocationContext.result.value as AsyncGenerator<T>;
-
-    // for await (const value of enumerable) {
-    //   yield value;
-    // }
-    // yield* this.invokeStreamingCore<T>(kernel, args ?? new KernelArguments());
   }
 
   asAIFunction(kernel: Kernel) {
@@ -136,7 +132,7 @@ export const kernelFunction = <
   Schema extends JsonSchema = typeof DefaultJsonSchema,
   Args = FromSchema<Schema>,
 >(
-  fn: (args: Args, kernel?: Kernel) => ReturnType,
+  fn: (args: Args, kernel?: Kernel) => ReturnType | AsyncGenerator<unknown>,
   metadata: KernelFunctionMetadata<Schema>
 ): KernelFunction<ReturnType, Schema, Args> => {
   return new (class extends KernelFunction<ReturnType, Schema, Args> {
@@ -144,8 +140,16 @@ export const kernelFunction = <
       super(metadata);
     }
 
-    protected override invokeStreamingCore<T>(): AsyncGenerator<T> {
-      throw new Error('Method not implemented.');
+    override async *invokeStreamingCore<T>(kernel: Kernel, args: KernelArguments<Schema, Args>): AsyncGenerator<T> {
+      const result = await fn(args.arguments, kernel);
+
+      if (isAsyncGenerator(result)) {
+        // Stream values directly
+        yield* result as AsyncGenerator<T>;
+      } else {
+        // If not a generator, just yield once
+        yield result as unknown as T;
+      }
     }
 
     override async invokeCore(
@@ -154,10 +158,14 @@ export const kernelFunction = <
     ): Promise<FunctionResult<ReturnType, Schema, Args>> {
       const value = await fn(args.arguments, kernel);
 
-      return {
-        function: this,
-        value,
-      };
+      if (!isAsyncGenerator(value)) {
+        return {
+          function: this,
+          value,
+        };
+      }
+
+      throw new Error('Function is an AsyncGenerator. Use invokeStreaming instead.');
     }
   })();
 };
