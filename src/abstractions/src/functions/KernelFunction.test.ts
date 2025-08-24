@@ -216,38 +216,225 @@ describe('kernelFunction', () => {
       // Assert
       expect(result.value).toEqual(42);
     });
+
+    it('should invoke a streaming function with one param', async () => {
+      // Arrange
+      const kernelArguments = new KernelArguments({ value: 'testValue' });
+
+      const fn = kernelFunction(
+        async function* ({ value }) {
+          const val = value ?? '';
+          for (const char of val) {
+            // simulate some async operation
+            await new Promise((resolve) => setTimeout(resolve, 1));
+            yield char as unknown as typeof value;
+          }
+        },
+        {
+          name: 'streamingTestFunction',
+          schema: {
+            type: 'object',
+            properties: {
+              value: {
+                type: 'string',
+              },
+            },
+            required: ['value'],
+          } as const,
+        }
+      );
+
+      // Act
+      const chunks: string[] = [];
+      for await (const chunk of fn.invokeStreaming(sk, kernelArguments)) {
+        chunks.push(chunk as string);
+      }
+
+      // Assert
+      expect(chunks).toEqual(['t', 'e', 's', 't', 'V', 'a', 'l', 'u', 'e']);
+    });
   });
 
-  // describe('functionInvocationFilters', () => {
-  //   it('should call functionInvocationFilters', async () => {
-  //     // Arrange
-  //     const fn = () => 'testResult';
-  //     const metadata = {
-  //       name: 'testFunction',
-  //       parameters: {},
-  //     };
-  //     const sk = new Kernel();
-  //     const filterCallsHistory: number[] = [];
+  describe('functionInvocationFilters', () => {
+    it('should call functionInvocationFilters', async () => {
+      // Arrange
+      const fn = () => 'testResult';
+      const metadata = {
+        name: 'testFunction',
+        parameters: {},
+      };
+      const sk = new Kernel();
+      const filterCallsHistory: number[] = [];
 
-  //     sk.functionInvocationFilters.push({
-  //       onFunctionInvocationFilter: async ({ context, next }) => {
-  //         filterCallsHistory.push(Date.now());
-  //         await next(context);
-  //       },
-  //     });
-  //     sk.functionInvocationFilters.push({
-  //       onFunctionInvocationFilter: async ({ context, next }) => {
-  //         filterCallsHistory.push(Date.now() + 5);
-  //         await next(context);
-  //       },
-  //     });
+      sk.useFunctionInvocation(async (context, next) => {
+        filterCallsHistory.push(Date.now());
+        await next(context);
+      });
 
-  //     // Act
-  //     await kernelFunction(fn, metadata).invoke(sk);
+      sk.useFunctionInvocation(async (context, next) => {
+        filterCallsHistory.push(Date.now() + 5);
+        await next(context);
+      });
 
-  //     // Assert
-  //     expect(filterCallsHistory).toHaveLength(2);
-  //     expect(filterCallsHistory[0]).toBeLessThan(filterCallsHistory[1]);
-  //   });
-  // });
+      // Act
+      await kernelFunction(fn, metadata).invoke(sk);
+
+      // Assert
+      expect(filterCallsHistory).toHaveLength(2);
+      expect(filterCallsHistory[0]).toBeLessThan(filterCallsHistory[1]);
+    });
+
+    it('should recognize the parameters in the context', async () => {
+      // Arrange
+      const sk = new Kernel();
+      const fn = kernelFunction(({ p1 }) => `**${p1}**`, {
+        name: 'testFunction',
+        schema: {
+          type: 'object',
+          properties: {
+            p1: {
+              type: 'string',
+            },
+          },
+          required: ['p1'],
+        } as const,
+      });
+
+      sk.useFunctionInvocation(async (context, next) => {
+        await next(context);
+        const args = context.arguments.arguments as { p1: string };
+        context.result.value = `***${args.p1}***`;
+      });
+
+      // Act
+      const result = await fn.invoke(sk, new KernelArguments({ p1: 'testValue' }));
+
+      // Assert
+      expect(result.value).toEqual('***testValue***');
+    });
+
+    it('should be able to override the function result', async () => {
+      // Arrange
+      const sk = new Kernel();
+      const fn = kernelFunction(() => 'testResult', {
+        name: 'testFunction',
+      });
+
+      sk.useFunctionInvocation(async (context, next) => {
+        await next(context);
+        context.result.value = 'overriddenResult';
+      });
+
+      // Act
+      const result = await fn.invoke(sk);
+
+      // Assert
+      expect(result.value).toEqual('overriddenResult');
+    });
+
+    it('should not override the function result before calling next', async () => {
+      // Arrange
+      const sk = new Kernel();
+      const fn = kernelFunction(() => 'testResult', {
+        name: 'testFunction',
+      });
+
+      sk.useFunctionInvocation(async (context, next) => {
+        context.result.value = 'overriddenResult';
+        await next(context);
+      });
+
+      // Act
+      const result = await fn.invoke(sk);
+
+      // Assert
+      expect(result.value).toEqual('testResult');
+    });
+
+    it('should not run function if filter does not call next', async () => {
+      // Arrange
+      const sk = new Kernel();
+      const fn = kernelFunction(() => 'testResult', {
+        name: 'testFunction',
+      });
+
+      sk.useFunctionInvocation(async () => {
+        // Do not call next
+      });
+
+      // Act
+      const result = await fn.invoke(sk);
+
+      // Assert
+      expect(result.value).toBeUndefined();
+    });
+
+    it('should pass the kernel instance in the context', async () => {
+      // Arrange
+      const sk = new Kernel();
+      const fn = kernelFunction(() => 'testResult', {
+        name: 'testFunction',
+      });
+
+      let contextKernel: Kernel | undefined;
+      sk.useFunctionInvocation(async (context, next) => {
+        contextKernel = context.kernel;
+        await next(context);
+      });
+
+      // Act
+      await fn.invoke(sk);
+
+      // Assert
+      expect(contextKernel).toBe(sk);
+    });
+
+    it('should call functionInvocationFilters for streaming functions', async () => {
+      // Arrange
+      const sk = new Kernel();
+      const filterCallsHistory: number[] = [];
+
+      sk.useFunctionInvocation(async (context, next) => {
+        filterCallsHistory.push(Date.now());
+        await next(context);
+      });
+
+      sk.useFunctionInvocation(async (context, next) => {
+        filterCallsHistory.push(Date.now() + 5);
+        await next(context);
+      });
+
+      const fn = kernelFunction(
+        async function* ({ value }) {
+          for (const char of value ?? '') {
+            // simulate some async operation
+            await new Promise((resolve) => setTimeout(resolve, 1));
+            yield char;
+          }
+        },
+        {
+          name: 'streamingTestFunction',
+          schema: {
+            type: 'object',
+            properties: {
+              value: {
+                type: 'string',
+              },
+            },
+          },
+        }
+      );
+
+      // Act
+      const chunks: string[] = [];
+      for await (const chunk of fn.invokeStreaming(sk, new KernelArguments({ value: 'testValue' }))) {
+        chunks.push(chunk as string);
+      }
+
+      // Assert
+      expect(chunks).toEqual(['t', 'e', 's', 't', 'V', 'a', 'l', 'u', 'e']);
+      expect(filterCallsHistory).toHaveLength(2);
+      expect(filterCallsHistory[0]).toBeLessThan(filterCallsHistory[1]);
+    });
+  });
 });

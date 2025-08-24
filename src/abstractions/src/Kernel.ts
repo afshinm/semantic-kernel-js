@@ -1,13 +1,16 @@
 import { ChatResponseUpdate, type DefaultJsonSchema, type FromSchema, type JsonSchema } from '@semantic-kernel/ai';
 import { MapServiceProvider, type ServiceProvider } from '@semantic-kernel/common';
 import {
-  type KernelArguments,
+  FunctionResult,
+  KernelArguments,
   type KernelFunction,
   KernelFunctionFromPrompt,
   type KernelPlugin,
   type KernelPlugins,
   MapKernelPlugins,
 } from './functions';
+import { FunctionInvocationFilter } from './functions/FunctionInvocationFilter';
+import { KernelFunctionInvocationContext } from './functions/kernelFunctionInvocationContext';
 import { type PromptExecutionSettings } from './promptExecutionSettings';
 import { PromptTemplateFormat } from './promptTemplate';
 
@@ -17,26 +20,104 @@ import { PromptTemplateFormat } from './promptTemplate';
 export class Kernel {
   private readonly _serviceProvider: ServiceProvider;
   private readonly _plugins: KernelPlugins;
+  private readonly _functionInvocationFilters = new Array<FunctionInvocationFilter>();
 
   /**
    * Creates a new kernel.
    */
-  public constructor() {
+  constructor() {
     this._serviceProvider = new MapServiceProvider();
     this._plugins = new MapKernelPlugins();
   }
 
   /**
+   * Adds a function invocation filter to the kernel.
+   * @param callback The callback to invoke when a function is called.
+   */
+  useFunctionInvocation(
+    callback: (
+      context: KernelFunctionInvocationContext,
+      next: (context: KernelFunctionInvocationContext) => Promise<void>
+    ) => Promise<void>
+  ) {
+    this._functionInvocationFilters.push(callback);
+  }
+
+  async onFunctionInvocation<
+    ReturnType = unknown,
+    Schema extends JsonSchema = typeof DefaultJsonSchema,
+    Args = FromSchema<Schema>,
+  >({
+    function: fn,
+    arguments: args,
+    functionResult,
+    isStreaming,
+    functionCallback,
+  }: {
+    function: KernelFunction<ReturnType, Schema, Args>;
+    arguments?: KernelArguments<Schema, Args>;
+    functionResult: FunctionResult<ReturnType, Schema, Args>;
+    isStreaming: boolean;
+    functionCallback: (context: KernelFunctionInvocationContext) => Promise<void>;
+  }) {
+    const context: KernelFunctionInvocationContext<ReturnType, Schema, Args> = {
+      isStreaming,
+      kernel: this,
+      function: fn,
+      arguments: args ?? new KernelArguments<Schema, Args>(),
+      result: functionResult,
+    };
+
+    await Kernel.invokeFilterOrFunction({
+      functionFilters: this._functionInvocationFilters,
+      functionCallback,
+      context,
+    });
+
+    return context;
+  }
+
+  static async invokeFilterOrFunction({
+    functionFilters,
+    functionCallback,
+    context,
+    index,
+  }: {
+    functionFilters: Array<FunctionInvocationFilter>;
+    functionCallback: (context: KernelFunctionInvocationContext) => Promise<void>;
+    context: KernelFunctionInvocationContext;
+    index?: number;
+  }) {
+    index = index ?? 0;
+
+    if (functionFilters.length > 0 && index < functionFilters.length) {
+      const functionFilter = functionFilters[index];
+      await functionFilter(
+        context,
+        async (context) =>
+          await Kernel.invokeFilterOrFunction({
+            functionFilters,
+            functionCallback,
+            context,
+            index: index + 1,
+          })
+      );
+    } else {
+      await functionCallback(context);
+    }
+  }
+
+  /**
    * Gets the {@link KernelPlugins} instance.
    */
-  public get plugins() {
+  get plugins() {
     return this._plugins;
   }
 
   /**
    * Gets the {@link ServiceProvider} instance.
    */
-  public get services() {
+  get services() {
     return this._serviceProvider;
   }
 
@@ -45,7 +126,7 @@ export class Kernel {
    * @param service The service to add.
    * @returns The kernel.
    */
-  public addService(...props: Parameters<ServiceProvider['addService']>) {
+  addService(...props: Parameters<ServiceProvider['addService']>) {
     this._serviceProvider.addService(...props);
     return this;
   }
@@ -55,7 +136,7 @@ export class Kernel {
    * @param plugin The plugin to add.
    * @returns The kernel.
    */
-  public addPlugin(plugin: KernelPlugin) {
+  addPlugin(plugin: KernelPlugin) {
     this._plugins.addPlugin(plugin);
     return this;
   }
@@ -68,11 +149,7 @@ export class Kernel {
    * @param params.executionSettings The execution settings to pass to the kernel function (optional).
    * @returns The result of the KernelFunction.
    */
-  public async invoke<
-    ReturnType = unknown,
-    Schema extends JsonSchema = typeof DefaultJsonSchema,
-    Args = FromSchema<Schema>,
-  >({
+  async invoke<ReturnType = unknown, Schema extends JsonSchema = typeof DefaultJsonSchema, Args = FromSchema<Schema>>({
     kernelFunction,
     args,
     executionSettings,
@@ -89,7 +166,7 @@ export class Kernel {
     return functionResult.value;
   }
 
-  public invokeStreaming<
+  invokeStreaming<
     T,
     ReturnType = unknown,
     Schema extends JsonSchema = typeof DefaultJsonSchema,
@@ -116,7 +193,7 @@ export class Kernel {
    * @param params The parameters for the prompt.
    * @returns The result of the prompt invocation.
    */
-  public async invokePrompt(
+  async invokePrompt(
     prompt: string,
     {
       args,
@@ -144,7 +221,7 @@ export class Kernel {
    * @param params The parameters for the prompt.
    * @returns A stream of {@link ChatResponseUpdate} objects.
    */
-  public invokeStreamingPrompt(
+  invokeStreamingPrompt(
     prompt: string,
     {
       args,

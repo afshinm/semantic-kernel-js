@@ -46,4 +46,34 @@ describe('MapServiceProvider', () => {
       expect(serviceProvider.getServices(MyChatClient).size).toBe(2);
     });
   });
+
+  describe('getServices', () => {
+    it('should get all services of a type', () => {
+      // Arrange
+      const serviceProvider = new MapServiceProvider();
+      const mockService1 = new MyChatClient();
+      const mockService2 = new MyChatClient();
+      serviceProvider.addService(mockService1);
+      serviceProvider.addService(mockService2, { serviceId: 'MyChatClient2' });
+
+      // Act
+      const services = serviceProvider.getServices(MyChatClient);
+
+      // Assert
+      expect(services.size).toBe(2);
+      expect(services.get('MyChatClient')).toBe(mockService1);
+      expect(services.get('MyChatClient2')).toBe(mockService2);
+    });
+
+    it('should return an empty map if no services of the type are found', () => {
+      // Arrange
+      const serviceProvider = new MapServiceProvider();
+
+      // Act
+      const services = serviceProvider.getServices(MyChatClient);
+
+      // Assert
+      expect(services.size).toBe(0);
+    });
+  });
 });
