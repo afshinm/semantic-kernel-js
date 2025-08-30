@@ -1,6 +1,12 @@
 import { ChatResponseUpdate, type DefaultJsonSchema, type FromSchema, type JsonSchema } from '@semantic-kernel/ai';
 import { MapServiceProvider, type ServiceProvider } from '@semantic-kernel/common';
 import {
+  type FunctionInvocationFilter,
+  type KernelFunctionInvocationContext,
+  type PromptRenderContext,
+  type PromptRenderFilter,
+} from './filters';
+import {
   FunctionResult,
   KernelArguments,
   type KernelFunction,
@@ -9,8 +15,6 @@ import {
   type KernelPlugins,
   MapKernelPlugins,
 } from './functions';
-import { FunctionInvocationFilter } from './functions/FunctionInvocationFilter';
-import { KernelFunctionInvocationContext } from './functions/kernelFunctionInvocationContext';
 import { type PromptExecutionSettings } from './promptExecutionSettings';
 import { PromptTemplateFormat } from './promptTemplate';
 
@@ -21,6 +25,7 @@ export class Kernel {
   private readonly _serviceProvider: ServiceProvider;
   private readonly _plugins: KernelPlugins;
   private readonly _functionInvocationFilters = new Array<FunctionInvocationFilter>();
+  private readonly _promptRenderFilters = new Array<PromptRenderFilter>();
 
   /**
    * Creates a new kernel.
@@ -28,6 +33,79 @@ export class Kernel {
   constructor() {
     this._serviceProvider = new MapServiceProvider();
     this._plugins = new MapKernelPlugins();
+  }
+
+  /**
+   * Adds a prompt rendering filter to the kernel.
+   * @param callback The callback to invoke when a prompt is rendered.
+   */
+  usePromptRender(
+    callback: (context: PromptRenderContext, next: (context: PromptRenderContext) => Promise<void>) => Promise<void>
+  ) {
+    this._promptRenderFilters.push(callback);
+  }
+
+  /**
+   * Internal method to handle prompt rendering with filters.
+   */
+  async onPromptRender({
+    function: fn,
+    args,
+    isStreaming,
+    executionSettings,
+    renderCallback,
+  }: {
+    function: KernelFunction;
+    args: KernelArguments;
+    isStreaming: boolean;
+    executionSettings?: PromptExecutionSettings;
+    renderCallback: (context: PromptRenderContext) => Promise<void>;
+  }) {
+    const context: PromptRenderContext = {
+      function: fn,
+      isStreaming,
+      kernel: this,
+      executionSettings,
+      arguments: args,
+    };
+
+    await Kernel.invokeFilterOrPromptRender({
+      promptFilters: this._promptRenderFilters,
+      renderCallback,
+      context,
+    });
+
+    return context;
+  }
+
+  private static async invokeFilterOrPromptRender({
+    promptFilters,
+    renderCallback,
+    context,
+    index,
+  }: {
+    promptFilters: Array<PromptRenderFilter>;
+    renderCallback: (context: PromptRenderContext) => Promise<void>;
+    context: PromptRenderContext;
+    index?: number;
+  }) {
+    index = index ?? 0;
+
+    if (promptFilters.length > 0 && index < promptFilters.length) {
+      const promptFilter = promptFilters[index];
+      await promptFilter(
+        context,
+        async (context) =>
+          await Kernel.invokeFilterOrPromptRender({
+            promptFilters,
+            renderCallback,
+            context,
+            index: index + 1,
+          })
+      );
+    } else {
+      await renderCallback(context);
+    }
   }
 
   /**
@@ -43,6 +121,9 @@ export class Kernel {
     this._functionInvocationFilters.push(callback);
   }
 
+  /**
+   * Internal method to handle function invocation with filters.
+   */
   async onFunctionInvocation<
     ReturnType = unknown,
     Schema extends JsonSchema = typeof DefaultJsonSchema,
@@ -77,7 +158,7 @@ export class Kernel {
     return context;
   }
 
-  static async invokeFilterOrFunction({
+  private static async invokeFilterOrFunction({
     functionFilters,
     functionCallback,
     context,
