@@ -147,7 +147,24 @@ export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
       throw new Error('Service not found in kernel');
     }
 
-    const renderedPrompt = await this._promptTemplate.render(kernel, args);
+    // Use prompt rendering filters
+    const context = await kernel.onPromptRendering({
+      function: this,
+      arguments: args,
+      kernel,
+      promptTemplate: this._promptTemplate,
+      promptCallback: async (context) => {
+        // Perform the actual rendering if not already done by a filter
+        if (!context.renderedPrompt) {
+          context.renderedPrompt = await this._promptTemplate.render(kernel, args);
+        }
+      },
+    });
+
+    const renderedPrompt = context.renderedPrompt;
+    if (!renderedPrompt) {
+      throw new Error('Prompt rendering failed: no rendered prompt available');
+    }
 
     this._logger.trace(`Rendered prompt: ${renderedPrompt}`, { executionSettings });
 

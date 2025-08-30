@@ -11,8 +11,10 @@ import {
 } from './functions';
 import { FunctionInvocationFilter } from './functions/FunctionInvocationFilter';
 import { KernelFunctionInvocationContext } from './functions/kernelFunctionInvocationContext';
+import { PromptRenderingContext } from './functions/PromptRenderingContext';
+import { PromptRenderingFilter } from './functions/PromptRenderingFilter';
 import { type PromptExecutionSettings } from './promptExecutionSettings';
-import { PromptTemplateFormat } from './promptTemplate';
+import { type PromptTemplate, PromptTemplateFormat } from './promptTemplate';
 
 /**
  * Represents a kernel.
@@ -21,6 +23,7 @@ export class Kernel {
   private readonly _serviceProvider: ServiceProvider;
   private readonly _plugins: KernelPlugins;
   private readonly _functionInvocationFilters = new Array<FunctionInvocationFilter>();
+  private readonly _promptRenderingFilters = new Array<PromptRenderingFilter>();
 
   /**
    * Creates a new kernel.
@@ -41,6 +44,19 @@ export class Kernel {
     ) => Promise<void>
   ) {
     this._functionInvocationFilters.push(callback);
+  }
+
+  /**
+   * Adds a prompt rendering filter to the kernel.
+   * @param callback The callback to invoke when a prompt is rendered.
+   */
+  usePromptRendering(
+    callback: (
+      context: PromptRenderingContext,
+      next: (context: PromptRenderingContext) => Promise<void>
+    ) => Promise<void>
+  ) {
+    this._promptRenderingFilters.push(callback);
   }
 
   async onFunctionInvocation<
@@ -77,6 +93,39 @@ export class Kernel {
     return context;
   }
 
+  async onPromptRendering<
+    ReturnType = unknown,
+    Schema extends JsonSchema = typeof DefaultJsonSchema,
+    Args = FromSchema<Schema>,
+  >({
+    function: fn,
+    arguments: args,
+    kernel,
+    promptTemplate,
+    promptCallback,
+  }: {
+    function: KernelFunction<ReturnType, Schema, Args>;
+    arguments?: KernelArguments<Schema, Args>;
+    kernel: Kernel;
+    promptTemplate: PromptTemplate;
+    promptCallback: (context: PromptRenderingContext) => Promise<void>;
+  }) {
+    const context: PromptRenderingContext<ReturnType, Schema, Args> = {
+      kernel,
+      function: fn,
+      arguments: args ?? new KernelArguments<Schema, Args>(),
+      promptTemplate,
+    };
+
+    await Kernel.invokePromptFilterOrCallback({
+      promptFilters: this._promptRenderingFilters,
+      promptCallback,
+      context,
+    });
+
+    return context;
+  }
+
   static async invokeFilterOrFunction({
     functionFilters,
     functionCallback,
@@ -104,6 +153,36 @@ export class Kernel {
       );
     } else {
       await functionCallback(context);
+    }
+  }
+
+  static async invokePromptFilterOrCallback({
+    promptFilters,
+    promptCallback,
+    context,
+    index,
+  }: {
+    promptFilters: Array<PromptRenderingFilter>;
+    promptCallback: (context: PromptRenderingContext) => Promise<void>;
+    context: PromptRenderingContext;
+    index?: number;
+  }) {
+    index = index ?? 0;
+
+    if (promptFilters.length > 0 && index < promptFilters.length) {
+      const promptFilter = promptFilters[index];
+      await promptFilter(
+        context,
+        async (context) =>
+          await Kernel.invokePromptFilterOrCallback({
+            promptFilters,
+            promptCallback,
+            context,
+            index: index + 1,
+          })
+      );
+    } else {
+      await promptCallback(context);
     }
   }
 
