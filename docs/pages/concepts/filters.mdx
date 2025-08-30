@@ -1,0 +1,394 @@
+import { Callout } from 'nextra/components'
+
+# Filters and Middleware
+
+Filters in Semantic Kernel provide a powerful middleware pattern that allows you to intercept and modify the behavior of function invocations and prompt rendering. They enable you to add cross-cutting concerns like logging, authentication, caching, and custom processing logic.
+
+## Overview
+
+Semantic Kernel supports two types of filters:
+
+1. **Prompt Render Filters** - Intercept and modify prompt rendering operations
+2. **Function Invocation Filters** - Intercept and modify function execution
+
+Both filter types follow a middleware pattern where each filter can:
+- Inspect and modify the context
+- Continue the pipeline by calling `next()`
+- Short-circuit the pipeline by not calling `next()`
+- Handle errors and implement fallback logic
+
+## usePromptRender
+
+The `usePromptRender` method allows you to register filters that intercept prompt rendering operations before they are sent to AI services.
+
+### Signature
+
+```typescript
+usePromptRender(
+  callback: (
+    context: PromptRenderContext, 
+    next: (context: PromptRenderContext) => Promise<void>
+  ) => Promise<void>
+): void
+```
+
+### Parameters
+
+- **callback**: A function that receives the prompt render context and a `next` function
+  - **context**: Contains information about the prompt being rendered
+  - **next**: Function to continue to the next filter or the actual prompt rendering
+
+### PromptRenderContext Properties
+
+```typescript
+interface PromptRenderContext {
+  function: KernelFunction;           // The function being executed
+  arguments: KernelArguments;         // Arguments passed to the function
+  result?: FunctionResult<ChatResponse>; // Optional result if set by a filter
+  executionSettings?: PromptExecutionSettings; // AI service execution settings
+  renderedPrompt?: string;            // The rendered prompt text
+  isStreaming: boolean;               // Whether this is a streaming operation
+  kernel: Kernel;                     // Reference to the kernel instance
+}
+```
+
+### Basic Usage
+
+```typescript
+import { Kernel } from '@semantic-kernel/abstractions';
+
+const kernel = new Kernel();
+
+// Add a simple logging filter
+kernel.usePromptRender(async (context, next) => {
+  console.log('Before prompt rendering:', context.function.metadata.name);
+  
+  await next(context);
+  
+  console.log('After prompt rendering, rendered prompt:', context.renderedPrompt);
+});
+```
+
+### Advanced Examples
+
+#### Prompt Modification Filter
+
+```typescript
+// Modify prompts to add safety instructions
+kernel.usePromptRender(async (context, next) => {
+  await next(context);
+  
+  if (context.renderedPrompt) {
+    context.renderedPrompt = `${context.renderedPrompt}\n\nPlease provide a safe and helpful response.`;
+  }
+});
+```
+
+#### Content Filtering
+
+```typescript
+// Filter out potentially harmful content
+kernel.usePromptRender(async (context, next) => {
+  await next(context);
+  
+  if (context.renderedPrompt?.includes('harmful-keyword')) {
+    context.renderedPrompt = 'I cannot process this request.';
+  }
+});
+```
+
+#### Caching Filter
+
+```typescript
+const promptCache = new Map<string, string>();
+
+kernel.usePromptRender(async (context, next) => {
+  const cacheKey = `${context.function.metadata.name}-${JSON.stringify(context.arguments)}`;
+  
+  // Check cache first
+  if (promptCache.has(cacheKey)) {
+    context.renderedPrompt = promptCache.get(cacheKey);
+    return; // Skip rendering, use cached version
+  }
+  
+  await next(context);
+  
+  // Cache the result
+  if (context.renderedPrompt) {
+    promptCache.set(cacheKey, context.renderedPrompt);
+  }
+});
+```
+
+#### Early Return with Custom Result
+
+```typescript
+// Provide custom responses for certain conditions
+kernel.usePromptRender(async (context) => {
+  if (context.function.metadata.name === 'maintenance-mode') {
+    context.result = {
+      function: context.function,
+      value: new ChatResponse({
+        message: new ChatMessage({
+          content: 'Service is currently under maintenance.',
+          role: 'assistant'
+        })
+      })
+    };
+    // Don't call next() to short-circuit the pipeline
+    return;
+  }
+  
+  await next(context);
+});
+```
+
+<Callout type="warning">
+  When you don't call `next()`, the prompt rendering pipeline stops at your filter. Make sure to provide a `context.result` or `context.renderedPrompt` when short-circuiting.
+</Callout>
+
+## useFunctionInvocation
+
+The `useFunctionInvocation` method allows you to register filters that intercept function execution operations.
+
+### Signature
+
+```typescript
+useFunctionInvocation(
+  callback: (
+    context: KernelFunctionInvocationContext,
+    next: (context: KernelFunctionInvocationContext) => Promise<void>
+  ) => Promise<void>
+): void
+```
+
+### Parameters
+
+- **callback**: A function that receives the function invocation context and a `next` function
+  - **context**: Contains information about the function being invoked
+  - **next**: Function to continue to the next filter or the actual function execution
+
+### KernelFunctionInvocationContext Properties
+
+```typescript
+interface KernelFunctionInvocationContext<ReturnType = unknown> {
+  function: KernelFunction<ReturnType>;    // The function being executed
+  arguments: KernelArguments;              // Arguments passed to the function
+  result: FunctionResult<ReturnType>;      // Function execution result
+  isStreaming: boolean;                    // Whether this is a streaming operation
+  kernel: Kernel;                          // Reference to the kernel instance
+}
+```
+
+### Basic Usage
+
+```typescript
+import { Kernel } from '@semantic-kernel/abstractions';
+
+const kernel = new Kernel();
+
+// Add a simple performance monitoring filter
+kernel.useFunctionInvocation(async (context, next) => {
+  const startTime = Date.now();
+  console.log(`Starting execution of: ${context.function.metadata.name}`);
+  
+  await next(context);
+  
+  const duration = Date.now() - startTime;
+  console.log(`Completed ${context.function.metadata.name} in ${duration}ms`);
+});
+```
+
+### Advanced Examples
+
+#### Error Handling and Retry Logic
+
+```typescript
+kernel.useFunctionInvocation(async (context, next) => {
+  const maxRetries = 3;
+  let retries = 0;
+  
+  while (retries < maxRetries) {
+    try {
+      await next(context);
+      break; // Success, exit retry loop
+    } catch (error) {
+      retries++;
+      console.log(`Attempt ${retries} failed for ${context.function.metadata.name}:`, error);
+      
+      if (retries >= maxRetries) {
+        throw error; // Re-throw after max retries
+      }
+      
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, 1000 * retries));
+    }
+  }
+});
+```
+
+#### Authorization Filter
+
+```typescript
+kernel.useFunctionInvocation(async (context, next) => {
+  const requiredRole = context.function.metadata.description?.includes('[admin]');
+  const userRole = context.arguments.getValue('userRole');
+  
+  if (requiredRole && userRole !== 'admin') {
+    throw new Error(`Access denied. Admin role required for ${context.function.metadata.name}`);
+  }
+  
+  await next(context);
+});
+```
+
+#### Result Modification
+
+```typescript
+kernel.useFunctionInvocation(async (context, next) => {
+  await next(context);
+  
+  // Add metadata to all function results
+  if (context.result.value) {
+    context.result.metadata = {
+      ...context.result.metadata,
+      executedAt: new Date().toISOString(),
+      functionName: context.function.metadata.name
+    };
+  }
+});
+```
+
+#### Conditional Execution
+
+```typescript
+kernel.useFunctionInvocation(async (context, next) => {
+  // Skip expensive functions in demo mode
+  const isDemoMode = context.arguments.getValue('demoMode') === true;
+  
+  if (isDemoMode && context.function.metadata.name === 'expensive-operation') {
+    context.result = {
+      function: context.function,
+      value: 'Demo result - actual operation skipped'
+    };
+    return; // Don't call next()
+  }
+  
+  await next(context);
+});
+```
+
+## Filter Execution Order
+
+Filters are executed in the order they are registered. The first filter registered will be the outermost layer, and the last filter registered will be closest to the actual execution.
+
+```typescript
+kernel.usePromptRender(async (context, next) => {
+  console.log('Filter 1 - Before');
+  await next(context);
+  console.log('Filter 1 - After');
+});
+
+kernel.usePromptRender(async (context, next) => {
+  console.log('Filter 2 - Before');
+  await next(context);
+  console.log('Filter 2 - After');
+});
+
+// Output order:
+// Filter 1 - Before
+// Filter 2 - Before
+// [Actual prompt rendering]
+// Filter 2 - After
+// Filter 1 - After
+```
+
+## Best Practices
+
+### 1. Always Handle Errors
+
+```typescript
+kernel.useFunctionInvocation(async (context, next) => {
+  try {
+    await next(context);
+  } catch (error) {
+    console.error(`Function ${context.function.metadata.name} failed:`, error);
+    // Optionally provide fallback behavior
+    throw error; // Re-throw or handle gracefully
+  }
+});
+```
+
+### 2. Be Mindful of Performance
+
+```typescript
+kernel.usePromptRender(async (context, next) => {
+  // Avoid expensive operations in filters unless necessary
+  const startTime = performance.now();
+  
+  await next(context);
+  
+  const duration = performance.now() - startTime;
+  if (duration > 1000) {
+    console.warn(`Slow prompt rendering detected: ${duration}ms`);
+  }
+});
+```
+
+### 3. Use TypeScript Types
+
+```typescript
+// Type-safe filter with specific return type
+kernel.useFunctionInvocation<string>(async (context, next) => {
+  await next(context);
+  
+  // TypeScript knows context.result.value is string
+  if (typeof context.result.value === 'string') {
+    context.result.value = context.result.value.trim();
+  }
+});
+```
+
+### 4. Keep Filters Focused
+
+Each filter should have a single responsibility. Instead of one complex filter, create multiple simple filters:
+
+```typescript
+// ✅ Good - Single responsibility
+kernel.useFunctionInvocation(addRequestIdFilter);
+kernel.useFunctionInvocation(addLoggingFilter);
+kernel.useFunctionInvocation(addAuthenticationFilter);
+
+// ❌ Avoid - Multiple responsibilities in one filter
+kernel.useFunctionInvocation(complexMultiPurposeFilter);
+```
+
+## Common Use Cases
+
+### Logging and Monitoring
+- Request/response logging
+- Performance monitoring
+- Error tracking
+- Audit trails
+
+### Security
+- Authentication and authorization
+- Input validation and sanitization
+- Content filtering
+- Rate limiting
+
+### Caching and Optimization
+- Response caching
+- Request deduplication
+- Resource pooling
+- Load balancing
+
+### Development and Testing
+- Request/response mocking
+- A/B testing
+- Feature flags
+- Debug information injection
+
+<Callout type="info">
+  Filters provide a clean way to implement cross-cutting concerns without modifying your core business logic. They promote separation of concerns and make your code more maintainable and testable.
+</Callout>

@@ -36,8 +36,34 @@ export class Kernel {
   }
 
   /**
-   * Adds a prompt rendering filter to the kernel.
-   * @param callback The callback to invoke when a prompt is rendered.
+   * Adds a prompt rendering filter to the kernel. These filters allow you to intercept and modify
+   * prompt rendering operations using a middleware pattern. Filters are executed in registration order.
+   *
+   * @param callback The callback function that will be invoked when a prompt is rendered.
+   *                 This function receives a PromptRenderContext and a next function.
+   *                 Call next(context) to continue to the next filter or actual prompt rendering.
+   *                 Omit calling next() to short-circuit the pipeline.
+   *
+   * @example
+   * ```typescript
+   * // Add a logging filter
+   * kernel.usePromptRender(async (context, next) => {
+   *   console.log('Rendering prompt for:', context.function.metadata.name);
+   *   await next(context);
+   *   console.log('Rendered prompt:', context.renderedPrompt);
+   * });
+   *
+   * // Add a prompt modification filter
+   * kernel.usePromptRender(async (context, next) => {
+   *   await next(context);
+   *   if (context.renderedPrompt) {
+   *     context.renderedPrompt += '\nPlease provide a helpful response.';
+   *   }
+   * });
+   * ```
+   *
+   * @see {@link PromptRenderContext} for details about the context object
+   * @see {@link PromptRenderFilter} for the filter function signature
    */
   usePromptRender(
     callback: (context: PromptRenderContext, next: (context: PromptRenderContext) => Promise<void>) => Promise<void>
@@ -109,8 +135,40 @@ export class Kernel {
   }
 
   /**
-   * Adds a function invocation filter to the kernel.
-   * @param callback The callback to invoke when a function is called.
+   * Adds a function invocation filter to the kernel. These filters allow you to intercept and modify
+   * function execution operations using a middleware pattern. Filters are executed in registration order.
+   *
+   * @param callback The callback function that will be invoked when a function is executed.
+   *                 This function receives a KernelFunctionInvocationContext and a next function.
+   *                 Call next(context) to continue to the next filter or actual function execution.
+   *                 Omit calling next() to short-circuit the pipeline.
+   *
+   * @example
+   * ```typescript
+   * // Add a performance monitoring filter
+   * kernel.useFunctionInvocation(async (context, next) => {
+   *   const start = Date.now();
+   *   console.log(`Starting: ${context.function.metadata.name}`);
+   *
+   *   await next(context);
+   *
+   *   const duration = Date.now() - start;
+   *   console.log(`Completed ${context.function.metadata.name} in ${duration}ms`);
+   * });
+   *
+   * // Add an error handling filter
+   * kernel.useFunctionInvocation(async (context, next) => {
+   *   try {
+   *     await next(context);
+   *   } catch (error) {
+   *     console.error(`Function ${context.function.metadata.name} failed:`, error);
+   *     throw error;
+   *   }
+   * });
+   * ```
+   *
+   * @see {@link KernelFunctionInvocationContext} for details about the context object
+   * @see {@link FunctionInvocationFilter} for the filter function signature
    */
   useFunctionInvocation(
     callback: (
