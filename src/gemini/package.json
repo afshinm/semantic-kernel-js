@@ -1,0 +1,38 @@
+{
+  "name": "@semantic-kernel/gemini",
+  "description": "Semantic Kernel Gemini",
+  "version": "0.2.0",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "homepage": "https://kerneljs.com",
+  "scripts": {
+    "build": "tsup",
+    "clean": "rm -rf dist",
+    "test:eslint": "eslint \"src/**/*.ts*\"",
+    "test:prettier": "prettier --check \"src/**/*.ts*\"",
+    "test:jest": "jest",
+    "test": "run-p test:*"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "@semantic-kernel/ai": "*"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.9.0",
+    "@semantic-kernel/tsconfig": "*",
+    "@types/eslint__js": "^8.42.3",
+    "eslint": "^9.9.0",
+    "tsup": "^8.2.4",
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.2.0"
+  }
+}
