@@ -1,8 +1,6 @@
-import { DefaultJsonSchema, FromSchema, JsonSchema } from '@semantic-kernel/ai';
-import { Kernel } from '../Kernel';
-import { FunctionResult } from './FunctionResult';
-import { KernelArguments } from './KernelArguments';
-import { KernelFunction } from './KernelFunction';
+import { type DefaultJsonSchema, type FromSchema, type JsonSchema } from '@semantic-kernel/ai';
+import { type Kernel } from '../../Kernel';
+import { type FunctionResult, type KernelArguments, type KernelFunction } from '../../functions';
 
 export interface KernelFunctionInvocationContext<
   ReturnType = unknown,
