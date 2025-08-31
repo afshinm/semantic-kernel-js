@@ -1,4 +1,4 @@
-import { GenerativeModel, GoogleGenerativeAI } from '@google/generative-ai';
+import { GenerateContentParameters, GoogleGenAI } from '@google/genai';
 import { ChatClient, ChatClientMetadata, ChatMessage, type ChatOptions } from '@semantic-kernel/ai';
 import {
   fromGeminiChatCompletion,
@@ -8,28 +8,29 @@ import {
 } from './mapper';
 
 export class GeminiChatClient extends ChatClient {
-  private readonly _geminiModel: GenerativeModel;
+  private readonly _googleGenAIClient: GoogleGenAI;
   private readonly _metadata: ChatClientMetadata;
 
   constructor({
     apiKey,
     modelId,
-    generativeModel,
+    googleGenAIClient,
   }: {
     apiKey?: string;
     modelId: string;
-    generativeModel?: GenerativeModel;
+    googleGenAIClient?: GoogleGenAI;
   }) {
     super();
 
-    if (!generativeModel) {
+    if (!googleGenAIClient) {
       if (!apiKey) {
-        throw new Error('API key is required when generative model is not provided');
+        throw new Error('API key is required when Google GenAI client is not provided');
       }
-      const genAI = new GoogleGenerativeAI(apiKey);
-      this._geminiModel = genAI.getGenerativeModel({ model: modelId });
+      this._googleGenAIClient = new GoogleGenAI({
+        apiKey,
+      });
     } else {
-      this._geminiModel = generativeModel;
+      this._googleGenAIClient = googleGenAIClient;
     }
 
     this._metadata = new ChatClientMetadata({
@@ -48,8 +49,8 @@ export class GeminiChatClient extends ChatClient {
       return undefined;
     }
 
-    if (serviceType === GenerativeModel) {
-      return this._geminiModel;
+    if (serviceType === GoogleGenAI) {
+      return this._googleGenAIClient;
     }
 
     if (serviceType === GeminiChatClient) {
@@ -70,14 +71,15 @@ export class GeminiChatClient extends ChatClient {
     const geminiContent = toGeminiContent(chatMessages);
     const geminiOptions = toGeminiChatOptions(options);
 
-    const request = {
+    const request: GenerateContentParameters = {
+      model: modelId,
       contents: geminiContent,
       ...geminiOptions,
     };
 
-    const response = await this._geminiModel.generateContent(request);
+    const response = await this._googleGenAIClient.models.generateContent(request);
 
-    return fromGeminiChatCompletion({ geminiResponse: response.response, options });
+    return fromGeminiChatCompletion({ geminiResponse: response, options });
   }
 
   override getStreamingResponse(chatMessages: string | ChatMessage[], options?: ChatOptions) {
@@ -91,12 +93,13 @@ export class GeminiChatClient extends ChatClient {
     const geminiContent = toGeminiContent(chatMessages);
     const geminiOptions = toGeminiChatOptions(options);
 
-    const request = {
+    const request: GenerateContentParameters = {
+      model: modelId,
       contents: geminiContent,
       ...geminiOptions,
     };
 
-    const streamResult = this._geminiModel.generateContentStream(request);
+    const streamResult = this._googleGenAIClient.models.generateContentStream(request);
 
     return fromGeminiStreamingChatCompletion(streamResult);
   }
