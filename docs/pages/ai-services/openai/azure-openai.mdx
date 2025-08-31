@@ -1,0 +1,86 @@
+# Azure OpenAI
+
+Azure OpenAI provides the same OpenAI models through Microsoft's Azure cloud platform, offering enterprise-grade security, compliance, and regional availability.
+
+## Setup
+
+The Azure OpenAI connector is included in the `@semantic-kernel/openai` package:
+
+```bash
+npm install @semantic-kernel/openai
+```
+
+## Usage
+
+### Basic Configuration
+
+```typescript
+import { AzureOpenAIChatClient } from '@semantic-kernel/openai';
+
+const azureOpenAIClient = new AzureOpenAIChatClient({
+  apiKey: 'your-azure-openai-api-key',
+  endpoint: 'https://your-resource.openai.azure.com',
+  deploymentName: 'gpt-35-turbo', // Your deployment name
+  apiVersion: '2024-06-01' // Optional, defaults to '2024-06-01'
+});
+```
+
+### Using with Pre-configured Client
+
+You can also pass a pre-configured Azure OpenAI client:
+
+```typescript
+import { AzureOpenAI } from 'openai';
+import { AzureOpenAIChatClient } from '@semantic-kernel/openai';
+
+const azureOpenAI = new AzureOpenAI({
+  apiKey: 'your-api-key',
+  endpoint: 'https://your-resource.openai.azure.com',
+  apiVersion: '2024-06-01'
+});
+
+const azureOpenAIClient = new AzureOpenAIChatClient({
+  azureOpenAIClient: azureOpenAI,
+  endpoint: 'https://your-resource.openai.azure.com',
+  deploymentName: 'gpt-4'
+});
+```
+
+### Chat Completion
+
+```typescript
+import { ChatMessage } from '@semantic-kernel/ai';
+
+const messages = [
+  ChatMessage.create('user', 'Hello, how can you help me today?')
+];
+
+// Get a single response
+const response = await azureOpenAIClient.getResponse(messages);
+console.log(response.content);
+
+// Get streaming response
+const streamingResponse = azureOpenAIClient.getStreamingResponse(messages);
+for await (const update of streamingResponse) {
+  console.log(update.content);
+}
+```
+
+## Configuration Options
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `apiKey` | Yes* | Your Azure OpenAI API key |
+| `endpoint` | Yes | Your Azure OpenAI endpoint URL |
+| `deploymentName` | Yes | The deployment name of your model |
+| `apiVersion` | No | API version (defaults to '2024-06-01') |
+| `azureOpenAIClient` | No | Pre-configured AzureOpenAI client |
+
+*Required unless using a pre-configured client
+
+## Differences from OpenAI
+
+- Uses Azure endpoints instead of OpenAI's direct API
+- Requires deployment names instead of model names
+- Supports Azure-specific features like managed identity authentication
+- Follows Azure compliance and data residency requirements
