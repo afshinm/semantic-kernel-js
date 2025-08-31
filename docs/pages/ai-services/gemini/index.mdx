@@ -1,0 +1,85 @@
+## Google Gemini Overview
+
+You can use the Gemini provider to integrate with Google's Generative AI API for various AI capabilities such as text generation, chat completions, and more.
+
+The Semantic Kernel [Gemini Provider](https://www.npmjs.com/package/@semantic-kernel/gemini) (`@semantic-kernel/gemini`) is a package that allows you to interact with Google's Gemini AI models seamlessly within the Semantic Kernel framework.
+
+## Installation
+
+```bash
+npm install @semantic-kernel/gemini
+```
+
+## Usage
+
+```typescript
+import { GeminiChatClient } from '@semantic-kernel/gemini';
+import { ChatMessage } from '@semantic-kernel/ai';
+
+// Create a Gemini chat client
+const client = new GeminiChatClient({
+  apiKey: 'your-google-ai-api-key',
+  modelId: 'gemini-1.5-flash',
+});
+
+// Send a chat message
+const messages = [
+  new ChatMessage({ role: 'user', content: 'Hello, how are you?' })
+];
+
+const response = await client.getResponse(messages);
+console.log(response.message.text);
+```
+
+## Streaming
+
+```typescript
+// Get streaming response
+const streamingResponse = client.getStreamingResponse(messages);
+
+for await (const update of streamingResponse) {
+  if (update.contents.length > 0) {
+    console.log(update.contents[0]);
+  }
+}
+```
+
+## Configuration Options
+
+The `GeminiChatClient` constructor accepts the following options:
+
+- `apiKey` (string): Your Google AI API key
+- `modelId` (string): The Gemini model to use (e.g., 'gemini-1.5-flash', 'gemini-1.5-pro')
+- `generativeModel` (optional): Pre-configured GenerativeModel instance
+
+## Supported Models
+
+- `gemini-1.5-flash` - Fast and versatile performance
+- `gemini-1.5-pro` - Complex reasoning tasks  
+- `gemini-1.0-pro` - Natural language tasks
+- `gemini-1.0-pro-vision` - Multimodal reasoning
+
+## Function Calling
+
+The Gemini provider supports function calling (tools):
+
+```typescript
+import { AIFunction, ChatOptions } from '@semantic-kernel/ai';
+
+const weatherFunction = new AIFunction({
+  name: 'get_weather',
+  description: 'Get the current weather for a location',
+  schema: {
+    type: 'object',
+    properties: {
+      location: { type: 'string', description: 'The city name' }
+    },
+    required: ['location']
+  }
+});
+
+const options = new ChatOptions();
+options.tools = [weatherFunction];
+
+const response = await client.getResponse(messages, options);
+```
