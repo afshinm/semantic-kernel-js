@@ -1,4 +1,4 @@
 export default {
   index: 'Overview',
-  "chat-completion": 'Chat Completion'
+  "chat-completion": 'Chat Completion',
 }

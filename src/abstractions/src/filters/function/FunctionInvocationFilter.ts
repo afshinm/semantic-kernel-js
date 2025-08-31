@@ -1,4 +1,4 @@
-import { KernelFunctionInvocationContext } from './kernelFunctionInvocationContext';
+import { type KernelFunctionInvocationContext } from './KernelFunctionInvocationContext';
 
 export type FunctionInvocationFilter = (
   context: KernelFunctionInvocationContext,

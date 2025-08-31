@@ -1,5 +1,6 @@
 import { ChatClient, type ChatResponse } from '@semantic-kernel/ai';
 import { Logger, LoggerFactory } from '@semantic-kernel/common';
+import { PromptRenderContext } from '../filters';
 import { ChatPromptParser } from '../internalUtilities';
 import { type Kernel } from '../Kernel';
 import { type PromptExecutionSettings } from '../promptExecutionSettings/PromptExecutionSettings';
@@ -67,10 +68,19 @@ export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
   }
 
   override async invokeCore(kernel: Kernel, args: KernelArguments): Promise<FunctionResult<ChatResponse>> {
-    const { renderedPrompt, service, executionSettings } = await this.renderPrompt(kernel, args);
+    const { renderedPrompt, service, executionSettings, functionResult } = await this.renderPrompt({
+      kernel,
+      args,
+      isStreaming: false,
+    });
 
     if (!service) {
       throw new Error('Service not found in kernel');
+    }
+
+    if (functionResult) {
+      functionResult.renderedPrompt = renderedPrompt;
+      return functionResult;
     }
 
     const promptOrChatMessages = ChatPromptParser.tryParse(renderedPrompt) ?? renderedPrompt;
@@ -92,7 +102,11 @@ export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
   }
 
   override async *invokeStreamingCore<T>(kernel: Kernel, args: KernelArguments): AsyncGenerator<T> {
-    const { renderedPrompt, service, executionSettings } = await this.renderPrompt(kernel, args);
+    const { renderedPrompt, service, executionSettings } = await this.renderPrompt({
+      kernel,
+      args,
+      isStreaming: true,
+    });
 
     if (!service) {
       throw new Error('Service not found in kernel');
@@ -125,18 +139,20 @@ export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
     }
   };
 
-  private async renderPrompt(
-    kernel: Kernel,
-    args: KernelArguments
-  ): Promise<{
+  private async renderPrompt({
+    kernel,
+    args,
+    isStreaming,
+  }: {
+    kernel: Kernel;
+    args: KernelArguments;
+    isStreaming: boolean;
+  }): Promise<{
     renderedPrompt: string;
     executionSettings?: PromptExecutionSettings;
     service: ChatClient;
+    functionResult?: FunctionResult<ChatResponse>;
   }> {
-    if (!kernel) {
-      throw new Error('Kernel is required to render prompt');
-    }
-
     const { service, executionSettings } =
       kernel.services.trySelectService({
         serviceType: ChatClient,
@@ -147,14 +163,28 @@ export class KernelFunctionFromPrompt extends KernelFunction<ChatResponse> {
       throw new Error('Service not found in kernel');
     }
 
-    const renderedPrompt = await this._promptTemplate.render(kernel, args);
+    const { renderedPrompt, result: functionResult } = await kernel.onPromptRender({
+      function: this,
+      args,
+      isStreaming,
+      executionSettings,
+      renderCallback: async (context: PromptRenderContext) => {
+        const renderedPrompt = await this._promptTemplate.render(kernel, args);
+        context.renderedPrompt = renderedPrompt;
 
-    this._logger.trace(`Rendered prompt: ${renderedPrompt}`, { executionSettings });
+        this._logger.trace(`Rendered prompt: ${context.renderedPrompt}`, { executionSettings });
+      },
+    });
+
+    if (!renderedPrompt) {
+      throw new Error('Rendered prompt is empty');
+    }
 
     return {
-      renderedPrompt,
-      executionSettings,
       service,
+      executionSettings,
+      renderedPrompt,
+      functionResult,
     };
   }
 

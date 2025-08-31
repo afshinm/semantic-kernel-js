@@ -1,6 +1,12 @@
 import { ChatResponseUpdate, type DefaultJsonSchema, type FromSchema, type JsonSchema } from '@semantic-kernel/ai';
 import { MapServiceProvider, type ServiceProvider } from '@semantic-kernel/common';
 import {
+  type FunctionInvocationFilter,
+  type KernelFunctionInvocationContext,
+  type PromptRenderContext,
+  type PromptRenderFilter,
+} from './filters';
+import {
   FunctionResult,
   KernelArguments,
   type KernelFunction,
@@ -9,8 +15,6 @@ import {
   type KernelPlugins,
   MapKernelPlugins,
 } from './functions';
-import { FunctionInvocationFilter } from './functions/FunctionInvocationFilter';
-import { KernelFunctionInvocationContext } from './functions/kernelFunctionInvocationContext';
 import { type PromptExecutionSettings } from './promptExecutionSettings';
 import { PromptTemplateFormat } from './promptTemplate';
 
@@ -21,6 +25,7 @@ export class Kernel {
   private readonly _serviceProvider: ServiceProvider;
   private readonly _plugins: KernelPlugins;
   private readonly _functionInvocationFilters = new Array<FunctionInvocationFilter>();
+  private readonly _promptRenderFilters = new Array<PromptRenderFilter>();
 
   /**
    * Creates a new kernel.
@@ -31,8 +36,139 @@ export class Kernel {
   }
 
   /**
-   * Adds a function invocation filter to the kernel.
-   * @param callback The callback to invoke when a function is called.
+   * Adds a prompt rendering filter to the kernel. These filters allow you to intercept and modify
+   * prompt rendering operations using a middleware pattern. Filters are executed in registration order.
+   *
+   * @param callback The callback function that will be invoked when a prompt is rendered.
+   *                 This function receives a PromptRenderContext and a next function.
+   *                 Call next(context) to continue to the next filter or actual prompt rendering.
+   *                 Omit calling next() to short-circuit the pipeline.
+   *
+   * @example
+   * ```typescript
+   * // Add a logging filter
+   * kernel.usePromptRender(async (context, next) => {
+   *   console.log('Rendering prompt for:', context.function.metadata.name);
+   *   await next(context);
+   *   console.log('Rendered prompt:', context.renderedPrompt);
+   * });
+   *
+   * // Add a prompt modification filter
+   * kernel.usePromptRender(async (context, next) => {
+   *   await next(context);
+   *   if (context.renderedPrompt) {
+   *     context.renderedPrompt += '\nPlease provide a helpful response.';
+   *   }
+   * });
+   * ```
+   *
+   * @see {@link PromptRenderContext} for details about the context object
+   * @see {@link PromptRenderFilter} for the filter function signature
+   */
+  usePromptRender(
+    callback: (context: PromptRenderContext, next: (context: PromptRenderContext) => Promise<void>) => Promise<void>
+  ) {
+    this._promptRenderFilters.push(callback);
+  }
+
+  /**
+   * Internal method to handle prompt rendering with filters.
+   */
+  async onPromptRender({
+    function: fn,
+    args,
+    isStreaming,
+    executionSettings,
+    renderCallback,
+  }: {
+    function: KernelFunction;
+    args: KernelArguments;
+    isStreaming: boolean;
+    executionSettings?: PromptExecutionSettings;
+    renderCallback: (context: PromptRenderContext) => Promise<void>;
+  }) {
+    const context: PromptRenderContext = {
+      function: fn,
+      isStreaming,
+      kernel: this,
+      executionSettings,
+      arguments: args,
+    };
+
+    await Kernel.invokeFilterOrPromptRender({
+      promptFilters: this._promptRenderFilters,
+      renderCallback,
+      context,
+    });
+
+    return context;
+  }
+
+  private static async invokeFilterOrPromptRender({
+    promptFilters,
+    renderCallback,
+    context,
+    index,
+  }: {
+    promptFilters: Array<PromptRenderFilter>;
+    renderCallback: (context: PromptRenderContext) => Promise<void>;
+    context: PromptRenderContext;
+    index?: number;
+  }) {
+    index = index ?? 0;
+
+    if (promptFilters.length > 0 && index < promptFilters.length) {
+      const promptFilter = promptFilters[index];
+      await promptFilter(
+        context,
+        async (context) =>
+          await Kernel.invokeFilterOrPromptRender({
+            promptFilters,
+            renderCallback,
+            context,
+            index: index + 1,
+          })
+      );
+    } else {
+      await renderCallback(context);
+    }
+  }
+
+  /**
+   * Adds a function invocation filter to the kernel. These filters allow you to intercept and modify
+   * function execution operations using a middleware pattern. Filters are executed in registration order.
+   *
+   * @param callback The callback function that will be invoked when a function is executed.
+   *                 This function receives a KernelFunctionInvocationContext and a next function.
+   *                 Call next(context) to continue to the next filter or actual function execution.
+   *                 Omit calling next() to short-circuit the pipeline.
+   *
+   * @example
+   * ```typescript
+   * // Add a performance monitoring filter
+   * kernel.useFunctionInvocation(async (context, next) => {
+   *   const start = Date.now();
+   *   console.log(`Starting: ${context.function.metadata.name}`);
+   *
+   *   await next(context);
+   *
+   *   const duration = Date.now() - start;
+   *   console.log(`Completed ${context.function.metadata.name} in ${duration}ms`);
+   * });
+   *
+   * // Add an error handling filter
+   * kernel.useFunctionInvocation(async (context, next) => {
+   *   try {
+   *     await next(context);
+   *   } catch (error) {
+   *     console.error(`Function ${context.function.metadata.name} failed:`, error);
+   *     throw error;
+   *   }
+   * });
+   * ```
+   *
+   * @see {@link KernelFunctionInvocationContext} for details about the context object
+   * @see {@link FunctionInvocationFilter} for the filter function signature
    */
   useFunctionInvocation(
     callback: (
@@ -43,6 +179,9 @@ export class Kernel {
     this._functionInvocationFilters.push(callback);
   }
 
+  /**
+   * Internal method to handle function invocation with filters.
+   */
   async onFunctionInvocation<
     ReturnType = unknown,
     Schema extends JsonSchema = typeof DefaultJsonSchema,
@@ -77,7 +216,7 @@ export class Kernel {
     return context;
   }
 
-  static async invokeFilterOrFunction({
+  private static async invokeFilterOrFunction({
     functionFilters,
     functionCallback,
     context,
