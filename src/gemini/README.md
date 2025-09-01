@@ -21,9 +21,7 @@ const client = new GeminiChatClient({
 });
 
 // Send a chat message
-const messages = [
-  new ChatMessage({ role: 'user', content: 'Hello, how are you?' })
-];
+const messages = [new ChatMessage({ role: 'user', content: 'Hello, how are you?' })];
 
 const response = await client.getResponse(messages);
 console.log(response.message.text);
@@ -40,7 +38,7 @@ console.log(response.message.text);
 ## Supported Models
 
 - `gemini-1.5-flash` - Fast and versatile performance
-- `gemini-1.5-pro` - Complex reasoning tasks  
+- `gemini-1.5-pro` - Complex reasoning tasks
 - `gemini-1.0-pro` - Natural language tasks
 - `gemini-1.0-pro-vision` - Multimodal reasoning
 
@@ -71,9 +69,7 @@ const client = new GeminiChatClient({
   modelId: 'gemini-1.5-flash',
 });
 
-const messages = [
-  new ChatMessage({ role: 'user', content: 'Explain quantum computing' })
-];
+const messages = [new ChatMessage({ role: 'user', content: 'Explain quantum computing' })];
 
 const response = await client.getResponse(messages);
 console.log(response.message.text);
@@ -104,10 +100,10 @@ const weatherFunction = new AIFunction({
   schema: {
     type: 'object',
     properties: {
-      location: { type: 'string', description: 'The city name' }
+      location: { type: 'string', description: 'The city name' },
     },
-    required: ['location']
-  }
+    required: ['location'],
+  },
 });
 
 const options = new ChatOptions();

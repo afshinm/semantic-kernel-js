@@ -1,12 +1,12 @@
 import {
   Content,
-  FunctionCallingMode,
+  FinishReason,
+  FunctionCallingConfigMode,
   FunctionDeclaration,
-  GenerateContentRequest,
+  GenerateContentParameters,
   GenerateContentResponse,
-  GenerateContentStreamResult,
   Part,
-} from '@google/generative-ai';
+} from '@google/genai';
 import {
   AIContent,
   AIFunction,
@@ -25,37 +25,40 @@ import {
   UsageDetails,
 } from '@semantic-kernel/ai';
 
-export const toGeminiChatOptions = (chatOptions?: ChatOptions): Omit<GenerateContentRequest, 'contents'> => {
+export const toGeminiChatOptions = (
+  chatOptions?: ChatOptions
+): Omit<GenerateContentParameters, 'contents' | 'model'> => {
   if (!chatOptions) {
     return {};
   }
 
-  const generateContentRequest: Omit<GenerateContentRequest, 'contents'> = {};
+  const generateContentRequest: Omit<GenerateContentParameters, 'contents' | 'model'> = {};
+  generateContentRequest.config = {};
 
   if (chatOptions.temperature !== undefined) {
-    generateContentRequest.generationConfig = {
-      ...generateContentRequest.generationConfig,
+    generateContentRequest.config = {
+      ...generateContentRequest.config,
       temperature: chatOptions.temperature,
     };
   }
 
   if (chatOptions.maxOutputTokens !== undefined) {
-    generateContentRequest.generationConfig = {
-      ...generateContentRequest.generationConfig,
+    generateContentRequest.config = {
+      ...generateContentRequest.config,
       maxOutputTokens: chatOptions.maxOutputTokens,
     };
   }
 
   if (chatOptions.topP !== undefined) {
-    generateContentRequest.generationConfig = {
-      ...generateContentRequest.generationConfig,
+    generateContentRequest.config = {
+      ...generateContentRequest.config,
       topP: chatOptions.topP,
     };
   }
 
   if (chatOptions.stopSequences?.length) {
-    generateContentRequest.generationConfig = {
-      ...generateContentRequest.generationConfig,
+    generateContentRequest.config = {
+      ...generateContentRequest.config,
       stopSequences: [...chatOptions.stopSequences],
     };
   }
@@ -70,16 +73,16 @@ export const toGeminiChatOptions = (chatOptions?: ChatOptions): Omit<GenerateCon
     }
 
     if (functions.length > 0) {
-      generateContentRequest.tools = [{ functionDeclarations: functions }];
+      generateContentRequest.config.tools = [{ functionDeclarations: functions }];
     }
 
     // Handle tool mode
     if (chatOptions.toolMode instanceof AutoChatToolMode) {
-      generateContentRequest.toolConfig = { functionCallingConfig: { mode: 'AUTO' as FunctionCallingMode } };
+      generateContentRequest.config.toolConfig = { functionCallingConfig: { mode: FunctionCallingConfigMode.AUTO } };
     } else if (chatOptions.toolMode instanceof NoneChatToolMode) {
-      generateContentRequest.toolConfig = { functionCallingConfig: { mode: 'NONE' as FunctionCallingMode } };
+      generateContentRequest.config.toolConfig = { functionCallingConfig: { mode: FunctionCallingConfigMode.NONE } };
     } else if (chatOptions.toolMode instanceof RequiredChatToolMode) {
-      generateContentRequest.toolConfig = { functionCallingConfig: { mode: 'ANY' as FunctionCallingMode } };
+      generateContentRequest.config.toolConfig = { functionCallingConfig: { mode: FunctionCallingConfigMode.ANY } };
     }
   }
 
@@ -115,7 +118,7 @@ const toGeminiParts = (contents: AIContent[]): Part[] => {
       parts.push({
         functionResponse: {
           name: content.name || '',
-          response: content.result as object,
+          response: content.result as Record<string, unknown>,
         },
       });
     }
@@ -157,7 +160,7 @@ export const toGeminiContent = (inputs: ChatMessage[]): Content[] => {
 /**
  * Converts a Gemini finish reason to a ChatFinishReason
  */
-const fromGeminiFinishReason = (finishReason?: string): ChatFinishReason | undefined => {
+const fromGeminiFinishReason = (finishReason?: FinishReason): ChatFinishReason | undefined => {
   if (!finishReason) {
     return undefined;
   }
@@ -208,10 +211,10 @@ export const fromGeminiChatCompletion = ({
   }
 
   const content = candidate.content;
-  const textParts = content.parts.filter((part) => 'text' in part);
-  const functionCallParts = content.parts.filter((part) => 'functionCall' in part);
+  const textParts = content?.parts?.filter((part) => 'text' in part);
+  const functionCallParts = content?.parts?.filter((part) => 'functionCall' in part);
 
-  const messageContent = textParts.map((part) => part.text).join('');
+  const messageContent = textParts?.map((part) => part.text).join('');
 
   const returnMessage = new ChatMessage({
     content: messageContent,
@@ -220,12 +223,12 @@ export const fromGeminiChatCompletion = ({
   returnMessage.rawRepresentation = geminiResponse;
 
   // Handle function calls
-  if (options?.tools?.length && functionCallParts.length > 0) {
+  if (options?.tools?.length && functionCallParts && functionCallParts.length > 0) {
     for (const part of functionCallParts) {
       if ('functionCall' in part && part.functionCall) {
         const callContent = new FunctionCallContent({
-          name: part.functionCall.name,
-          callId: part.functionCall.name, // Gemini doesn't provide call IDs, use function name
+          name: part.functionCall.name ?? '',
+          callId: part.functionCall.name ?? '', // Gemini doesn't provide call IDs, use function name
           arguments: (part.functionCall.args || {}) as Record<string, unknown>,
         });
         callContent.rawRepresentation = part;
@@ -248,14 +251,14 @@ export const fromGeminiChatCompletion = ({
 };
 
 export const fromGeminiStreamingChatCompletion = async function* (
-  streamResultPromise: Promise<GenerateContentStreamResult>
+  streamResultPromise: Promise<AsyncGenerator<GenerateContentResponse>>
 ) {
   const streamedRole: ChatRole = 'assistant';
   let finishReason: ChatFinishReason | undefined = undefined;
 
   const streamResult = await streamResultPromise;
 
-  for await (const chunk of streamResult.stream) {
+  for await (const chunk of streamResult) {
     const candidate = chunk.candidates?.[0];
     if (!candidate) continue;
 
@@ -273,8 +276,8 @@ export const fromGeminiStreamingChatCompletion = async function* (
           completionUpdate.contents.push(aiContent);
         } else if ('functionCall' in part && part.functionCall) {
           const callContent = new FunctionCallContent({
-            callId: part.functionCall.name,
-            name: part.functionCall.name,
+            callId: part.functionCall.name ?? '',
+            name: part.functionCall.name ?? '',
             arguments: (part.functionCall.args || {}) as Record<string, unknown>,
           });
           completionUpdate.contents.push(callContent);

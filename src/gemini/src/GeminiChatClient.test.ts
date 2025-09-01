@@ -1,23 +1,21 @@
 import { ChatMessage, ChatOptions } from '@semantic-kernel/ai';
 import { GeminiChatClient } from './GeminiChatClient';
 
-// Mock the Google Generative AI SDK
-jest.mock('@google/generative-ai', () => {
-  const mockGenerateContent = jest.fn();
-  const mockGenerateContentStream = jest.fn();
+const mockGenerateContent = jest.fn();
+const mockGenerateContentStream = jest.fn();
 
+jest.mock('@google/genai', () => {
   const mockModel = {
-    generateContent: mockGenerateContent,
-    generateContentStream: mockGenerateContentStream,
+    generateContent: () => mockGenerateContent(),
+    generateContentStream: () => mockGenerateContentStream(),
   };
 
-  const mockGoogleGenerativeAI = jest.fn().mockImplementation(() => ({
-    getGenerativeModel: jest.fn(() => mockModel),
+  const mockGenAI = jest.fn().mockImplementation(() => ({
+    models: mockModel,
   }));
 
   return {
-    GoogleGenerativeAI: mockGoogleGenerativeAI,
-    GenerativeModel: jest.fn(),
+    GoogleGenAI: mockGenAI,
   };
 });
 
@@ -43,34 +41,28 @@ describe('GeminiChatClient', () => {
         new GeminiChatClient({
           modelId: 'gemini-1.5-flash',
         });
-      }).toThrow('API key is required when generative model is not provided');
+      }).toThrow('API key is required when Google GenAI client is not provided');
     });
   });
 
   describe('getResponse', () => {
     it('should handle simple text response', async () => {
       // Mock the actual implementation manually
-      const mockGenerateContent = jest.fn().mockResolvedValue({
-        response: {
-          candidates: [
-            {
-              content: {
-                parts: [{ text: 'Hello, how can I help you?' }],
-              },
-              finishReason: 'STOP',
+      mockGenerateContent.mockReturnValue({
+        candidates: [
+          {
+            content: {
+              parts: [{ text: 'Hello, how can I help you?' }],
             },
-          ],
-          usageMetadata: {
-            promptTokenCount: 10,
-            candidatesTokenCount: 8,
-            totalTokenCount: 18,
+            finishReason: 'STOP',
           },
+        ],
+        usageMetadata: {
+          promptTokenCount: 10,
+          candidatesTokenCount: 8,
+          totalTokenCount: 18,
         },
       });
-
-      // Replace the internal model's method
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (client as any)._geminiModel.generateContent = mockGenerateContent;
 
       const messages = [new ChatMessage({ content: 'Hello', role: 'user' })];
       const response = await client.getResponse(messages);
@@ -90,6 +82,56 @@ describe('GeminiChatClient', () => {
       const options = new ChatOptions();
 
       await expect(clientWithoutModel.getResponse(messages, options)).rejects.toThrow('Model ID is required');
+    });
+  });
+
+  describe('getStreamingResponse', () => {
+    it('should handle streaming text response', async () => {
+      // Mock the actual implementation manually
+      async function* mockStream() {
+        yield {
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Hello' }],
+              },
+              finishReason: 'STOP',
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 5,
+            totalTokenCount: 15,
+          },
+        };
+        yield {
+          candidates: [
+            {
+              content: {
+                parts: [{ text: ', how can I help you?' }],
+              },
+              finishReason: 'STOP',
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 10,
+            totalTokenCount: 20,
+          },
+        };
+      }
+
+      mockGenerateContentStream.mockReturnValue(mockStream());
+
+      const messages = [new ChatMessage({ content: 'Hello', role: 'user' })];
+      const stream = client.getStreamingResponse(messages);
+
+      let fullResponse = '';
+      for await (const chunk of stream) {
+        fullResponse += chunk.text;
+      }
+
+      expect(fullResponse).toBe('Hello, how can I help you?');
     });
   });
 
