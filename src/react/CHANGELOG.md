@@ -1,5 +1,16 @@
 # @semantic-kernel/react
 
+## 0.3.0
+
+### Minor Changes
+
+- Add Filters and Gemini, AzureOpenAI connectors
+
+### Patch Changes
+
+- Updated dependencies
+  - semantic-kernel@0.3.0
+
 ## 0.2.0
 
 ### Minor Changes
