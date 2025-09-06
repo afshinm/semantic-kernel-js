@@ -56,6 +56,21 @@ export class ChatResponseUpdate {
    */
   modelId?: string;
 
+  /**
+   * Gets or sets the ID of the message of which this update is a part.
+   * A single streaming response may be composed of multiple messages, each of which may be represented
+   * by multiple updates. This property is used to group those updates together into messages.
+   *
+   * Some providers may consider streaming responses to be a single message, and in that case
+   * the value of this property may be the same as the response ID.
+   */
+  messageId?: string;
+
+  /**
+   * Gets or sets the ID of the response of which this update is a part.
+   */
+  responseId?: string;
+
   toString(): string {
     return this.text;
   }

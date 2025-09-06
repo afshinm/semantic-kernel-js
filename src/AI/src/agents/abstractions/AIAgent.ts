@@ -1,5 +1,7 @@
 import { ChatMessage } from '../../contents/ChatMessage';
 import { type AgentRunOptions } from './AgentRunOptions';
+import { AgentRunResponse } from './AgentRunResponse';
+import { AgentRunResponseUpdate } from './AgentRunResponseUpdate';
 import { AgentThread } from './AgentThread';
 
 export abstract class AIAgent {
@@ -25,24 +27,29 @@ export abstract class AIAgent {
     messages: string | ChatMessage | ChatMessage[],
     thread?: AgentThread,
     options?: AgentRunOptions
-  ): Promise<void> {
-    await this.runCore(this.getMessages(messages), thread, options);
+  ): Promise<AgentRunResponse> {
+    return await this.runCore(this.getMessages(messages), thread, options);
   }
 
   async *runStreaming(
     messages: string | ChatMessage | ChatMessage[],
     thread?: AgentThread,
     options?: AgentRunOptions
-  ): AsyncGenerator<ChatMessage> {
+  ): AsyncGenerator<AgentRunResponseUpdate> {
     yield* this.runStreamingCore(this.getMessages(messages), thread, options);
   }
 
-  protected abstract runCore(messages: ChatMessage[], thread?: AgentThread, options?: AgentRunOptions): Promise<void>;
+  protected abstract runCore(
+    messages: ChatMessage[],
+    thread?: AgentThread,
+    options?: AgentRunOptions
+  ): Promise<AgentRunResponse>;
+
   protected abstract runStreamingCore(
     messages: ChatMessage[],
     thread?: AgentThread,
     options?: AgentRunOptions
-  ): AsyncGenerator<ChatMessage>;
+  ): AsyncGenerator<AgentRunResponseUpdate>;
 
   private getMessages(messages: string | ChatMessage | ChatMessage[]): ChatMessage[] {
     let userMessages: ChatMessage[] = [];
@@ -61,5 +68,16 @@ export abstract class AIAgent {
     }
 
     return userMessages;
+  }
+
+  /**
+   * Notify the given thread of new messages.
+   * @param thread Thread to notify.
+   * @param messages New messages.
+   */
+  protected static async notifyThreadOfNewMessages(thread: AgentThread, messages: ChatMessage[]) {
+    if (messages.length) {
+      await thread.onNewMessage(messages);
+    }
   }
 }
