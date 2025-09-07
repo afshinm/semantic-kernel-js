@@ -6,6 +6,10 @@ export class AgentThread {
   private _conversationId?: string;
   private _messageStore?: ChatMessageStore;
 
+  constructor(messageStore?: ChatMessageStore) {
+    this.messageStore = messageStore;
+  }
+
   get conversationId() {
     return this._conversationId;
   }

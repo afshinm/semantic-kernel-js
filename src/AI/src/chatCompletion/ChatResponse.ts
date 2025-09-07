@@ -48,6 +48,11 @@ export class ChatResponse {
   responseId?: string;
 
   /**
+   * Gets or sets an identifier for the state of the conversation.
+   */
+  conversationId?: string;
+
+  /**
    * Gets or sets the ID of the chat completion.
    */
   completionId?: string;

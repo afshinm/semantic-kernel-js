@@ -32,6 +32,8 @@ export abstract class ChatClient {
    * Asks the chat client to provide a service of a specific type.
    * @param serviceType - The type of service to retrieve, which is typically a class or interface.
    * @param serviceKey - An optional key to identify a specific service instance.
+   *
+   * TODO: Fix this to return the correct type instead of object.
    */
   abstract getService<T>(serviceType: T, serviceKey?: string): object | undefined;
 

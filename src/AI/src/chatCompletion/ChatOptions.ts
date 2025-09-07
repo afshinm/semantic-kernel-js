@@ -5,6 +5,17 @@ import { ChatToolMode } from './ChatToolMode';
 
 export class ChatOptions {
   /**
+   * Gets or sets an optional identifier used to associate a request with an existing conversation.
+   * https://learn.microsoft.com/dotnet/ai/microsoft-extensions-ai#stateless-vs-stateful-clients: Stateless vs. stateful clients.
+   */
+  conversationId?: string;
+
+  /**
+   * Gets or sets additional per-request instructions to be provided to the ChatClient.
+   */
+  instructions?: string;
+
+  /**
    * Gets or sets the temperature for generating chat responses.
    */
   public temperature?: number;
@@ -51,6 +62,7 @@ export class ChatOptions {
 
   /**
    * Gets or sets the stop sequences for generating chat responses.
+   * After a stop sequence is detected, the model stops generating further tokens for chat responses.
    */
   public stopSequences?: string[];
 
@@ -68,6 +80,14 @@ export class ChatOptions {
    * Gets or sets any additional properties associated with the options.
    */
   public additionalProperties?: AdditionalProperties;
+
+  /**
+   * Gets or sets a flag to indicate whether a single response is allowed to include multiple tool calls.
+   * If `false`, the `ChatClient` is asked to return a maximum of one tool call per request.
+   * If `true`, there is no limit.
+   * If `undefined`, the provider may select its own default.
+   */
+  public allowMultipleToolCalls?: boolean;
 
   constructor(props?: Omit<ChatOptions, 'clone'>) {
     this.temperature = props?.temperature;

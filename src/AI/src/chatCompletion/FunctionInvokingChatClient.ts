@@ -1,5 +1,6 @@
 import { Logger, LoggerFactory } from '@semantic-kernel/common';
 import { type ChatClient, type ChatResponse, DelegatingChatClient, FunctionInvocationContext } from '.';
+import { AITool } from '../AITool';
 import { UsageDetails } from '../UsageDetails';
 import { type AIContent, ChatMessage, FunctionCallContent, FunctionResultContent } from '../contents';
 import { AIFunction, AIFunctionArguments } from '../functions';
@@ -94,6 +95,16 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
   public keepFunctionCallingMessages: boolean = true;
   public retryOnError: boolean = false;
   public detailedErrors: boolean = false;
+
+  /**
+   * Gets or sets a collection of additional tools the client is able to invoke.
+   * These will not impact the requests sent by the {@link FunctionInvokingChatClient}, which will pass through the
+   * {@link ChatOptions.tools} unmodified. However, if the inner client requests the invocation of a tool
+   * that was not in {@link ChatOptions.tools}, this {@link additionalTools} collection will also be consulted
+   * to look for a corresponding tool to invoke. This is useful when the service may have been pre-configured to be aware
+   * of certain tools that aren't also sent on each individual request.
+   */
+  additionalTools?: AITool[];
 
   public get currentContext(): FunctionInvocationContext | undefined {
     return this._currentContext;

@@ -75,7 +75,7 @@ export abstract class AIAgent {
    * @param thread Thread to notify.
    * @param messages New messages.
    */
-  protected static async notifyThreadOfNewMessages(thread: AgentThread, messages: ChatMessage[]) {
+  protected async notifyThreadOfNewMessages(thread: AgentThread, messages: ChatMessage[]) {
     if (messages.length) {
       await thread.onNewMessage(messages);
     }
