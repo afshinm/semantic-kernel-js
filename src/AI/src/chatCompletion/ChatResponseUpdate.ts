@@ -71,6 +71,17 @@ export class ChatResponseUpdate {
    */
   responseId?: string;
 
+  /**
+   * Gets or sets an identifier for the state of the conversation.
+   * Some {@link ChatClient} implementations are capable of storing the state for a conversation, such that
+   * the input messages supplied to {@link ChatClient.getStreamingResponse} need only be the additional messages beyond
+   * what's already stored. If this property is non-null, it represents an identifier for that state,
+   * and it should be used in a subsequent {@link ChatOptions.conversationId} instead of supplying the same messages
+   * (and this streaming message) as part of the <c>messages</c> parameter. Note that the value may or may not differ on every
+   * response, depending on whether the underlying provider uses a fixed ID for each conversation or updates it for each message.
+   */
+  conversationId?: string;
+
   toString(): string {
     return this.text;
   }

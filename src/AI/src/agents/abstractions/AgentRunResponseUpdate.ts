@@ -6,6 +6,7 @@ import { concatText } from '../../contents/AIContentHelper';
 export class AgentRunResponseUpdate {
   private _contents: AIContent[] = [];
 
+  agentId?: string;
   authorName?: string;
   createdAt?: number;
   additionalProperties?: AdditionalProperties;

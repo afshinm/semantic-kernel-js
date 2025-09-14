@@ -10,7 +10,7 @@ import { ChatFinishReason } from './ChatFinishReason';
 export class ChatResponse {
   private _messages: ChatMessage[] = [];
 
-  constructor({ choices, message }: { choices?: ChatMessage[]; message?: ChatMessage }) {
+  constructor({ choices, message }: { choices?: ChatMessage[]; message?: ChatMessage } = {}) {
     if (!choices && !message) {
       throw new Error('Either choices or message must be provided.');
     }

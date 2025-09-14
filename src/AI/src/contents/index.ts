@@ -3,4 +3,5 @@ export * from './ChatMessage';
 export * from './FunctionCallContent';
 export * from './FunctionResultContent';
 export * from './TextContent';
+export * from './TextReasoningContent';
 export * from './UsageContent';

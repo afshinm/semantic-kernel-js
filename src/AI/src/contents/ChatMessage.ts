@@ -10,6 +10,8 @@ export class ChatMessage {
   public role: ChatRole;
   public rawRepresentation: unknown;
   public additionalProperties?: AdditionalProperties;
+  public messageId?: string;
+  public createdAt?: number;
 
   constructor({ role, content, contents }: { role: ChatRole; content?: string | null; contents?: AIContent[] }) {
     if (content) {

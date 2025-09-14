@@ -1,5 +1,6 @@
 import { Logger, LoggerFactory } from '@semantic-kernel/common';
-import { ChatClient, ChatClientMetadata, ChatOptions } from '../../chatCompletion';
+import { ChatClient, ChatClientMetadata, ChatOptions, ChatResponseUpdate } from '../../chatCompletion';
+import { toChatResponse } from '../../chatCompletion/ChatResponseExtensions';
 import { ChatMessage } from '../../contents/ChatMessage';
 import { AgentRunOptions, AgentThread } from '../abstractions';
 import { AgentRunResponse } from '../abstractions/AgentRunResponse';
@@ -94,7 +95,48 @@ export class ChatClientAgent extends AIAgent {
     thread?: AgentThread,
     options?: AgentRunOptions
   ): AsyncGenerator<AgentRunResponseUpdate> {
-    // Your implementation here
+    const {
+      thread: safeThread,
+      chatOptions,
+      threadMessages,
+    } = await this.prepareThreadAndMessages(thread, messages, options);
+
+    const agentName = this.getLoggingAgentName();
+
+    this._logger.debug(
+      `[runStreamingCore] Agent ${this.id}/${agentName} invoking client ${this._chatClient.constructor.name}`
+    );
+
+    const chatResponseUpdates = this._chatClient.getStreamingResponse(threadMessages, chatOptions);
+
+    this._logger.info(
+      `[runStreamingCore] Agent ${this.id}/${agentName} invoked client ${this._chatClient.constructor.name}`
+    );
+
+    const responseUpdates: ChatResponseUpdate[] = [];
+
+    for await (const update of chatResponseUpdates) {
+      if (update) {
+        responseUpdates.push(update);
+        update.authorName = agentName;
+
+        const agentUpdate = new AgentRunResponseUpdate(update);
+        agentUpdate.agentId = this.id;
+        yield agentUpdate;
+      }
+    }
+
+    const chatResponse = toChatResponse(responseUpdates);
+    const chatResponseMessages = [...chatResponse.messages];
+
+    // We can derive the type of supported thread from whether we have a conversation id or not.
+    // so let's update it and set the conversation id for the service thread case.
+    this.updateThreadWithTypeAndConversationId(safeThread, chatResponse.conversationId);
+
+    // To avoid inconsistent state we only notify the thread of the input messages if no error occurs after the initial request.
+    await this.notifyThreadOfNewMessages(safeThread, messages);
+
+    await this.notifyThreadOfNewMessages(safeThread, chatResponseMessages);
   }
 
   private async prepareThreadAndMessages(
