@@ -1,7 +1,7 @@
 import { AdditionalProperties } from '../../AdditionalProperties';
 import { ChatResponseUpdate, ChatRole } from '../../chatCompletion';
 import { AIContent } from '../../contents';
-import { concatText } from '../../contents/AIContentHelper';
+import { concatText } from '../../contents/helpers';
 
 export class AgentRunResponseUpdate {
   private _contents: AIContent[] = [];

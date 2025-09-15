@@ -1,6 +1,6 @@
 import { AdditionalProperties } from '../AdditionalProperties';
 import { AIContent } from '../contents/AIContent';
-import { concatText } from '../contents/AIContentHelper';
+import { concatText, createAIContentFromJSON } from '../contents/helpers';
 import { ChatFinishReason } from './ChatFinishReason';
 import { ChatRole } from './ChatRole';
 
@@ -94,7 +94,7 @@ export class ChatResponseUpdate {
   static fromJSON(data: string): ChatResponseUpdate {
     const parsedData = JSON.parse(data) as Partial<ChatResponseUpdate>;
     const newObj = Object.assign(new ChatResponseUpdate(), parsedData);
-    newObj.contents = (parsedData.contents ?? []).map(AIContent.fromJSON);
+    newObj.contents = (parsedData.contents ?? []).map(createAIContentFromJSON);
     return newObj;
   }
 }

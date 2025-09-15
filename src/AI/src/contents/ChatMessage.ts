@@ -1,7 +1,7 @@
-import { AdditionalProperties } from '../AdditionalProperties';
-import { ChatRole } from '../chatCompletion';
-import { AIContent } from './AIContent';
-import { concatText } from './AIContentHelper';
+import { type AdditionalProperties } from '../AdditionalProperties';
+import { type ChatRole } from '../chatCompletion';
+import { type AIContent } from './AIContent';
+import { concatText } from './helpers';
 import { TextContent } from './TextContent';
 
 export class ChatMessage {

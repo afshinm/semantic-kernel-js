@@ -1,7 +1,7 @@
 import { AdditionalProperties } from '../../AdditionalProperties';
 import { ChatResponse } from '../../chatCompletion';
-import { concatText } from '../../contents/AIContentHelper';
 import { ChatMessage } from '../../contents/ChatMessage';
+import { concatText } from '../../contents/helpers';
 import { UsageDetails } from '../../UsageDetails';
 
 export class AgentRunResponse {

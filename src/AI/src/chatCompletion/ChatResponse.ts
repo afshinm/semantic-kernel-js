@@ -1,7 +1,7 @@
 import { AdditionalProperties } from '../AdditionalProperties';
 import { UsageDetails } from '../UsageDetails';
 import { ChatMessage } from '../contents';
-import { concatText } from '../contents/AIContentHelper';
+import { concatText } from '../contents/helpers';
 import { ChatFinishReason } from './ChatFinishReason';
 
 /**

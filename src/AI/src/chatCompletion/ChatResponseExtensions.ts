@@ -1,7 +1,10 @@
-import { AIContent, ChatMessage, TextContent, TextReasoningContent } from '../contents';
+import { type AIContent } from '../contents/AIContent';
+import { ChatMessage } from '../contents/ChatMessage';
+import { TextContent } from '../contents/TextContent';
+import { TextReasoningContent } from '../contents/TextReasoningContent';
 import { UsageDetails } from '../UsageDetails';
 import { ChatResponse } from './ChatResponse';
-import { ChatResponseUpdate } from './ChatResponseUpdate';
+import { type ChatResponseUpdate } from './ChatResponseUpdate';
 
 export const toChatResponse = (updates: ChatResponseUpdate[]): ChatResponse => {
   const chatResponse = new ChatResponse();

@@ -1,5 +1,5 @@
-import { concatText } from './AIContentHelper';
 import { ChatMessage } from './ChatMessage';
+import { concatText } from './helpers';
 import { TextContent } from './TextContent';
 
 describe('AIContentHelper', () => {

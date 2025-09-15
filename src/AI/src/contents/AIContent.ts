@@ -1,8 +1,7 @@
 import { AdditionalProperties } from '../AdditionalProperties';
 import { AIAnnotation } from './AIAnnotation';
-import { createAIContentFromJSON } from './AIContentHelper';
 
-export class AIContent {
+export abstract class AIContent {
   public rawRepresentation?: unknown;
   public additionalProperties?: AdditionalProperties;
   public annotations?: AIAnnotation[];
@@ -12,10 +11,6 @@ export class AIContent {
    * This property is automatically set to the name of the class when the object is created.
    */
   public type?: string;
-
-  static fromJSON(data: AIContent) {
-    return createAIContentFromJSON(data);
-  }
 
   toJSON(): object {
     return Object.assign(

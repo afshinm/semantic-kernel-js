@@ -1,5 +1,5 @@
-import { AdditionalProperties } from '../AdditionalProperties';
-import { AnnotatedRegion } from './AnnotatedRegion';
+import { type AdditionalProperties } from '../AdditionalProperties';
+import { type AnnotatedRegion } from './AnnotatedRegion';
 
 /**
  * Represents an annotation on content.
