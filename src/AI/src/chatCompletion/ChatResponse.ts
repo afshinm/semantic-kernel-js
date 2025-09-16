@@ -34,6 +34,10 @@ export class ChatResponse {
     return this._messages;
   }
 
+  set messages(value: ChatMessage[]) {
+    this._messages = value;
+  }
+
   get text() {
     return concatText(this._messages);
   }

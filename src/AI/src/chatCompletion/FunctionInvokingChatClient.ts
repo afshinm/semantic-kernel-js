@@ -1,61 +1,38 @@
 import { Logger, LoggerFactory } from '@semantic-kernel/common';
-import { type ChatClient, type ChatResponse, DelegatingChatClient, FunctionInvocationContext } from '.';
+import { type ChatClient, ChatResponse, DelegatingChatClient, FunctionInvocationContext } from '.';
 import { AITool } from '../AITool';
 import { UsageDetails } from '../UsageDetails';
-import { type AIContent, ChatMessage, FunctionCallContent, FunctionResultContent } from '../contents';
-import { AIFunction, AIFunctionArguments } from '../functions';
+import { 
+  type AIContent, 
+  ChatMessage, 
+  FunctionCallContent, 
+  FunctionResultContent,
+  FunctionApprovalRequestContent,
+  FunctionApprovalResponseContent
+} from '../contents';
+import { AIFunction, AIFunctionArguments, ApprovalRequiredAIFunction } from '../functions';
 import { ChatOptions } from './ChatOptions';
 import { RequiredChatToolMode } from './RequiredChatToolMode';
+import { ChatResponseUpdate } from './ChatResponseUpdate';
 
-enum ContinueMode {
-  /**
-   * Send back the responses and continue processing.
-   */
-  Continue = 0,
-
-  /**
-   * Send back the response but without any tools.
-   */
-  AllowOneMoreRoundtrip = 1,
-
-  /**
-   * Immediately exit the function calling loop.
-   */
-  Terminate = 2,
-}
-
-enum FunctionStatus {
-  /**
-   * The operation completed successfully.
-   */
-  CompletedSuccessfully,
-
-  /**
-   * The requested function could not be found.
-   */
-  NotFound,
-
-  /**
-   * The function call failed with an exception.
-   */
-  Failed,
-}
-
+/**
+ * Provides information about the invocation of a function call.
+ */
 export class FunctionInvocationResult {
   constructor({
-    continueMode,
+    terminate,
     status,
     callContent,
     result,
     exception,
   }: {
-    continueMode: ContinueMode;
-    status: FunctionStatus;
+    terminate: boolean;
+    status: FunctionInvocationStatus;
     callContent: FunctionCallContent;
     result?: unknown;
     exception?: Error;
   }) {
-    this.continueMode = continueMode;
+    this.terminate = terminate;
     this.status = status;
     this.callContent = callContent;
     this.result = result;
@@ -65,7 +42,7 @@ export class FunctionInvocationResult {
   /**
    * Gets status about how the function invocation completed.
    */
-  readonly status: FunctionStatus;
+  readonly status: FunctionInvocationStatus;
 
   /**
    * Gets the function call content information associated with this invocation.
@@ -83,392 +60,723 @@ export class FunctionInvocationResult {
   readonly exception?: Error;
 
   /**
-   * Gets an indication for how the caller should continue the processing loop.
+   * Gets a value indicating whether the caller should terminate the processing loop.
    */
-  readonly continueMode: ContinueMode;
+  readonly terminate: boolean;
 }
 
-export class FunctionInvokingChatClient extends DelegatingChatClient {
-  private _currentContext?: FunctionInvocationContext;
-  private _maximumIterationsPerRequest?: number;
-  private _logger: Logger;
-  public keepFunctionCallingMessages: boolean = true;
-  public retryOnError: boolean = false;
-  public detailedErrors: boolean = false;
+/**
+ * Provides error codes for when errors occur as part of the function calling loop.
+ */
+export enum FunctionInvocationStatus {
+  /**
+   * The operation completed successfully.
+   */
+  RanToCompletion,
 
   /**
-   * Gets or sets a collection of additional tools the client is able to invoke.
-   * These will not impact the requests sent by the {@link FunctionInvokingChatClient}, which will pass through the
-   * {@link ChatOptions.tools} unmodified. However, if the inner client requests the invocation of a tool
-   * that was not in {@link ChatOptions.tools}, this {@link additionalTools} collection will also be consulted
-   * to look for a corresponding tool to invoke. This is useful when the service may have been pre-configured to be aware
-   * of certain tools that aren't also sent on each individual request.
+   * The requested function could not be found.
    */
-  additionalTools?: AITool[];
+  NotFound,
 
-  public get currentContext(): FunctionInvocationContext | undefined {
-    return this._currentContext;
+  /**
+   * The function call failed with an exception.
+   */
+  Exception,
+}
+
+interface ApprovalResultWithRequestMessage {
+  response: FunctionApprovalResponseContent;
+  requestMessage?: ChatMessage;
+}
+
+/**
+ * A delegating chat client that invokes functions defined on ChatOptions.
+ * Include this in a chat pipeline to resolve function calls automatically.
+ */
+export class FunctionInvokingChatClient extends DelegatingChatClient {
+  private static _currentContext?: FunctionInvocationContext;
+  private _logger: Logger;
+  private _maximumIterationsPerRequest: number = 40;
+  private _maximumConsecutiveErrorsPerRequest: number = 3;
+
+  /**
+   * Gets or sets the FunctionInvocationContext for the current function invocation.
+   * This value flows across async calls.
+   */
+  public static get currentContext(): FunctionInvocationContext | undefined {
+    return FunctionInvokingChatClient._currentContext;
   }
 
-  public set currentContext(value: FunctionInvocationContext | undefined) {
-    this._currentContext = value;
+  protected static set currentContext(value: FunctionInvocationContext | undefined) {
+    FunctionInvokingChatClient._currentContext = value;
   }
 
-  public get maximumIterationsPerRequest() {
+  /**
+   * Gets or sets a value indicating whether detailed exception information should be included
+   * in the chat history when calling the underlying ChatClient.
+   */
+  public includeDetailedErrors: boolean = false;
+
+  /**
+   * Gets or sets a value indicating whether to allow concurrent invocation of functions.
+   */
+  public allowConcurrentInvocation: boolean = false;
+
+  /**
+   * Gets or sets the maximum number of iterations per request.
+   */
+  public get maximumIterationsPerRequest(): number {
     return this._maximumIterationsPerRequest;
   }
 
-  public set maximumIterationsPerRequest(value: number | undefined) {
-    if (!value || value < 1) {
-      throw new Error('The maximum iterations per request must be greater than or equal to 1.');
+  public set maximumIterationsPerRequest(value: number) {
+    if (value < 1) {
+      throw new Error('The maximum iterations per request must be at least 1.');
     }
-
     this._maximumIterationsPerRequest = value;
   }
 
-  public constructor(innerClient: ChatClient) {
-    super(innerClient);
-    this._logger = LoggerFactory.getLogger();
+  /**
+   * Gets or sets the maximum number of consecutive iterations that are allowed to fail with an error.
+   */
+  public get maximumConsecutiveErrorsPerRequest(): number {
+    return this._maximumConsecutiveErrorsPerRequest;
   }
 
-  override async getResponse(chatMessages: string | ChatMessage[], options?: ChatOptions) {
-    chatMessages = ChatMessage.create(chatMessages);
-    let response: ChatResponse | undefined = undefined;
-    let messagesToRemove: Set<ChatMessage> | undefined = undefined;
-    let contentsToRemove: Set<AIContent> | undefined = undefined;
-    let totalUsage: UsageDetails | undefined = undefined;
+  public set maximumConsecutiveErrorsPerRequest(value: number) {
+    if (value < 0) {
+      throw new Error('The maximum consecutive errors per request must be at least 0.');
+    }
+    this._maximumConsecutiveErrorsPerRequest = value;
+  }
 
-    try {
-      for (let iteration = 0; ; iteration++) {
-        response = await super.getResponse(chatMessages, options);
+  /**
+   * Gets or sets a collection of additional tools the client is able to invoke.
+   */
+  public additionalTools?: AITool[];
 
-        if (response.usage) {
-          totalUsage ??= new UsageDetails();
-          totalUsage.add(response.usage);
+  /**
+   * Gets or sets a value indicating whether a request to call an unknown function should terminate the function calling loop.
+   */
+  public terminateOnUnknownCalls: boolean = false;
+
+  /**
+   * Gets or sets a delegate used to invoke AIFunction instances.
+   */
+  public functionInvoker?: (context: FunctionInvocationContext) => Promise<unknown>;
+
+  constructor(innerClient: ChatClient, loggerFactory?: { getLogger(): Logger }) {
+    super(innerClient);
+    this._logger = loggerFactory?.getLogger() ?? LoggerFactory.getLogger();
+  }
+
+  override async getResponse(chatMessages: string | ChatMessage[], options?: ChatOptions): Promise<ChatResponse> {
+    if (!chatMessages) {
+      throw new Error('Messages cannot be null.');
+    }
+
+    // Copy the original messages to avoid enumerating multiple times
+    const originalMessages = ChatMessage.create(chatMessages);
+    let messages: ChatMessage[] = originalMessages;
+
+    let augmentedHistory: ChatMessage[] | undefined;
+    let response: ChatResponse | undefined;
+    let responseMessages: ChatMessage[] | undefined;
+    let totalUsage: UsageDetails | undefined;
+    let functionCallContents: FunctionCallContent[] | undefined;
+    const lastIterationHadConversationId = false;
+    let consecutiveErrorCount = 0;
+
+    const { toolMap, anyToolsRequireApproval } = this.createToolsMap(this.additionalTools, options?.tools);
+
+    const toolMessageId = this.generateId();
+
+    if (this.hasAnyApprovalContent(originalMessages)) {
+      const functionCallContentFallbackMessageId = this.generateId();
+
+      const { preDownstreamCallHistory, notInvokedApprovals } = this.processApprovalResponses(
+        originalMessages,
+        !!options?.conversationId,
+        toolMessageId,
+        functionCallContentFallbackMessageId
+      );
+
+      responseMessages = preDownstreamCallHistory;
+
+      const { invokedApprovedFunctionApprovalResponses, shouldTerminate, newConsecutiveErrorCount } =
+        await this.invokeApprovedFunctionApprovalResponsesAsync(
+          notInvokedApprovals,
+          toolMap,
+          originalMessages,
+          options,
+          consecutiveErrorCount,
+          false
+        );
+
+      consecutiveErrorCount = newConsecutiveErrorCount;
+
+      if (invokedApprovedFunctionApprovalResponses) {
+        responseMessages = responseMessages
+          ? [...responseMessages, ...invokedApprovedFunctionApprovalResponses]
+          : invokedApprovedFunctionApprovalResponses;
+      }
+
+      if (shouldTerminate) {
+        return new ChatResponse({ choices: responseMessages || [] });
+      }
+    }
+
+    // Main function calling loop
+    for (let iteration = 0; ; iteration++) {
+      functionCallContents = undefined;
+
+      // Make the call to the inner client
+      response = await super.getResponse(messages, options);
+      if (!response) {
+        throw new Error('The inner ChatClient returned a null ChatResponse.');
+      }
+
+      // Handle approval requirements
+      if (anyToolsRequireApproval && toolMap) {
+        const updatedMessages = this.replaceFunctionCallsWithApprovalRequests(response.messages, toolMap);
+        response.messages = updatedMessages;
+      }
+
+      // Check if function invocation is required
+      functionCallContents = [];
+      const anyFunctionCalls = this.copyFunctionCalls(response.messages).length > 0;
+      const requiresFunctionInvocation = iteration < this.maximumIterationsPerRequest && anyFunctionCalls;
+
+      if (!requiresFunctionInvocation && iteration === 0) {
+        // Fast path for no function calling
+        if (responseMessages && responseMessages.length > 0) {
+          responseMessages.push(...response.messages);
+          response.messages = responseMessages;
         }
 
-        if (
-          !options ||
-          !options.tools ||
-          response.choices.length === 0 ||
-          (this.maximumIterationsPerRequest && iteration >= this.maximumIterationsPerRequest)
-        ) {
+        return response;
+      }
+
+      // Track aggregate details
+      responseMessages = responseMessages ? [...responseMessages, ...response.messages] : [...response.messages];
+      if (response.usage) {
+        if (totalUsage) {
+          totalUsage.add(response.usage);
+        } else {
+          totalUsage = response.usage;
+        }
+      }
+
+      // Check if we should terminate
+      if (
+        !requiresFunctionInvocation ||
+        this.shouldTerminateLoopBasedOnHandleableFunctions(functionCallContents, toolMap)
+      ) {
+        break;
+      }
+
+      // Prepare history for next iteration
+      this.fixupHistories(
+        originalMessages,
+        messages,
+        augmentedHistory,
+        response,
+        responseMessages,
+        lastIterationHadConversationId
+      );
+      messages = augmentedHistory || messages;
+
+      // Process function calls
+      if (functionCallContents) {
+        const { shouldTerminate, newConsecutiveErrorCount, messagesAdded } = await this.processFunctionCallsAsync(
+          messages,
+          options,
+          toolMap,
+          functionCallContents,
+          iteration,
+          consecutiveErrorCount,
+          false
+        );
+
+        responseMessages.push(...messagesAdded);
+        consecutiveErrorCount = newConsecutiveErrorCount;
+
+        if (shouldTerminate) {
           break;
         }
+      }
 
-        if (response.choices.length > 1) {
-          throw new Error(
-            'Automatic function call invocation only accepts a single choice, but multiple choices were received.'
+      this.updateOptionsForNextIteration(options, response.conversationId);
+    }
+
+    if (responseMessages && response) {
+      const finalResponse = new ChatResponse({ choices: responseMessages });
+      finalResponse.conversationId = response.conversationId;
+      finalResponse.usage = totalUsage;
+      return finalResponse;
+    }
+
+    throw new Error('No response messages or response available.');
+  }
+
+  override async *getStreamingResponse(
+    chatMessages: string | ChatMessage[],
+    options?: ChatOptions
+  ): AsyncGenerator<ChatResponseUpdate> {
+    if (!chatMessages) {
+      throw new Error('Messages cannot be null.');
+    }
+
+    // Copy the original messages to avoid enumerating multiple times
+    const originalMessages = ChatMessage.create(chatMessages);
+    let messages: ChatMessage[] = originalMessages;
+
+    let approvalRequiredFunctions: ApprovalRequiredAIFunction[] | undefined;
+    let augmentedHistory: ChatMessage[] | undefined;
+    let functionCallContents: FunctionCallContent[] | undefined;
+    let responseMessages: ChatMessage[] | undefined;
+    let lastIterationHadConversationId = false;
+    let updates: ChatResponseUpdate[] = [];
+    let consecutiveErrorCount = 0;
+
+    const { toolMap, anyToolsRequireApproval } = this.createToolsMap(this.additionalTools, options?.tools);
+    const toolMessageId = this.generateId();
+
+    if (this.hasAnyApprovalContent(originalMessages)) {
+      const functionCallContentFallbackMessageId = this.generateId();
+
+      const { preDownstreamCallHistory, notInvokedApprovals } = this.processApprovalResponses(
+        originalMessages,
+        !!options?.conversationId,
+        toolMessageId,
+        functionCallContentFallbackMessageId
+      );
+
+      if (preDownstreamCallHistory) {
+        for (const message of preDownstreamCallHistory) {
+          yield this.convertToolResultMessageToUpdate(message, options?.conversationId, message.messageId);
+        }
+      }
+
+      if (notInvokedApprovals && notInvokedApprovals.length > 0) {
+        const { functionResultContentMessages, shouldTerminate, newConsecutiveErrorCount } =
+          await this.invokeApprovedFunctionApprovalResponsesAsync(
+            notInvokedApprovals,
+            toolMap,
+            originalMessages,
+            options,
+            consecutiveErrorCount,
+            true
+          );
+
+        if (functionResultContentMessages) {
+          for (const message of functionResultContentMessages) {
+            message.messageId = toolMessageId;
+            yield this.convertToolResultMessageToUpdate(message, options?.conversationId, message.messageId);
+          }
+
+          if (shouldTerminate) {
+            return;
+          }
+        }
+
+        consecutiveErrorCount = newConsecutiveErrorCount;
+      }
+    }
+
+    // Main function calling loop
+    for (let iteration = 0; ; iteration++) {
+      updates = [];
+      functionCallContents = undefined;
+
+      let hasApprovalRequiringFcc = false;
+      let lastApprovalCheckedFCCIndex = 0;
+      let lastYieldedUpdateIndex = 0;
+
+      for await (const update of super.getStreamingResponse(messages, options)) {
+        if (!update) {
+          throw new Error('The inner ChatClient streamed a null ChatResponseUpdate.');
+        }
+
+        updates.push(update);
+
+        this.copyFunctionCalls(update.contents, functionCallContents);
+
+        if (anyToolsRequireApproval && !approvalRequiredFunctions) {
+          approvalRequiredFunctions = [...(options?.tools || []), ...(this.additionalTools || [])].filter(
+            (tool): tool is ApprovalRequiredAIFunction => tool instanceof ApprovalRequiredAIFunction
           );
         }
 
-        const functionCallContents = response.message.contents.filter(
-          (content) => content instanceof FunctionCallContent
+        if (!approvalRequiredFunctions || approvalRequiredFunctions.length === 0) {
+          lastYieldedUpdateIndex++;
+          yield update;
+          continue;
+        }
+
+        if (functionCallContents && functionCallContents.length > 0) {
+          const checkResult = this.checkForApprovalRequiringFCC(
+            functionCallContents,
+            approvalRequiredFunctions,
+            hasApprovalRequiringFcc,
+            lastApprovalCheckedFCCIndex
+          );
+          hasApprovalRequiringFcc = checkResult.hasApprovalRequiringFcc;
+          lastApprovalCheckedFCCIndex = checkResult.lastApprovalCheckedFCCIndex;
+
+          if (hasApprovalRequiringFcc) {
+            for (; lastYieldedUpdateIndex < updates.length; lastYieldedUpdateIndex++) {
+              const updateToYield = updates[lastYieldedUpdateIndex];
+              const updatedContents = this.tryReplaceFunctionCallsWithApprovalRequests(updateToYield.contents);
+              if (updatedContents) {
+                updateToYield.contents = updatedContents;
+              }
+              yield updateToYield;
+            }
+            continue;
+          }
+        }
+      }
+
+      // Check termination conditions
+      if (
+        iteration >= this.maximumIterationsPerRequest ||
+        hasApprovalRequiringFcc ||
+        this.shouldTerminateLoopBasedOnHandleableFunctions(functionCallContents, toolMap)
+      ) {
+        break;
+      }
+
+      // Reconstitute response from updates
+      const response = this.updatesToChatResponse(updates);
+      responseMessages = responseMessages ? [...responseMessages, ...response.messages] : [...response.messages];
+
+      // Prepare history for next iteration
+      this.fixupHistories(
+        originalMessages,
+        messages,
+        augmentedHistory,
+        response,
+        responseMessages,
+        lastIterationHadConversationId
+      );
+      messages = augmentedHistory || messages;
+
+      // Process function calls
+      if (functionCallContents) {
+        const { shouldTerminate, newConsecutiveErrorCount, messagesAdded } = await this.processFunctionCallsAsync(
+          messages,
+          options,
+          toolMap,
+          functionCallContents,
+          iteration,
+          consecutiveErrorCount,
+          true
         );
 
-        if (functionCallContents.length === 0) {
+        responseMessages.push(...messagesAdded);
+        consecutiveErrorCount = newConsecutiveErrorCount;
+
+        // Stream generated function results
+        for (const message of messagesAdded) {
+          yield this.convertToolResultMessageToUpdate(message, response.conversationId, toolMessageId);
+        }
+
+        if (shouldTerminate) {
           break;
         }
-
-        if (!this.keepFunctionCallingMessages) {
-          messagesToRemove ??= new Set();
-        }
-
-        chatMessages.push(response.message);
-        if (messagesToRemove) {
-          if (functionCallContents.length === response.message.contents.length) {
-            messagesToRemove.add(response.message);
-          } else {
-            contentsToRemove ??= new Set();
-            functionCallContents.forEach(contentsToRemove.add, contentsToRemove);
-          }
-        }
-
-        const modeAndMessages = await this.processFunctionCalls({
-          chatMessages,
-          options,
-          functionCallContents,
-          iteration,
-        });
-
-        if (modeAndMessages.messagesAdded && messagesToRemove) {
-          modeAndMessages.messagesAdded.forEach(messagesToRemove.add, messagesToRemove);
-        }
-
-        switch (modeAndMessages.mode) {
-          case ContinueMode.Continue:
-            if (options.toolMode instanceof RequiredChatToolMode) {
-              // We have to reset this after the first iteration, otherwise we'll be in an infinite loop.
-              options = options.clone();
-              options.toolMode = 'auto';
-            }
-            break;
-          case ContinueMode.AllowOneMoreRoundtrip:
-            // The LLM gets one further chance to answer, but cannot use tools.
-            options = options.clone();
-            options.tools = undefined;
-            break;
-          case ContinueMode.Terminate:
-            return response;
-        }
       }
 
-      return response;
-    } finally {
-      this.removeMessagesAndContentFromList({
-        messagesToRemove,
-        contentToRemove: contentsToRemove,
-        messages: chatMessages,
-      });
-
-      if (response) {
-        response.usage = totalUsage;
-      }
+      this.updateOptionsForNextIteration(options, response.conversationId);
     }
   }
 
-  override async *getStreamingResponse(chatMessages: string | ChatMessage[], options?: ChatOptions) {
-    chatMessages = ChatMessage.create(chatMessages);
-    let messagesToRemove: Set<ChatMessage> | undefined = undefined;
-    let functionCallContents: FunctionCallContent[] = [];
-    let choice: number | undefined;
+  private createToolsMap(...toolLists: (AITool[] | undefined)[]): {
+    toolMap?: Map<string, AITool>;
+    anyToolsRequireApproval: boolean;
+  } {
+    const toolMap: Map<string, AITool> = new Map();
+    let anyToolsRequireApproval = false;
 
-    try {
-      for (let iteration = 0; ; iteration++) {
-        choice = undefined;
-        functionCallContents = [];
-
-        for await (const update of super.getStreamingResponse(chatMessages, options)) {
-          // Find all the FCCs. We need to track these separately in order to be able to process them later.
-          const preFccCount = functionCallContents.length;
-          functionCallContents.push(...update.contents.filter((content) => content instanceof FunctionCallContent));
-
-          // If there were any, remove them from the update. We do this before yielding the update so
-          // that we're not modifying an instance already provided back to the caller.
-          const addedFccs = functionCallContents.length - preFccCount;
-          if (addedFccs > 0) {
-            update.contents =
-              addedFccs === update.contents.length
-                ? []
-                : update.contents.filter((content) => !(content instanceof FunctionCallContent));
-          }
-
-          // Only one choice is allowed with automatic function calling.
-          if (choice === undefined) {
-            choice = update.choiceIndex;
-          } else if (choice !== update.choiceIndex) {
-            throw new Error('Multiple choices were received.');
-          }
-
-          yield update;
-        }
-
-        // If there are no tools to call, or for any other reason we should stop, return the response.
-        if (
-          !options ||
-          !options.tools ||
-          functionCallContents.length === 0 ||
-          (this.maximumIterationsPerRequest && iteration >= this.maximumIterationsPerRequest)
-        ) {
-          break;
-        }
-
-        // Track all added messages in order to remove them, if requested.
-        if (this.keepFunctionCallingMessages) {
-          messagesToRemove ??= new Set();
-        }
-
-        // Add a manufactured response message containing the function call contents to the chat history.
-        const functionCallMessage = new ChatMessage({ role: 'assistant', contents: [...functionCallContents] });
-        chatMessages.push(functionCallMessage);
-        messagesToRemove?.add(functionCallMessage);
-
-        // Process all of the functions, adding their results into the history.
-        const modeAndMessages = await this.processFunctionCalls({
-          chatMessages,
-          options,
-          functionCallContents,
-          iteration,
-        });
-        if (modeAndMessages.messagesAdded && messagesToRemove) {
-          modeAndMessages.messagesAdded.forEach(messagesToRemove.add, messagesToRemove);
-        }
-
-        // Decide how to proceed based on the result of the function calls.
-        switch (modeAndMessages.mode) {
-          case ContinueMode.Continue:
-            // We have to reset this after the first iteration, otherwise we'll be in an infinite loop.
-            if (options.toolMode instanceof RequiredChatToolMode) {
-              options = options.clone();
-              options.toolMode = 'auto';
-            }
-            break;
-          case ContinueMode.AllowOneMoreRoundtrip:
-            // The LLM gets one further chance to answer, but cannot use tools.
-            options = options.clone();
-            options.tools = undefined;
-            break;
-          case ContinueMode.Terminate:
-            // Bail immediately.
-            return;
+    for (const toolList of toolLists) {
+      if (toolList && toolList.length > 0) {
+        for (const tool of toolList) {
+          anyToolsRequireApproval = anyToolsRequireApproval || tool instanceof ApprovalRequiredAIFunction;
+          toolMap.set(tool.name, tool);
         }
       }
-    } finally {
-      this.removeMessagesAndContentFromList({
-        messagesToRemove,
-        messages: chatMessages,
-      });
     }
+
+    return { toolMap, anyToolsRequireApproval };
   }
 
-  private async processFunctionCalls({
-    chatMessages,
-    options,
-    functionCallContents,
-    iteration,
-  }: {
-    chatMessages: ChatMessage[];
-    options: ChatOptions;
-    functionCallContents: FunctionCallContent[];
-    iteration: number;
-  }) {
+  private hasAnyApprovalContent(messages: ChatMessage[]): boolean {
+    return messages.some((m) =>
+      m.contents.some(
+        (c) => c instanceof FunctionApprovalRequestContent || c instanceof FunctionApprovalResponseContent
+      )
+    );
+  }
+
+  private copyFunctionCalls(contentsOrMessages: (AIContent | ChatMessage)[]): FunctionCallContent[] {
+    const functionCalls: FunctionCallContent[] = [];
+    const contents: AIContent[] = [];
+
+    for (const item of contentsOrMessages) {
+      if (item instanceof ChatMessage) {
+        contents.push(...item.contents);
+      } else {
+        contents.push(item);
+      }
+    }
+
+    for (const item of contents) {
+      if (item instanceof FunctionCallContent) {
+        functionCalls.push(item);
+      }
+    }
+
+    return functionCalls;
+  }
+
+  private shouldTerminateLoopBasedOnHandleableFunctions(
+    functionCalls?: FunctionCallContent[],
+    toolMap?: Map<string, AITool>
+  ): boolean {
+    if (!functionCalls || functionCalls.length === 0) {
+      return true;
+    }
+
+    if (!toolMap || toolMap.size === 0) {
+      return this.terminateOnUnknownCalls;
+    }
+
+    for (const fcc of functionCalls) {
+      const tool = toolMap.get(fcc.name);
+      if (tool) {
+        if (!(tool instanceof AIFunction)) {
+          return true;
+        }
+      } else {
+        if (this.terminateOnUnknownCalls) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  private async processFunctionCallsAsync(
+    messages: ChatMessage[],
+    options: ChatOptions | undefined,
+    toolMap: Map<string, AITool> | undefined,
+    functionCallContents: FunctionCallContent[],
+    iteration: number,
+    consecutiveErrorCount: number,
+    isStreaming: boolean
+  ): Promise<{ shouldTerminate: boolean; newConsecutiveErrorCount: number; messagesAdded: ChatMessage[] }> {
     const functionCount = functionCallContents.length;
+    const captureCurrentIterationExceptions = consecutiveErrorCount < this.maximumConsecutiveErrorsPerRequest;
 
     if (functionCount === 1) {
-      const result = await this.processFunctionCall({
-        chatMessages,
+      const result = await this.processFunctionCallAsync(
+        messages,
         options,
-        functionCallContent: functionCallContents[0],
+        toolMap,
+        functionCallContents,
         iteration,
-        functionCallIndex: 0,
-        totalFunctionCount: 1,
-      });
-      const added = this.addResponseMessages({ chat: chatMessages, results: [result] });
-      return { mode: result.continueMode, messagesAdded: added };
+        0,
+        captureCurrentIterationExceptions,
+        isStreaming
+      );
+
+      const addedMessages = this.createResponseMessages([result]);
+      this.throwIfNoFunctionResultsAdded(addedMessages);
+      this.updateConsecutiveErrorCountOrThrow(addedMessages, consecutiveErrorCount);
+      messages.push(...addedMessages);
+
+      return {
+        shouldTerminate: result.terminate,
+        newConsecutiveErrorCount: consecutiveErrorCount,
+        messagesAdded: addedMessages,
+      };
     } else {
       const results: FunctionInvocationResult[] = [];
 
-      // TODO: Implement ConcurrentInvocation
-
-      // Invoke functions serially.
-      for (let i = 0; i < functionCount; i++) {
-        results.push(
-          await this.processFunctionCall({
-            chatMessages,
+      if (this.allowConcurrentInvocation) {
+        const promises = functionCallContents.map((_, callIndex) =>
+          this.processFunctionCallAsync(
+            messages,
             options,
-            functionCallContent: functionCallContents[i],
+            toolMap,
+            functionCallContents,
             iteration,
-            functionCallIndex: i,
-            totalFunctionCount: functionCount,
-          })
+            callIndex,
+            true,
+            isStreaming
+          )
         );
+        results.push(...(await Promise.all(promises)));
+      } else {
+        for (let callIndex = 0; callIndex < functionCount; callIndex++) {
+          const functionResult = await this.processFunctionCallAsync(
+            messages,
+            options,
+            toolMap,
+            functionCallContents,
+            iteration,
+            callIndex,
+            captureCurrentIterationExceptions,
+            isStreaming
+          );
+
+          results.push(functionResult);
+
+          if (functionResult.terminate) {
+            break;
+          }
+        }
       }
 
-      let continueMode = ContinueMode.Continue;
-      const added = this.addResponseMessages({ chat: chatMessages, results });
-      results.forEach((fir) => {
-        if (fir.continueMode > continueMode) {
-          continueMode = fir.continueMode;
-        }
-      });
+      const addedMessages = this.createResponseMessages(results);
+      this.throwIfNoFunctionResultsAdded(addedMessages);
+      this.updateConsecutiveErrorCountOrThrow(addedMessages, consecutiveErrorCount);
+      messages.push(...addedMessages);
 
-      return { mode: continueMode, messagesAdded: added };
+      const shouldTerminate = results.some((r) => r.terminate);
+
+      return {
+        shouldTerminate,
+        newConsecutiveErrorCount: consecutiveErrorCount,
+        messagesAdded: addedMessages,
+      };
     }
   }
 
-  private async processFunctionCall({
-    chatMessages,
-    options,
-    functionCallContent,
-    iteration,
-    functionCallIndex,
-    totalFunctionCount,
-  }: {
-    chatMessages: ChatMessage[];
-    options: ChatOptions;
-    functionCallContent: FunctionCallContent;
-    iteration: number;
-    functionCallIndex: number;
-    totalFunctionCount: number;
-  }) {
-    const aiFunction: AIFunction | undefined = options.tools
-      ?.filter((tool) => tool instanceof AIFunction)
-      .find((tool) => tool.name === functionCallContent.name);
+  private async processFunctionCallAsync(
+    messages: ChatMessage[],
+    options: ChatOptions | undefined,
+    toolMap: Map<string, AITool> | undefined,
+    callContents: FunctionCallContent[],
+    iteration: number,
+    functionCallIndex: number,
+    captureExceptions: boolean,
+    isStreaming: boolean
+  ): Promise<FunctionInvocationResult> {
+    const callContent = callContents[functionCallIndex];
 
-    if (!aiFunction) {
+    // Look up the AIFunction for the function call
+    if (!toolMap || !toolMap.has(callContent.name)) {
       return new FunctionInvocationResult({
-        continueMode: ContinueMode.Continue,
-        status: FunctionStatus.NotFound,
-        callContent: functionCallContent,
+        terminate: false,
+        status: FunctionInvocationStatus.NotFound,
+        callContent,
+      });
+    }
+
+    const tool = toolMap.get(callContent.name);
+    if (!tool || !(tool instanceof AIFunction)) {
+      return new FunctionInvocationResult({
+        terminate: false,
+        status: FunctionInvocationStatus.NotFound,
+        callContent,
       });
     }
 
     const context = new FunctionInvocationContext({
-      chatMessages,
-      args: new AIFunctionArguments(functionCallContent.arguments),
-      functionCallContent,
-      func: aiFunction,
+      chatMessages: messages,
+      args: new AIFunctionArguments(callContent.arguments),
+      functionCallContent: callContent,
+      func: tool,
+      options,
     });
+
     context.iteration = iteration;
     context.functionCallIndex = functionCallIndex;
-    context.functionCount = totalFunctionCount;
+    context.functionCount = callContents.length;
+    context.isStreaming = isStreaming;
 
     try {
-      const result = await this.invokeFunction(context);
+      const result = await this.instrumentedInvokeFunctionAsync(context);
       return new FunctionInvocationResult({
-        continueMode: context.termination ? ContinueMode.Terminate : ContinueMode.Continue,
-        status: FunctionStatus.CompletedSuccessfully,
-        callContent: functionCallContent,
+        terminate: context.terminate || false,
+        status: FunctionInvocationStatus.RanToCompletion,
+        callContent,
         result,
       });
     } catch (e) {
+      if (!captureExceptions) {
+        throw e;
+      }
+
       return new FunctionInvocationResult({
-        continueMode: this.retryOnError ? ContinueMode.Continue : ContinueMode.AllowOneMoreRoundtrip,
-        status: FunctionStatus.Failed,
-        callContent: functionCallContent,
-        exception: e,
+        terminate: false,
+        status: FunctionInvocationStatus.Exception,
+        callContent,
+        exception: e instanceof Error ? e : new Error(String(e)),
       });
     }
   }
 
-  protected async invokeFunction(context: FunctionInvocationContext): Promise<unknown | undefined> {
-    let result: unknown | undefined = undefined;
+  private async instrumentedInvokeFunctionAsync(context: FunctionInvocationContext): Promise<unknown> {
+    if (!context) {
+      throw new Error('Context cannot be null.');
+    }
+
+    const startTime = performance.now();
 
     this._logger.debug(`Invoking ${context.function.name}.`);
     this._logger.trace(`Invoking ${context.function.name}.`, { arguments: context.arguments });
 
-    const startTimer = performance.now();
-
+    let result: unknown;
     try {
-      this.currentContext = context;
-      result = await context.function.invoke(context.arguments);
-
-      const duration = performance.now() - startTimer;
-
-      this._logger.debug(`${context.function.name} invocation completed.`);
-      this._logger.trace(`${context.function.name} invocation completed.`, { result, duration });
+      FunctionInvokingChatClient.currentContext = context;
+      result = await this.invokeFunctionAsync(context);
     } catch (e) {
       this._logger.error(`${context.function.name} invocation failed`, { error: e });
       throw e;
+    } finally {
+      const duration = performance.now() - startTime;
+      this._logger.debug(`${context.function.name} invocation completed.`);
+      this._logger.trace(`${context.function.name} invocation completed.`, { result, duration });
     }
 
     return result;
   }
 
+  protected async invokeFunctionAsync(context: FunctionInvocationContext): Promise<unknown> {
+    if (!context) {
+      throw new Error('Context cannot be null.');
+    }
+
+    return this.functionInvoker ? this.functionInvoker(context) : context.function.invoke(context.arguments);
+  }
+
+  protected createResponseMessages(results: FunctionInvocationResult[]): ChatMessage[] {
+    const contents = results.map((result) => this.createFunctionResultContent(result));
+    return [new ChatMessage({ role: 'tool', contents })];
+  }
+
   private createFunctionResultContent(result: FunctionInvocationResult): FunctionResultContent {
-    let functionResult: unknown | undefined;
-    if (result.status === FunctionStatus.CompletedSuccessfully) {
+    if (!result) {
+      throw new Error('Result cannot be null.');
+    }
+
+    let functionResult: unknown;
+    if (result.status === FunctionInvocationStatus.RanToCompletion) {
       functionResult = result.result ?? 'Success: Function completed.';
     } else {
-      let message = 'Error: Unknown error.';
-      if (result.status === FunctionStatus.NotFound) {
-        message = 'Error: Requested function not found.';
-      } else if (result.status === FunctionStatus.Failed) {
-        message = 'Error: Function failed.';
-      }
+      let message =
+        result.status === FunctionInvocationStatus.NotFound
+          ? `Error: Requested function "${result.callContent.name}" not found.`
+          : result.status === FunctionInvocationStatus.Exception
+            ? 'Error: Function failed.'
+            : 'Error: Unknown error.';
 
-      if (this.detailedErrors && result.exception) {
-        message = `${message} Exception: ${result.exception}`;
+      if (this.includeDetailedErrors && result.exception) {
+        message = `${message} Exception: ${result.exception.message}`;
       }
 
       functionResult = message;
@@ -479,50 +787,451 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
       name: result.callContent.name,
       result: functionResult,
     });
-    functionResultContent.exception = result.exception;
+
+    if (result.exception) {
+      (functionResultContent as FunctionResultContent & { exception: Error }).exception = result.exception;
+    }
 
     return functionResultContent;
   }
 
-  protected addResponseMessages({
-    chat,
-    results,
-  }: {
-    chat: ChatMessage[];
-    results: FunctionInvocationResult[];
-  }): ChatMessage[] {
-    const contents = results.map((result) => this.createFunctionResultContent(result));
-    const message = new ChatMessage({ role: 'tool', contents });
-    chat.push(message);
-    return [message];
-  }
+  private updateConsecutiveErrorCountOrThrow(added: ChatMessage[], consecutiveErrorCount: number): void {
+    const hasErrors = added.some((m) =>
+      m.contents.some(
+        (c) => c instanceof FunctionResultContent && (c as FunctionResultContent & { exception?: Error }).exception
+      )
+    );
 
-  private removeMessagesAndContentFromList({
-    messagesToRemove,
-    contentToRemove,
-    messages,
-  }: {
-    messagesToRemove?: Set<ChatMessage>;
-    contentToRemove?: Set<AIContent>;
-    messages: ChatMessage[];
-  }) {
-    if (messagesToRemove) {
-      for (let m = messages.length - 1; m >= 0; m--) {
-        const message = messages[m];
+    if (hasErrors) {
+      consecutiveErrorCount++;
+      if (consecutiveErrorCount > this.maximumConsecutiveErrorsPerRequest) {
+        const allExceptions = added
+          .flatMap((m) => m.contents)
+          .filter((c): c is FunctionResultContent => c instanceof FunctionResultContent)
+          .map((frc) => (frc as FunctionResultContent & { exception?: Error }).exception)
+          .filter((e): e is Error => e !== undefined);
 
-        if (contentToRemove) {
-          for (let c = message.contents.length - 1; c >= 0; c--) {
-            if (contentToRemove.has(message.contents[c])) {
-              message.contents.splice(c, 1);
-            }
-          }
+        if (allExceptions.length === 1) {
+          throw allExceptions[0];
         }
 
-        if (messages.length === 0 || messagesToRemove.has(messages[m])) {
-          messages.splice(m, 1);
+        const error = new Error('Multiple function invocation errors occurred.');
+        (error as Error & { errors: Error[] }).errors = allExceptions;
+        throw error;
+      }
+    } else {
+      consecutiveErrorCount = 0;
+    }
+  }
+
+  private throwIfNoFunctionResultsAdded(messages?: ChatMessage[]): void {
+    if (!messages || messages.length === 0) {
+      throw new Error('CreateResponseMessages returned null or an empty collection of messages.');
+    }
+  }
+
+  private fixupHistories(
+    originalMessages: ChatMessage[],
+    messages: ChatMessage[],
+    augmentedHistory: ChatMessage[] | undefined,
+    response: ChatResponse,
+    allTurnsResponseMessages: ChatMessage[],
+    lastIterationHadConversationId: boolean
+  ): boolean {
+    if (response.conversationId) {
+      augmentedHistory?.splice(0, augmentedHistory.length);
+      lastIterationHadConversationId = true;
+    } else if (lastIterationHadConversationId) {
+      if (augmentedHistory) {
+        
+      }
+      augmentedHistory = [];
+      augmentedHistory = [...originalMessages, ...allTurnsResponseMessages];
+      lastIterationHadConversationId = false;
+    } else {
+      if (!augmentedHistory) {
+        augmentedHistory = originalMessages;
+      }
+      augmentedHistory.push(...response.messages);
+      lastIterationHadConversationId = false;
+    }
+
+    messages = augmentedHistory;
+
+    return lastIterationHadConversationId;
+  }
+
+  private updateOptionsForNextIteration(options: ChatOptions | undefined, conversationId?: string): void {
+    if (!options) {
+      if (conversationId) {
+        options = new ChatOptions();
+        options.conversationId = conversationId;
+      }
+    } else if (options.toolMode instanceof RequiredChatToolMode) {
+      options = options.clone();
+      options.toolMode = 'auto';
+      options.conversationId = conversationId;
+    } else if (options.conversationId !== conversationId) {
+      options = options.clone();
+      options.conversationId = conversationId;
+    }
+  }
+
+  private generateId(): string {
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  }
+
+  private extractAndRemoveApprovalRequestsAndResponses(messages: (ChatMessage | undefined)[]): {
+    approvals?: ApprovalResultWithRequestMessage[];
+    rejections?: ApprovalResultWithRequestMessage[];
+  } {
+    const allApprovalRequestsMessages = new Map<string, ChatMessage>();
+    const allApprovalResponses: FunctionApprovalResponseContent[] = [];
+    const approvalRequestCallIds = new Set<string>();
+    const functionResultCallIds = new Set<string>();
+
+    // First pass: collect approval requests and responses, track function results
+    let anyRemoved = false;
+    for (let i = 0; i < messages.length; i++) {
+      const message = messages[i];
+
+      if (!message) {
+        continue;
+      }
+
+      const keptContents: AIContent[] = [];
+
+      for (const content of message?.contents || []) {
+        if (content instanceof FunctionApprovalRequestContent) {
+          approvalRequestCallIds.add(content.functionCallContent.callId);
+          allApprovalRequestsMessages.set(content.id, message);
+        } else if (content instanceof FunctionApprovalResponseContent) {
+          approvalRequestCallIds.delete(content.functionCall.callId);
+          allApprovalResponses.push(content);
+        } else if (content instanceof FunctionResultContent) {
+          functionResultCallIds.add(content.callId);
+          keptContents.push(content);
+        } else {
+          keptContents.push(content);
+        }
+      }
+
+      // Update message if contents were filtered
+      if (keptContents.length !== message?.contents.length) {
+        if (keptContents.length > 0) {
+          const newMessage = Object.assign(new ChatMessage({ role: message.role, contents: keptContents }), message);
+          messages[i] = newMessage;
+        } else {
+          messages[i] = undefined;
+          anyRemoved = true;
         }
       }
     }
+
+    // Remove null messages
+    if (anyRemoved) {
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i] === null) {
+          messages.splice(i, 1);
+        }
+      }
+    }
+
+    // Validate that we have responses for all requests
+    if (approvalRequestCallIds.size > 0) {
+      throw new Error(
+        `FunctionApprovalRequestContent found with FunctionCall.CallId(s) '${Array.from(approvalRequestCallIds).join(', ')}' that have no matching FunctionApprovalResponseContent.`
+      );
+    }
+
+    // Second pass: categorize responses into approved and rejected
+    const approvedFunctionCalls: ApprovalResultWithRequestMessage[] = [];
+    const rejectedFunctionCalls: ApprovalResultWithRequestMessage[] = [];
+
+    for (const approvalResponse of allApprovalResponses) {
+      // Skip if already processed
+      if (functionResultCallIds.has(approvalResponse.functionCall.callId)) {
+        continue;
+      }
+
+      const requestMessage = allApprovalRequestsMessages.get(approvalResponse.functionCall.callId);
+      const resultWithRequestMessage: ApprovalResultWithRequestMessage = {
+        response: approvalResponse,
+        requestMessage,
+      };
+
+      if (approvalResponse.approved) {
+        approvedFunctionCalls.push(resultWithRequestMessage);
+      } else {
+        rejectedFunctionCalls.push(resultWithRequestMessage);
+      }
+    }
+
+    return {
+      approvals: approvedFunctionCalls.length > 0 ? approvedFunctionCalls : undefined,
+      rejections: rejectedFunctionCalls.length > 0 ? rejectedFunctionCalls : undefined,
+    };
+  }
+
+  private generateRejectedFunctionResults(rejections?: ApprovalResultWithRequestMessage[]): AIContent[] | undefined {
+    if (!rejections || rejections.length === 0) {
+      return undefined;
+    }
+
+    return rejections.map(
+      (rejection) =>
+        new FunctionResultContent({
+          callId: rejection.response.functionCall.callId,
+          name: rejection.response.functionCall.name,
+          result: 'Error: Tool call invocation was rejected by user.',
+        })
+    );
+  }
+
+  private convertToFunctionCallContentMessages(
+    resultWithRequestMessages: ApprovalResultWithRequestMessage[],
+    fallbackMessageId: string
+  ): ChatMessage[] | undefined {
+    if (!resultWithRequestMessages || resultWithRequestMessages.length === 0) {
+      return undefined;
+    }
+
+    const messagesById = new Map<string, ChatMessage>();
+
+    for (const resultWithRequestMessage of resultWithRequestMessages) {
+      const messageId = resultWithRequestMessage.requestMessage?.messageId || fallbackMessageId;
+
+      let message = messagesById.get(messageId);
+      if (!message) {
+        message = resultWithRequestMessage.requestMessage
+          ? this.cloneChatMessage(resultWithRequestMessage.requestMessage)
+          : new ChatMessage({ role: 'assistant' });
+        message.contents = [resultWithRequestMessage.response.functionCall];
+        message.messageId = messageId;
+        messagesById.set(messageId, message);
+      } else {
+        message.contents.push(resultWithRequestMessage.response.functionCall);
+      }
+    }
+
+    return Array.from(messagesById.values());
+  }
+
+  private cloneChatMessage(message: ChatMessage): ChatMessage {
+    const cloned = new ChatMessage({ role: message.role, contents: [...message.contents] });
+    cloned.messageId = message.messageId;
+    cloned.authorName = message.authorName;
+    cloned.createdAt = message.createdAt;
+    cloned.additionalProperties = message.additionalProperties;
+    cloned.rawRepresentation = message.rawRepresentation;
+    return cloned;
+  }
+
+  private processApprovalResponses(
+    originalMessages: ChatMessage[],
+    hasConversationId: boolean,
+    toolMessageId: string,
+    functionCallContentFallbackMessageId: string
+  ): { preDownstreamCallHistory?: ChatMessage[]; notInvokedApprovals?: ApprovalResultWithRequestMessage[] } {
+    const { approvals, rejections } = this.extractAndRemoveApprovalRequestsAndResponses(originalMessages);
+
+    // Convert to function call content messages
+    const allPreDownstreamCallMessages = this.convertToFunctionCallContentMessages(
+      [...(rejections || []), ...(approvals || [])],
+      functionCallContentFallbackMessageId
+    );
+
+    // Generate failed function result contents for any rejected requests
+    const rejectedFunctionCallResults = this.generateRejectedFunctionResults(rejections);
+    let rejectedPreDownstreamCallResultsMessage: ChatMessage | undefined;
+    if (rejectedFunctionCallResults) {
+      rejectedPreDownstreamCallResultsMessage = new ChatMessage({
+        role: 'tool',
+        contents: rejectedFunctionCallResults,
+      });
+      rejectedPreDownstreamCallResultsMessage.messageId = toolMessageId;
+    }
+
+    // Add all the FCC that we generated to the pre-downstream-call history
+    let preDownstreamCallHistory: ChatMessage[] | undefined;
+    if (allPreDownstreamCallMessages && allPreDownstreamCallMessages.length > 0) {
+      preDownstreamCallHistory = [...allPreDownstreamCallMessages];
+      if (!hasConversationId) {
+        originalMessages.push(...preDownstreamCallHistory);
+      }
+    }
+
+    // Add all the FRC that we generated to the pre-downstream-call history
+    if (rejectedPreDownstreamCallResultsMessage) {
+      preDownstreamCallHistory = preDownstreamCallHistory || [];
+      preDownstreamCallHistory.push(rejectedPreDownstreamCallResultsMessage);
+      originalMessages.push(rejectedPreDownstreamCallResultsMessage);
+    }
+
+    return { preDownstreamCallHistory, notInvokedApprovals: approvals };
+  }
+
+  private async invokeApprovedFunctionApprovalResponsesAsync(
+    notInvokedApprovals: ApprovalResultWithRequestMessage[] | undefined,
+    toolMap: Map<string, AITool> | undefined,
+    originalMessages: ChatMessage[],
+    options: ChatOptions | undefined,
+    consecutiveErrorCount: number,
+    isStreaming: boolean
+  ): Promise<{
+    invokedApprovedFunctionApprovalResponses?: ChatMessage[];
+    shouldTerminate: boolean;
+    newConsecutiveErrorCount: number;
+  }> {
+    if (!notInvokedApprovals || notInvokedApprovals.length === 0) {
+      return {
+        invokedApprovedFunctionApprovalResponses: undefined,
+        shouldTerminate: false,
+        newConsecutiveErrorCount: consecutiveErrorCount,
+      };
+    }
+
+    // Extract function call contents from approved responses
+    const functionCallContents = notInvokedApprovals.map((approval) => approval.response.functionCall);
+
+    // Process the function calls
+    const { shouldTerminate, newConsecutiveErrorCount, messagesAdded } = await this.processFunctionCallsAsync(
+      originalMessages,
+      options,
+      toolMap,
+      functionCallContents,
+      0,
+      consecutiveErrorCount,
+      isStreaming
+    );
+
+    return {
+      invokedApprovedFunctionApprovalResponses: messagesAdded,
+      shouldTerminate,
+      newConsecutiveErrorCount,
+    };
+  }
+
+  private replaceFunctionCallsWithApprovalRequests(
+    messages: ChatMessage[],
+    toolMap: Map<string, AITool>
+  ): ChatMessage[] {
+    const outputMessages = [...messages];
+    let anyApprovalRequired = false;
+    const allFunctionCallContentIndices: Array<{ messageIndex: number; contentIndex: number }> = [];
+
+    // Build a list of the indices of all FunctionCallContent items
+    // Also check if any of them require approval
+    for (let i = 0; i < messages.length; i++) {
+      const content = messages[i].contents;
+      for (let j = 0; j < content.length; j++) {
+        if (content[j] instanceof FunctionCallContent) {
+          const functionCall = content[j] as FunctionCallContent;
+          allFunctionCallContentIndices.push({ messageIndex: i, contentIndex: j });
+
+          if (!anyApprovalRequired) {
+            const tool = toolMap.get(functionCall.name);
+            if (tool instanceof ApprovalRequiredAIFunction) {
+              anyApprovalRequired = true;
+            }
+          }
+        }
+      }
+    }
+
+    // If any function calls were found, and any of them required approval, replace all of them with approval requests
+    if (anyApprovalRequired && allFunctionCallContentIndices.length > 0) {
+      let lastMessageIndex = -1;
+
+      for (const { messageIndex, contentIndex } of allFunctionCallContentIndices) {
+        // Clone the message if we didn't already clone it in a previous iteration
+        if (lastMessageIndex !== messageIndex) {
+          outputMessages[messageIndex] = this.cloneChatMessage(outputMessages[messageIndex]);
+          lastMessageIndex = messageIndex;
+        }
+
+        const message = outputMessages[messageIndex];
+        const functionCall = message.contents[contentIndex] as FunctionCallContent;
+        message.contents[contentIndex] = new FunctionApprovalRequestContent(functionCall.callId, functionCall);
+      }
+    }
+
+    return outputMessages;
+  }
+
+  private checkForApprovalRequiringFCC(
+    functionCallContents: FunctionCallContent[],
+    approvalRequiredFunctions: ApprovalRequiredAIFunction[],
+    hasApprovalRequiringFcc: boolean,
+    lastApprovalCheckedFCCIndex: number
+  ): { hasApprovalRequiringFcc: boolean; lastApprovalCheckedFCCIndex: number } {
+    if (hasApprovalRequiringFcc) {
+      return { hasApprovalRequiringFcc: true, lastApprovalCheckedFCCIndex: functionCallContents.length };
+    }
+
+    for (; lastApprovalCheckedFCCIndex < functionCallContents.length; lastApprovalCheckedFCCIndex++) {
+      const fcc = functionCallContents[lastApprovalCheckedFCCIndex];
+      for (const arf of approvalRequiredFunctions) {
+        if (arf.name === fcc.name) {
+          hasApprovalRequiringFcc = true;
+          break;
+        }
+      }
+    }
+
+    return { hasApprovalRequiringFcc, lastApprovalCheckedFCCIndex };
+  }
+
+  private tryReplaceFunctionCallsWithApprovalRequests(content: AIContent[]): AIContent[] | undefined {
+    let updatedContent: AIContent[] | undefined;
+
+    for (let i = 0; i < content.length; i++) {
+      if (content[i] instanceof FunctionCallContent) {
+        const fcc = content[i] as FunctionCallContent;
+        updatedContent = updatedContent || [...content];
+        updatedContent[i] = new FunctionApprovalRequestContent(fcc.callId, fcc);
+      }
+    }
+
+    return updatedContent;
+  }
+
+  private convertToolResultMessageToUpdate(
+    message: ChatMessage,
+    conversationId?: string,
+    messageId?: string
+  ): ChatResponseUpdate {
+    const update = new ChatResponseUpdate();
+    update.contents = message.contents;
+    update.conversationId = conversationId;
+    update.messageId = messageId;
+    update.role = message.role;
+    update.choiceIndex = 0;
+    return update;
+  }
+
+  private updatesToChatResponse(updates: ChatResponseUpdate[]): ChatResponse {
+    const messages: ChatMessage[] = [];
+    let conversationId: string | undefined;
+
+    for (const update of updates) {
+      if (update.conversationId) {
+        conversationId = update.conversationId;
+      }
+
+      if (update.contents && update.contents.length > 0) {
+        messages.push(
+          new ChatMessage({
+            role: update.role || 'assistant',
+            contents: update.contents,
+          })
+        );
+      }
+    }
+
+    const response = new ChatResponse({ choices: messages });
+    response.conversationId = conversationId;
+    return response;
   }
 }
 

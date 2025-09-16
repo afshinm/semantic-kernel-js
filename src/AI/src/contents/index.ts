@@ -2,6 +2,8 @@ export * from './AIContent';
 export * from './ChatMessage';
 export * from './FunctionCallContent';
 export * from './FunctionResultContent';
+export * from './FunctionApprovalRequestContent';
+export * from './FunctionApprovalResponseContent';
 export * from './TextContent';
 export * from './TextReasoningContent';
 export * from './UsageContent';
