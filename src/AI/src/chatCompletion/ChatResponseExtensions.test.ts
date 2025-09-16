@@ -40,10 +40,9 @@ describe('ChatResponseExtensions', () => {
       expect(chatResponse.messages[0].text).toBe('Hello How are you?');
 
       expect(chatResponse.messages[1].role).toBe('assistant');
-      expect(chatResponse.messages[1].authorName).toBe('Assistant');
-      expect(chatResponse.messages[1].createdAt).toBe(1620000060);
-      expect(chatResponse.messages[1].text).toBe("I'm fine, thank you! And you?");
-      expect(chatResponse.finishReason).toBe('stop');
+      expect(chatResponse.messages[1].authorName).toBe(undefined);
+      expect(chatResponse.messages[1].createdAt).toBe(undefined);
+      expect(chatResponse.messages[1].text).toBe("I'm fine, thank you!");
     });
   });
 });

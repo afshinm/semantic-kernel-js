@@ -1,5 +1,5 @@
+import { DefaultJsonSchema, FromSchema, JsonSchema } from '../jsonSchema';
 import { AIFunction } from './AIFunction';
-import { JsonSchema, DefaultJsonSchema, FromSchema } from '../jsonSchema';
 
 /**
  * An AIFunction that requires approval before it can be invoked.

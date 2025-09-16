@@ -41,7 +41,7 @@ describe('kernelFunctionFromPrompt', () => {
     };
 
     // Assert
-    expect(result.value.choices[0].text).toEqual('** testPrompt **');
+    expect(result.value.messages[0].text).toEqual('** testPrompt **');
     expect(result.renderedPrompt).toEqual('testPrompt');
   });
 
@@ -57,7 +57,7 @@ describe('kernelFunctionFromPrompt', () => {
     };
 
     // Assert
-    expect(result.value.choices[0].text).toEqual('** Hello.Hi there! **');
+    expect(result.value.messages[0].text).toEqual('** Hello.Hi there! **');
     expect(result.renderedPrompt).toEqual(prompt);
   });
 
@@ -160,8 +160,8 @@ describe('kernelFunctionFromPrompt', () => {
       const result = (await kernelFunction.invoke(mockKernel)) as { value: ChatResponse; renderedPrompt?: string };
 
       // Assert
-      expect(result.value.choices[0].text).toEqual('This is a response from the filter');
-      expect(result.value.choices[0].role).toEqual('assistant');
+      expect(result.value.messages[0].text).toEqual('This is a response from the filter');
+      expect(result.value.messages[0].role).toEqual('assistant');
     });
   });
 });

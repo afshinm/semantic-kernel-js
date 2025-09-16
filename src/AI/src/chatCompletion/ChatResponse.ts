@@ -11,10 +11,6 @@ export class ChatResponse {
   private _messages: ChatMessage[] = [];
 
   constructor({ choices, message }: { choices?: ChatMessage[]; message?: ChatMessage } = {}) {
-    if (!choices && !message) {
-      throw new Error('Either choices or message must be provided.');
-    }
-
     if (choices) {
       this._messages = choices;
     } else if (message) {

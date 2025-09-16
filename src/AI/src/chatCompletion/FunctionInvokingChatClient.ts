@@ -2,19 +2,19 @@ import { Logger, LoggerFactory } from '@semantic-kernel/common';
 import { type ChatClient, ChatResponse, DelegatingChatClient, FunctionInvocationContext } from '.';
 import { AITool } from '../AITool';
 import { UsageDetails } from '../UsageDetails';
-import { 
-  type AIContent, 
-  ChatMessage, 
-  FunctionCallContent, 
-  FunctionResultContent,
+import {
+  type AIContent,
+  ChatMessage,
   FunctionApprovalRequestContent,
-  FunctionApprovalResponseContent
+  FunctionApprovalResponseContent,
+  FunctionCallContent,
+  FunctionResultContent,
 } from '../contents';
 import { AIFunction, AIFunctionArguments, ApprovalRequiredAIFunction } from '../functions';
 import { ChatOptions } from './ChatOptions';
-import { RequiredChatToolMode } from './RequiredChatToolMode';
-import { ChatResponseUpdate } from './ChatResponseUpdate';
 import { toChatResponse } from './ChatResponseExtensions';
+import { ChatResponseUpdate } from './ChatResponseUpdate';
+import { RequiredChatToolMode } from './RequiredChatToolMode';
 
 /**
  * Provides information about the invocation of a function call.
@@ -1220,30 +1220,6 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
     update.messageId = messageId;
     update.role = message.role;
     return update;
-  }
-
-  private updatesToChatResponse(updates: ChatResponseUpdate[]): ChatResponse {
-    const messages: ChatMessage[] = [];
-    let conversationId: string | undefined;
-
-    for (const update of updates) {
-      if (update.conversationId) {
-        conversationId = update.conversationId;
-      }
-
-      if (update.contents && update.contents.length > 0) {
-        messages.push(
-          new ChatMessage({
-            role: update.role || 'assistant',
-            contents: update.contents,
-          })
-        );
-      }
-    }
-
-    const response = new ChatResponse({ choices: messages });
-    response.conversationId = conversationId;
-    return response;
   }
 }
 

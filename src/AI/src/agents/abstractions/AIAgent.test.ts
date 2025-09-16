@@ -1,12 +1,13 @@
-import { type ChatMessage } from '../../contents';
 import { AIAgent } from './AIAgent';
+import { AgentRunResponse } from './AgentRunResponse';
+import { AgentRunResponseUpdate } from './AgentRunResponseUpdate';
 
 class MyAIAgent extends AIAgent {
-  override runCore(): Promise<void> {
+  override runCore(): Promise<AgentRunResponse> {
     throw new Error('Method not implemented.');
   }
 
-  override runStreamingCore(): AsyncGenerator<ChatMessage> {
+  override runStreamingCore(): AsyncGenerator<AgentRunResponseUpdate> {
     throw new Error('Method not implemented.');
   }
 }
