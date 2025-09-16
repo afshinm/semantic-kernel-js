@@ -14,6 +14,7 @@ import { AIFunction, AIFunctionArguments, ApprovalRequiredAIFunction } from '../
 import { ChatOptions } from './ChatOptions';
 import { RequiredChatToolMode } from './RequiredChatToolMode';
 import { ChatResponseUpdate } from './ChatResponseUpdate';
+import { toChatResponse } from './ChatResponseExtensions';
 
 /**
  * Provides information about the invocation of a function call.
@@ -185,7 +186,7 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
     let responseMessages: ChatMessage[] | undefined;
     let totalUsage: UsageDetails | undefined;
     let functionCallContents: FunctionCallContent[] | undefined;
-    const lastIterationHadConversationId = false;
+    let lastIterationHadConversationId = false;
     let consecutiveErrorCount = 0;
 
     const { toolMap, anyToolsRequireApproval } = this.createToolsMap(this.additionalTools, options?.tools);
@@ -277,19 +278,19 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
       }
 
       // Prepare history for next iteration
-      this.fixupHistories(
+      ({ messages, augmentedHistory, lastIterationHadConversationId } = this.fixupHistories(
         originalMessages,
         messages,
         augmentedHistory,
         response,
         responseMessages,
         lastIterationHadConversationId
-      );
-      messages = augmentedHistory || messages;
+      ));
+      // messages = augmentedHistory || messages;
 
       // Process function calls
       if (functionCallContents) {
-        const { shouldTerminate, newConsecutiveErrorCount, messagesAdded } = await this.processFunctionCallsAsync(
+        const modAndMessages = await this.processFunctionCallsAsync(
           messages,
           options,
           toolMap,
@@ -299,10 +300,10 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
           false
         );
 
-        responseMessages.push(...messagesAdded);
-        consecutiveErrorCount = newConsecutiveErrorCount;
+        responseMessages.push(...modAndMessages.messagesAdded);
+        consecutiveErrorCount = modAndMessages.newConsecutiveErrorCount;
 
-        if (shouldTerminate) {
+        if (modAndMessages.shouldTerminate) {
           break;
         }
       }
@@ -310,14 +311,10 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
       this.updateOptionsForNextIteration(options, response.conversationId);
     }
 
-    if (responseMessages && response) {
-      const finalResponse = new ChatResponse({ choices: responseMessages });
-      finalResponse.conversationId = response.conversationId;
-      finalResponse.usage = totalUsage;
-      return finalResponse;
-    }
+    response.messages = responseMessages;
+    response.usage = totalUsage;
 
-    throw new Error('No response messages or response available.');
+    return response;
   }
 
   override async *getStreamingResponse(
@@ -360,7 +357,7 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
       }
 
       if (notInvokedApprovals && notInvokedApprovals.length > 0) {
-        const { functionResultContentMessages, shouldTerminate, newConsecutiveErrorCount } =
+        const { invokedApprovedFunctionApprovalResponses, shouldTerminate, newConsecutiveErrorCount } =
           await this.invokeApprovedFunctionApprovalResponsesAsync(
             notInvokedApprovals,
             toolMap,
@@ -370,8 +367,10 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
             true
           );
 
-        if (functionResultContentMessages) {
-          for (const message of functionResultContentMessages) {
+        consecutiveErrorCount = newConsecutiveErrorCount;
+
+        if (invokedApprovedFunctionApprovalResponses) {
+          for (const message of invokedApprovedFunctionApprovalResponses) {
             message.messageId = toolMessageId;
             yield this.convertToolResultMessageToUpdate(message, options?.conversationId, message.messageId);
           }
@@ -380,8 +379,6 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
             return;
           }
         }
-
-        consecutiveErrorCount = newConsecutiveErrorCount;
       }
     }
 
@@ -401,11 +398,13 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
 
         updates.push(update);
 
-        this.copyFunctionCalls(update.contents, functionCallContents);
+        functionCallContents = this.copyFunctionCalls(update.contents);
 
-        if (anyToolsRequireApproval && !approvalRequiredFunctions) {
+        // TODO: update totalUsage
+
+        if (anyToolsRequireApproval && !approvalRequiredFunctions && functionCallContents.length > 0) {
           approvalRequiredFunctions = [...(options?.tools || []), ...(this.additionalTools || [])].filter(
-            (tool): tool is ApprovalRequiredAIFunction => tool instanceof ApprovalRequiredAIFunction
+            (tool) => tool instanceof ApprovalRequiredAIFunction
           );
         }
 
@@ -415,27 +414,23 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
           continue;
         }
 
-        if (functionCallContents && functionCallContents.length > 0) {
-          const checkResult = this.checkForApprovalRequiringFCC(
-            functionCallContents,
-            approvalRequiredFunctions,
-            hasApprovalRequiringFcc,
-            lastApprovalCheckedFCCIndex
-          );
-          hasApprovalRequiringFcc = checkResult.hasApprovalRequiringFcc;
-          lastApprovalCheckedFCCIndex = checkResult.lastApprovalCheckedFCCIndex;
+        ({ hasApprovalRequiringFcc, lastApprovalCheckedFCCIndex } = this.checkForApprovalRequiringFCC(
+          functionCallContents,
+          approvalRequiredFunctions,
+          hasApprovalRequiringFcc,
+          lastApprovalCheckedFCCIndex
+        ));
 
-          if (hasApprovalRequiringFcc) {
-            for (; lastYieldedUpdateIndex < updates.length; lastYieldedUpdateIndex++) {
-              const updateToYield = updates[lastYieldedUpdateIndex];
-              const updatedContents = this.tryReplaceFunctionCallsWithApprovalRequests(updateToYield.contents);
-              if (updatedContents) {
-                updateToYield.contents = updatedContents;
-              }
-              yield updateToYield;
+        if (hasApprovalRequiringFcc) {
+          for (; lastYieldedUpdateIndex < updates.length; lastYieldedUpdateIndex++) {
+            const updateToYield = updates[lastYieldedUpdateIndex];
+            const updatedContents = this.tryReplaceFunctionCallsWithApprovalRequests(updateToYield.contents);
+            if (updatedContents) {
+              updateToYield.contents = updatedContents;
             }
-            continue;
+            yield updateToYield;
           }
+          continue;
         }
       }
 
@@ -449,23 +444,22 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
       }
 
       // Reconstitute response from updates
-      const response = this.updatesToChatResponse(updates);
+      const response = toChatResponse(updates);
       responseMessages = responseMessages ? [...responseMessages, ...response.messages] : [...response.messages];
 
       // Prepare history for next iteration
-      this.fixupHistories(
+      ({ messages, augmentedHistory, lastIterationHadConversationId } = this.fixupHistories(
         originalMessages,
         messages,
         augmentedHistory,
         response,
         responseMessages,
         lastIterationHadConversationId
-      );
-      messages = augmentedHistory || messages;
+      ));
 
       // Process function calls
       if (functionCallContents) {
-        const { shouldTerminate, newConsecutiveErrorCount, messagesAdded } = await this.processFunctionCallsAsync(
+        const modAndMessages = await this.processFunctionCallsAsync(
           messages,
           options,
           toolMap,
@@ -475,15 +469,15 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
           true
         );
 
-        responseMessages.push(...messagesAdded);
-        consecutiveErrorCount = newConsecutiveErrorCount;
+        responseMessages.push(...modAndMessages.messagesAdded);
+        consecutiveErrorCount = modAndMessages.newConsecutiveErrorCount;
 
         // Stream generated function results
-        for (const message of messagesAdded) {
+        for (const message of modAndMessages.messagesAdded) {
           yield this.convertToolResultMessageToUpdate(message, response.conversationId, toolMessageId);
         }
 
-        if (shouldTerminate) {
+        if (modAndMessages.shouldTerminate) {
           break;
         }
       }
@@ -837,28 +831,42 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
     response: ChatResponse,
     allTurnsResponseMessages: ChatMessage[],
     lastIterationHadConversationId: boolean
-  ): boolean {
+  ): {
+    messages: ChatMessage[];
+    augmentedHistory: ChatMessage[] | undefined;
+    lastIterationHadConversationId: boolean;
+  } {
+    const payload = {
+      messages,
+      augmentedHistory,
+      lastIterationHadConversationId,
+    };
+
     if (response.conversationId) {
-      augmentedHistory?.splice(0, augmentedHistory.length);
-      lastIterationHadConversationId = true;
+      if (payload.augmentedHistory) {
+        payload.augmentedHistory.splice(0, payload.augmentedHistory.length);
+      } else {
+        payload.augmentedHistory = [];
+      }
+
+      payload.lastIterationHadConversationId = true;
     } else if (lastIterationHadConversationId) {
-      if (augmentedHistory) {
-        
+      if (!payload.augmentedHistory) {
+        payload.augmentedHistory = [];
       }
-      augmentedHistory = [];
-      augmentedHistory = [...originalMessages, ...allTurnsResponseMessages];
-      lastIterationHadConversationId = false;
+      payload.augmentedHistory = [...originalMessages, ...allTurnsResponseMessages];
+      payload.lastIterationHadConversationId = false;
     } else {
-      if (!augmentedHistory) {
-        augmentedHistory = originalMessages;
+      if (!payload.augmentedHistory) {
+        payload.augmentedHistory = originalMessages;
       }
-      augmentedHistory.push(...response.messages);
-      lastIterationHadConversationId = false;
+      payload.augmentedHistory.push(...response.messages);
+      payload.lastIterationHadConversationId = false;
     }
 
-    messages = augmentedHistory;
+    payload.messages = payload.augmentedHistory;
 
-    return lastIterationHadConversationId;
+    return payload;
   }
 
   private updateOptionsForNextIteration(options: ChatOptions | undefined, conversationId?: string): void {
@@ -1202,11 +1210,15 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
     messageId?: string
   ): ChatResponseUpdate {
     const update = new ChatResponseUpdate();
-    update.contents = message.contents;
+    update.additionalProperties = message.additionalProperties;
+    update.authorName = message.authorName;
     update.conversationId = conversationId;
+    update.createdAt = Date.now();
+    update.contents = message.contents;
+    update.rawRepresentation = message.rawRepresentation;
+    update.responseId = messageId;
     update.messageId = messageId;
     update.role = message.role;
-    update.choiceIndex = 0;
     return update;
   }
 
