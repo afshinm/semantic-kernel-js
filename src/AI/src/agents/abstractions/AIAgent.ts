@@ -1,11 +1,12 @@
 import { ChatMessage } from '../../contents/ChatMessage';
+import { generateId } from '../../utilities';
 import { type AgentRunOptions } from './AgentRunOptions';
 import { AgentRunResponse } from './AgentRunResponse';
 import { AgentRunResponseUpdate } from './AgentRunResponseUpdate';
 import { AgentThread } from './AgentThread';
 
 export abstract class AIAgent {
-  id: string = Math.random().toString(36).substring(7);
+  id: string = generateId();
   name?: string;
   description?: string;
 

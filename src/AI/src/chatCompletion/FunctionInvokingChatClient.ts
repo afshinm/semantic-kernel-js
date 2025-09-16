@@ -11,6 +11,7 @@ import {
   FunctionResultContent,
 } from '../contents';
 import { AIFunction, AIFunctionArguments, ApprovalRequiredAIFunction } from '../functions';
+import { generateId } from '../utilities';
 import { ChatOptions } from './ChatOptions';
 import { toChatResponse } from './ChatResponseExtensions';
 import { ChatResponseUpdate } from './ChatResponseUpdate';
@@ -191,10 +192,10 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
 
     const { toolMap, anyToolsRequireApproval } = this.createToolsMap(this.additionalTools, options?.tools);
 
-    const toolMessageId = this.generateId();
+    const toolMessageId = generateId();
 
     if (this.hasAnyApprovalContent(originalMessages)) {
-      const functionCallContentFallbackMessageId = this.generateId();
+      const functionCallContentFallbackMessageId = generateId();
 
       const { preDownstreamCallHistory, notInvokedApprovals } = this.processApprovalResponses(
         originalMessages,
@@ -338,10 +339,10 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
     let consecutiveErrorCount = 0;
 
     const { toolMap, anyToolsRequireApproval } = this.createToolsMap(this.additionalTools, options?.tools);
-    const toolMessageId = this.generateId();
+    const toolMessageId = generateId();
 
     if (this.hasAnyApprovalContent(originalMessages)) {
-      const functionCallContentFallbackMessageId = this.generateId();
+      const functionCallContentFallbackMessageId = generateId();
 
       const { preDownstreamCallHistory, notInvokedApprovals } = this.processApprovalResponses(
         originalMessages,
@@ -883,10 +884,6 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
       options = options.clone();
       options.conversationId = conversationId;
     }
-  }
-
-  private generateId(): string {
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
   }
 
   private extractAndRemoveApprovalRequestsAndResponses(messages: (ChatMessage | undefined)[]): {
