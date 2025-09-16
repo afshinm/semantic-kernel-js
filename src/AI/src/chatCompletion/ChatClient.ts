@@ -5,6 +5,9 @@ import { ChatOptions } from './ChatOptions';
 import { ChatResponse } from './ChatResponse';
 import { ChatResponseUpdate } from './ChatResponseUpdate';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Constructor = abstract new (...args: any[]) => any;
+
 /**
  * Abstract class representing a chat client that can interact with a chat service.
  */
@@ -35,7 +38,7 @@ export abstract class ChatClient {
    *
    * TODO: Fix this to return the correct type instead of object.
    */
-  abstract getService<T>(serviceType: T, serviceKey?: string): object | undefined;
+  abstract getService<T extends Constructor>(serviceType: T, serviceKey?: string): InstanceType<T> | undefined;
 
   asBuilder(): ChatClientBuilder {
     return new ChatClientBuilder({ innerClient: this });

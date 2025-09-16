@@ -1,4 +1,4 @@
-import { ChatClient, ChatClientMetadata, ChatMessage, type ChatOptions } from '@semantic-kernel/ai';
+import { ChatClient, ChatClientMetadata, ChatMessage, Constructor, type ChatOptions } from '@semantic-kernel/ai';
 import { AzureOpenAI } from 'openai';
 import {
   fromOpenAIChatCompletion,
@@ -53,17 +53,17 @@ export class AzureOpenAIChatClient extends ChatClient {
     return this._metadata;
   }
 
-  getService<T>(serviceType: T, serviceKey?: string) {
+  getService<T extends Constructor>(serviceType: T, serviceKey?: string) {
     if (serviceKey) {
       return undefined;
     }
 
-    if (serviceType === AzureOpenAI) {
-      return this._azureOpenAIClient;
+    if (serviceType === (AzureOpenAI as unknown as T)) {
+      return this._azureOpenAIClient as InstanceType<T>;
     }
 
-    if (serviceType === AzureOpenAIChatClient) {
-      return this;
+    if (serviceType === (AzureOpenAIChatClient as unknown as T)) {
+      return this as InstanceType<T>;
     }
 
     return undefined;

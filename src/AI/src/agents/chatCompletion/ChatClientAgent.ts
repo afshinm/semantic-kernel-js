@@ -35,6 +35,10 @@ export class ChatClientAgent extends AIAgent {
     }
   }
 
+  get agentMetadata() {
+    return this._agentMetadata;
+  }
+
   get chatClient() {
     return this._chatClient;
   }

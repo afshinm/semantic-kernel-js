@@ -231,7 +231,7 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
 
     // Main function calling loop
     for (let iteration = 0; ; iteration++) {
-      functionCallContents = undefined;
+      functionCallContents = [];
 
       // Make the call to the inner client
       response = await super.getResponse(messages, options);
@@ -246,8 +246,8 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
       }
 
       // Check if function invocation is required
-      functionCallContents = [];
-      const anyFunctionCalls = this.copyFunctionCalls(response.messages).length > 0;
+      functionCallContents = this.copyFunctionCalls(response.messages);
+      const anyFunctionCalls = functionCallContents.length > 0;
       const requiresFunctionInvocation = iteration < this.maximumIterationsPerRequest && anyFunctionCalls;
 
       if (!requiresFunctionInvocation && iteration === 0) {
@@ -386,7 +386,7 @@ export class FunctionInvokingChatClient extends DelegatingChatClient {
     // Main function calling loop
     for (let iteration = 0; ; iteration++) {
       updates = [];
-      functionCallContents = undefined;
+      functionCallContents = [];
 
       let hasApprovalRequiringFcc = false;
       let lastApprovalCheckedFCCIndex = 0;

@@ -1,5 +1,5 @@
 import { GenerateContentParameters, GoogleGenAI } from '@google/genai';
-import { ChatClient, ChatClientMetadata, ChatMessage, type ChatOptions } from '@semantic-kernel/ai';
+import { ChatClient, ChatClientMetadata, ChatMessage, Constructor, type ChatOptions } from '@semantic-kernel/ai';
 import {
   fromGeminiChatCompletion,
   fromGeminiStreamingChatCompletion,
@@ -44,17 +44,17 @@ export class GeminiChatClient extends ChatClient {
     return this._metadata;
   }
 
-  getService<T>(serviceType: T, serviceKey?: string) {
+  getService<T extends Constructor>(serviceType: T, serviceKey?: string) {
     if (serviceKey) {
       return undefined;
     }
 
-    if (serviceType === GoogleGenAI) {
-      return this._googleGenAIClient;
+    if (serviceType === (GoogleGenAI as unknown as T)) {
+      return this._googleGenAIClient as InstanceType<T>;
     }
 
-    if (serviceType === GeminiChatClient) {
-      return this;
+    if (serviceType === (GeminiChatClient as unknown as T)) {
+      return this as InstanceType<T>;
     }
 
     return undefined;

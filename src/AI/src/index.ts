@@ -1,4 +1,5 @@
 export * from './AdditionalProperties';
+export * from './agents';
 export * from './AITool';
 export * from './chatCompletion';
 export * from './contents';
